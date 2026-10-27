@@ -1,0 +1,19 @@
+{
+  "name": "City Camp Lagoon 3D Subsurface Digital Twin",
+  "short_name": "City Camp Twin",
+  "description": "Edge-AI stormwater capacity digital twin of the City Camp Lagoon catchment, Baguio City.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#090D16",
+  "theme_color": "#090D16",
+  "categories": ["utilities", "weather", "education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

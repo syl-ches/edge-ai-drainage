@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obsidian: #090d16;
+  --color-cyan-flow: #12b5cb;
+  --color-amber-flow: #fcc934;
+  --color-tangerine: #fa903e;
+  --color-surge: #f538a0;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--app-bg, var(--color-obsidian));
+  color: var(--app-ink, #e2e8f0);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/*
+ * Daylight Diorama theme. Every component is written against Tailwind's slate/sky/status
+ * scales; re-pointing those CSS variables flips the whole UI to a frosted-white & emerald
+ * look without per-component branches:
+ *   slate is inverted (950 = white glass panels ... 50 = ink), sky becomes emerald (accent),
+ *   pale status text tones (200-400) are deepened for contrast on white, white -> ink.
+ */
+html[data-theme="daylight"] {
+  --app-bg: #f3f4ee;
+  --app-ink: #0f172a;
+  --color-slate-50: #0b1220;
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-600: #94a3b8;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f3;
+  --color-slate-950: #ffffff;
+  --color-white: #0f172a;
+  --color-black: #94a3b8;
+  --color-sky-100: #064e3b;
+  --color-sky-200: #065f46;
+  --color-sky-300: #047857;
+  --color-sky-400: #059669;
+  --color-sky-500: #10b981;
+  --color-sky-600: #059669;
+  --color-emerald-200: #065f46;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #059669;
+  --color-teal-200: #115e59;
+  --color-teal-300: #0f766e;
+  --color-rose-200: #9f1239;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+  --color-amber-200: #92400e;
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+  --color-orange-200: #9a3412;
+  --color-orange-400: #ea580c;
+  --color-yellow-200: #854d0e;
+  --color-yellow-400: #a16207;
+  --color-cyan-flow: #0891b2;
+  --color-amber-flow: #ca8a04;
+  --color-tangerine: #ea580c;
+  --color-surge: #dc2626;
+}
+html[data-theme="daylight"] .maplibregl-ctrl-attrib {
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #64748b !important;
+}
+html[data-theme="daylight"] .maplibregl-ctrl-attrib a {
+  color: #047857 !important;
+}
+html[data-theme="daylight"] .hud-range::-webkit-slider-thumb {
+  background: #ffffff;
+  border-color: #047857;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3), 0 2px 6px rgba(15, 23, 42, 0.25);
+}
+html[data-theme="daylight"] .hud-range::-moz-range-thumb {
+  background: #ffffff;
+  border-color: #047857;
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgba(9, 13, 22, 0.7) !important;
+  color: #64748b !important;
+  font-size: 10px;
+}
+.maplibregl-ctrl-attrib a {
+  color: #94a3b8 !important;
+}
+
+/* HUD sliders: big touch-friendly thumbs, no layout thrash while scrubbing. */
+.hud-range {
+  touch-action: pan-y;
+}
+.hud-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #f8fafc;
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+}
+.hud-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #f8fafc;
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+  cursor: grab;
+}
+.hud-range:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}

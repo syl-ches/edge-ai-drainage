@@ -1,0 +1,25 @@
+# Edge-AI Stormwater Digital Twin — City Camp Lagoon Catchment, Baguio City
+# Python >= 3.10 (tested on 3.13). Recommended: python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
+
+# --- Phase 1: topology + hydraulic LUT generator (scripts/generate_citycamp_twin_data.py)
+numpy>=1.26
+
+# --- Graph / geometry utilities (LGU shapefile hot-swap)
+networkx>=3.2
+shapely>=2.0.6
+
+# --- Phase 4: FastAPI live backend (backend/main.py)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+websockets>=12.0
+pydantic>=2.6
+
+# --- Phase 4/5 tests (FastAPI TestClient) and the USB serial bridge (scripts/serial_bridge.py)
+httpx>=0.27
+pyserial>=3.5
+
+# --- Optional GIS extras (NOT required; the generator falls back to built-in topology)
+# Enables `python scripts/generate_citycamp_twin_data.py --osmnx`:
+#   pip install "osmnx>=1.9" "geopandas>=0.14"
+# osmnx>=1.9
+# geopandas>=0.14

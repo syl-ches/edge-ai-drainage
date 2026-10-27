@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+__pycache__/
+.vite/
+firmware/citycamp_edge_node/include/secrets.h
+firmware/citycamp_edge_node/.pio/
+.venv/

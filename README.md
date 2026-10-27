@@ -1,93 +1,136 @@
-# edge-ai-drainage
+# Edge-AI Stormwater Digital Twin: City Camp Lagoon, Baguio City
 
+A 3D subsurface digital twin of the City Camp Lagoon drainage catchment. It shows the
+storm drains, the lagoon and the drainage tunnel under a sunlit 3D city model. Live
+"Edge-AI" sensor nodes report how full each pipe is, and the twin predicts when the lagoon
+will overflow.
 
+## Quick start
 
-## Getting started
+### 1. Install the prerequisites (once)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+| Software | Version | Needed for | Download |
+|---|---|---|---|
+| **Node.js** (LTS) | **20 or newer** | the web app (**required**) | https://nodejs.org (keep "Add to PATH" ticked) |
+| **Python** | 3.10 or newer | the live sensor backend (optional but recommended) | https://www.python.org/downloads/ (Windows: tick **"Add python.exe to PATH"**) |
+| **Git** | any | downloading the project | https://git-scm.com/downloads |
+| A modern browser | Chrome, Edge or Firefox with WebGL2 | viewing the twin | |
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+To check what you already have, open a terminal (PowerShell on Windows) and run:
 
-## Add your files
+```bash
+node --version     # must print v20.x or newer
+python --version   # 3.10 or newer (on Windows, "py --version" also works)
+```
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+### 2. Get the code
+
+```bash
+git clone https://gitlab.com/2240958/edge-ai-drainage.git
+cd edge-ai-drainage
+```
+
+### 3. Run it
+
+**Windows:** double-click **`start.bat`**. **Any OS:**
+
+```bash
+npm start
+```
+
+The first run installs everything automatically: npm packages, a Python `.venv` and its
+packages. It takes about 1–2 minutes. After that it starts both servers and prints:
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/2240958/edge-ai-drainage.git
-git branch -M main
-git push -uf origin main
+[start]   Open in your browser:  http://localhost:5173
+[start]   On your phone (same Wi-Fi):  http://192.168.x.x:5173
+[start]   Live backend API:  http://localhost:8000/docs
 ```
 
-## Integrate with your tools
+Open **http://localhost:5173**. Press **Ctrl+C** in the terminal to stop.
 
-* [Set up project integrations](https://gitlab.com/2240958/edge-ai-drainage/-/settings/integrations)
+The launcher also handles these cases for you:
+- **No Python?** The web app still runs. LIVE mode falls back to a built-in typhoon playback.
+- **Port 5173 busy?** It picks the next free port.
+- **Backend already running on :8000?** It reuses that backend.
 
-## Collaborate with your team
+### Other ways to run
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+| Command | What it does |
+|---|---|
+| `npm start` | Install if needed, then run backend (:8000) + frontend (:5173) |
+| `npm run setup` | Install everything, then exit |
+| `npm run start:frontend` | Frontend only (no Python needed) |
+| `npm run start:prod` | Production build served on :4173 |
+| `npm run check` | Typecheck + frontend tests |
 
-## Test and Deploy
+---
 
-Use the built-in continuous integration in GitLab.
+## What you can do in the app
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+- **Rainfall and trash-rack blockage sliders** (left panel) replay 48 precomputed storm
+  scenarios. The panel also has presets, up to an Ondoy-scale 200 mm/h typhoon.
+- **Top bar:**
+  - switch between the Daylight Diorama and Dark X-Ray themes;
+  - toggle buildings, vegetation, the drainage network and node badges;
+  - open the Cross-Section Simulator and the Subsurface Utility Inspector.
+- **Bottom bar:** shade buildings as Solid Concrete, Holo Wireframe or Fresnel Glass to see
+  the pipes underneath.
+- **Click a sensor badge** (EN-01 … EN-10) to see:
+  - its decoded 4-byte LoRaWAN payload;
+  - the Kalman-filtered depth;
+  - the Edge-AI anomaly class;
+  - a cutaway animation of its manhole.
+- **Live Telemetry** mode streams the FastAPI backend: the virtual sensor fleet, sensor
+  fusion and the flood nowcast.
+- **Share:** the QR button opens the exact view on a phone on the same Wi-Fi.
 
-***
+## Project layout
 
-# Editing this README
+```
+src/                 React + MapLibre + Three.js web app (the 3D twin)
+public/data/         generated network + simulation lookup table (committed)
+backend/             FastAPI live backend: virtual sensor fleet, fusion, nowcast, WebSocket
+firmware/            XIAO ESP32-S3 sensor-node firmware (PlatformIO)
+scripts/             data generator, launcher, serial bridge, test suites
+docs/                hardware bench demo guide (BOM, wiring, PVC standpipe rig)
+tests/frontend/      vitest suites
+CLAUDE.md            full technical specification (geometry, CRS, hydraulics, telemetry contract)
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Development commands
 
-## Suggestions for a good README
+```bash
+npm run dev                  # frontend only, hot reload
+npm run build                # strict typecheck + production bundle
+npm test                     # frontend tests (vitest)
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+# Python (after `npm run setup` has created .venv)
+.venv/Scripts/python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000   # backend alone
+.venv/Scripts/python scripts/test_phase4_backend.py                           # backend tests
+.venv/Scripts/python scripts/test_phase5_firmware.py                          # firmware tests (needs g++/clang++/zig)
+.venv/Scripts/python scripts/serial_bridge.py --virtual-standpipe             # simulated hardware node
+.venv/Scripts/python scripts/generate_citycamp_twin_data.py                   # regenerate public/data
+```
 
-## Name
-Choose a self-explaining name for your project.
+On macOS/Linux, use `.venv/bin/python` instead of `.venv/Scripts/python`.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+**Hardware (optional):** to flash a real sensor node you also need
+[PlatformIO](https://platformio.org/install). See
+[docs/HARDWARE_BENCH_DEMO_GUIDE.md](docs/HARDWARE_BENCH_DEMO_GUIDE.md).
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## Troubleshooting
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+| Problem | Fix |
+|---|---|
+| `'node' is not recognized` / `command not found` | Install Node.js, then **close and reopen** the terminal so PATH updates. |
+| `Python >= 3.10 not found` | Install Python with "Add to PATH" ticked, reopen the terminal, then run `npm start` again. The frontend works without it. |
+| Blank map or "WebGL2" error | Use an up-to-date Chrome or Edge and turn on hardware acceleration in the browser settings. |
+| Basemap streets missing | The street tiles need internet. Offline, the grid, contours and 3D twin still render. |
+| Phone can't open the LAN link | Same Wi-Fi network only. Allow Node.js through the Windows Firewall when prompted. |
+| Python packages changed | Nothing to do: `npm start` re-installs when `requirements.txt` changes. |
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Data note
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+All drainage geometry is **synthetic**: plausible stand-ins laid out around the real lagoon
+centroid. It is not surveyed or as-built data. See `CLAUDE.md` §1.

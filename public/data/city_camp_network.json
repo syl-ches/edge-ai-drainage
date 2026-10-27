@@ -1,0 +1,8635 @@
+{
+ "meta": {
+  "project": "Edge-AI Stormwater Capacity Detection & 3D Subsurface Digital Twin — City Camp Lagoon Catchment",
+  "schema_version": "1.0.0",
+  "generator": "scripts/generate_citycamp_twin_data.py",
+  "rng_seed": 20240917,
+  "anchor": {
+   "lon": 120.5863,
+   "lat": 16.4093,
+   "utm51n_en": [
+    242222.2,
+    1815745.258
+   ]
+  },
+  "crs": {
+   "export": "EPSG:4326 [lon, lat, elevation_m_ASL]",
+   "metric": "EPSG:32651",
+   "cadastral": "EPSG:3123 (PRS92 / Philippines zone III)",
+   "prs92_to_wgs84_towgs84": [
+    -127.62153,
+    -67.24339,
+    -47.04738,
+    3.06803,
+    -4.90297,
+    -1.57807,
+    -1.06002
+   ],
+   "helmert_convention": "Position Vector (PROJ +towgs84); WGS84->PRS92 = negated terms"
+  },
+  "vertical_exaggeration": 1.0,
+  "conventions": {
+   "node_z": "rim/ground elevation (manhole lid)",
+   "conduit_z": "invert elevation",
+   "storage_z": "rim elevation; see invert_elev_m"
+  },
+  "buildings_source": "built-in synthetic footprints",
+  "counts": {
+   "nodes": 65,
+   "conduits": 63,
+   "orifices": 1,
+   "buildings": 84,
+   "sensors": 10,
+   "conduits_by_shape": {
+    "RECT_CLOSED": 35,
+    "CIRCULAR": 25,
+    "ARCH": 3
+   },
+   "nodes_by_type": {
+    "JUNCTION": 63,
+    "STORAGE": 1,
+    "OUTFALL": 1
+   }
+  },
+  "disclaimer": "Synthetic, geographically anchored topology. Replace with LGU/DPWH records via source_type."
+ },
+ "nodes": [
+  {
+   "id": "CCC-J00",
+   "type": "JUNCTION",
+   "name": "City Camp Central Feeder MH-01",
+   "barangay": "City Camp Central",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5905031,
+    16.4099806,
+    1477.754
+   ],
+   "rim_elev_m": 1477.754,
+   "invert_elev_m": 1475.654,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 1.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242672.2,
+    1815815.258
+   ],
+   "ptm3_en": [
+    456114.446,
+    1815026.336
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCC-J01",
+   "type": "JUNCTION",
+   "name": "City Camp Central Feeder MH-02",
+   "barangay": "City Camp Central",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5897511,
+    16.410243,
+    1477.613
+   ],
+   "rim_elev_m": 1477.613,
+   "invert_elev_m": 1475.227,
+   "max_depth_m": 2.386,
+   "catchment_area_ha": 1.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242592.2,
+    1815845.258
+   ],
+   "ptm3_en": [
+    456034.188,
+    1815055.53
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCC-J02",
+   "type": "JUNCTION",
+   "name": "City Camp Central Feeder MH-03",
+   "barangay": "City Camp Central",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5889981,
+    16.4105957,
+    1473.801
+   ],
+   "rim_elev_m": 1473.801,
+   "invert_elev_m": 1471.701,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 1.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242512.2,
+    1815885.258
+   ],
+   "ptm3_en": [
+    455953.831,
+    1815094.719
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCP-J00",
+   "type": "JUNCTION",
+   "name": "City Camp Proper Feeder MH-01",
+   "barangay": "City Camp Proper",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5826551,
+    16.4088967,
+    1451.063
+   ],
+   "rim_elev_m": 1451.063,
+   "invert_elev_m": 1449.263,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    241832.2,
+    1815705.258
+   ],
+   "ptm3_en": [
+    455275.944,
+    1814908.082
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCP-J01",
+   "type": "JUNCTION",
+   "name": "City Camp Proper Feeder MH-02",
+   "barangay": "City Camp Proper",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5833518,
+    16.4093113,
+    1454.619
+   ],
+   "rim_elev_m": 1454.619,
+   "invert_elev_m": 1448.825,
+   "max_depth_m": 5.794,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    241907.2,
+    1815750.258
+   ],
+   "ptm3_en": [
+    455350.462,
+    1814953.801
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCP-J02",
+   "type": "JUNCTION",
+   "name": "City Camp Proper Feeder MH-03",
+   "barangay": "City Camp Proper",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5839562,
+    16.4096344,
+    1451.369
+   ],
+   "rim_elev_m": 1451.369,
+   "invert_elev_m": 1448.456,
+   "max_depth_m": 2.913,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    241972.2,
+    1815785.258
+   ],
+   "ptm3_en": [
+    455415.084,
+    1814989.427
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J00",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-01",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5804716,
+    16.4114009,
+    1468.413
+   ],
+   "rim_elev_m": 1468.413,
+   "invert_elev_m": 1465.613,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    241602.2,
+    1815985.258
+   ],
+   "ptm3_en": [
+    455043.288,
+    1815185.668
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J01",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-02",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5813633,
+    16.4111854,
+    1469.514
+   ],
+   "rim_elev_m": 1469.514,
+   "invert_elev_m": 1465.122,
+   "max_depth_m": 4.393,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    241697.2,
+    1815960.258
+   ],
+   "ptm3_en": [
+    455138.489,
+    1815161.62
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J02",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-03",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5822092,
+    16.410897,
+    1470.084
+   ],
+   "rim_elev_m": 1470.084,
+   "invert_elev_m": 1464.642,
+   "max_depth_m": 5.441,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    241787.2,
+    1815927.258
+   ],
+   "ptm3_en": [
+    455228.771,
+    1815129.527
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-J00",
+   "type": "JUNCTION",
+   "name": "Guisad Surong Feeder MH-01",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5856387,
+    16.4128334,
+    1473.986
+   ],
+   "rim_elev_m": 1473.986,
+   "invert_elev_m": 1472.186,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242156.2,
+    1816137.258
+   ],
+   "ptm3_en": [
+    455595.512,
+    1815343.074
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-J01",
+   "type": "JUNCTION",
+   "name": "Guisad Surong Feeder MH-02",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5857007,
+    16.4123644,
+    1473.794
+   ],
+   "rim_elev_m": 1473.794,
+   "invert_elev_m": 1471.925,
+   "max_depth_m": 1.869,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242162.2,
+    1816085.258
+   ],
+   "ptm3_en": [
+    455602.024,
+    1815291.159
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-J02",
+   "type": "JUNCTION",
+   "name": "Guisad Surong Feeder MH-03",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5857805,
+    16.4119588,
+    1467.827
+   ],
+   "rim_elev_m": 1467.827,
+   "invert_elev_m": 1465.727,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242170.2,
+    1816040.258
+   ],
+   "ptm3_en": [
+    455610.465,
+    1815246.26
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-J03",
+   "type": "JUNCTION",
+   "name": "Guisad Surong Feeder MH-04",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5858603,
+    16.4115623,
+    1457.575
+   ],
+   "rim_elev_m": 1457.575,
+   "invert_elev_m": 1455.475,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242178.2,
+    1815996.258
+   ],
+   "ptm3_en": [
+    455618.896,
+    1815202.361
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J00",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-01",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5867901,
+    16.4150869,
+    1472.258
+   ],
+   "rim_elev_m": 1472.258,
+   "invert_elev_m": 1469.458,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242282.2,
+    1816385.258
+   ],
+   "ptm3_en": [
+    455718.997,
+    1815592.2
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J01",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-02",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5866136,
+    16.4142267,
+    1472.337
+   ],
+   "rim_elev_m": 1472.337,
+   "invert_elev_m": 1468.973,
+   "max_depth_m": 3.364,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242262.2,
+    1816290.258
+   ],
+   "ptm3_en": [
+    455699.946,
+    1815497.048
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J02",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-03",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5864177,
+    16.4134115,
+    1472.49
+   ],
+   "rim_elev_m": 1472.49,
+   "invert_elev_m": 1468.51,
+   "max_depth_m": 3.98,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242240.2,
+    1816200.258
+   ],
+   "ptm3_en": [
+    455678.848,
+    1815406.875
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J03",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-04",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5862406,
+    16.4125965,
+    1473.175
+   ],
+   "rim_elev_m": 1473.175,
+   "invert_elev_m": 1468.049,
+   "max_depth_m": 5.127,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242220.2,
+    1816110.258
+   ],
+   "ptm3_en": [
+    455659.748,
+    1815316.721
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J04",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-05",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5862688,
+    16.411829,
+    1463.189
+   ],
+   "rim_elev_m": 1463.189,
+   "invert_elev_m": 1460.389,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242222.2,
+    1816025.258
+   ],
+   "ptm3_en": [
+    455662.588,
+    1815231.782
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J05",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-06",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5863526,
+    16.4111073,
+    1443.739
+   ],
+   "rim_elev_m": 1443.739,
+   "invert_elev_m": 1440.939,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242230.2,
+    1815945.258
+   ],
+   "ptm3_en": [
+    455671.375,
+    1815151.901
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-J06",
+   "type": "JUNCTION",
+   "name": "Kisad Road MH-07",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5863972,
+    16.4105206,
+    1433.505
+   ],
+   "rim_elev_m": 1433.505,
+   "invert_elev_m": 1430.705,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 1.714,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242234.2,
+    1815880.258
+   ],
+   "ptm3_en": [
+    455676.016,
+    1815086.973
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-J00",
+   "type": "JUNCTION",
+   "name": "Lourdes Extension Feeder MH-01",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5810073,
+    16.4134847,
+    1475.92
+   ],
+   "rim_elev_m": 1475.92,
+   "invert_elev_m": 1473.82,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 1.25,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    241662.2,
+    1816215.258
+   ],
+   "ptm3_en": [
+    455100.983,
+    1815416.148
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-J01",
+   "type": "JUNCTION",
+   "name": "Lourdes Extension Feeder MH-02",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5815315,
+    16.4127229,
+    1475.448
+   ],
+   "rim_elev_m": 1475.448,
+   "invert_elev_m": 1473.314,
+   "max_depth_m": 2.134,
+   "catchment_area_ha": 1.25,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    241717.2,
+    1816130.258
+   ],
+   "ptm3_en": [
+    455156.797,
+    1815331.734
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-J02",
+   "type": "JUNCTION",
+   "name": "Lourdes Extension Feeder MH-03",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5820083,
+    16.4120058,
+    1474.614
+   ],
+   "rim_elev_m": 1474.614,
+   "invert_elev_m": 1472.514,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 1.25,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    241767.2,
+    1816050.258
+   ],
+   "ptm3_en": [
+    455207.564,
+    1815252.268
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-J03",
+   "type": "JUNCTION",
+   "name": "Lourdes Extension Feeder MH-04",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5824851,
+    16.4112886,
+    1473.063
+   ],
+   "rim_elev_m": 1473.063,
+   "invert_elev_m": 1470.963,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 1.25,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    241817.2,
+    1815970.258
+   ],
+   "ptm3_en": [
+    455258.331,
+    1815172.802
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J03",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-04",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5830081,
+    16.4106171,
+    1470.372
+   ],
+   "rim_elev_m": 1470.372,
+   "invert_elev_m": 1464.188,
+   "max_depth_m": 6.184,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    241872.2,
+    1815895.258
+   ],
+   "ptm3_en": [
+    455314.046,
+    1815098.383
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J04",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-05",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5837607,
+    16.4103096,
+    1463.353
+   ],
+   "rim_elev_m": 1463.353,
+   "invert_elev_m": 1460.553,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    241952.2,
+    1815860.258
+   ],
+   "ptm3_en": [
+    455394.352,
+    1815064.192
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J05",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-06",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5845137,
+    16.409957,
+    1443.901
+   ],
+   "rim_elev_m": 1443.901,
+   "invert_elev_m": 1441.101,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    242032.2,
+    1815820.258
+   ],
+   "ptm3_en": [
+    455474.708,
+    1815025.004
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-J06",
+   "type": "JUNCTION",
+   "name": "Dominican Hill Road MH-07",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5850323,
+    16.4096468,
+    1433.915
+   ],
+   "rim_elev_m": 1433.915,
+   "invert_elev_m": 1431.115,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 2.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    242087.2,
+    1815785.258
+   ],
+   "ptm3_en": [
+    455530.027,
+    1814990.565
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J00",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-01",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5914879,
+    16.4136052,
+    1476.02
+   ],
+   "rim_elev_m": 1476.02,
+   "invert_elev_m": 1473.22,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242782.2,
+    1816215.258
+   ],
+   "ptm3_en": [
+    456220.435,
+    1815427.23
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J01",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-02",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5906535,
+    16.4129633,
+    1475.962
+   ],
+   "rim_elev_m": 1475.962,
+   "invert_elev_m": 1472.65,
+   "max_depth_m": 3.312,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242692.2,
+    1816145.258
+   ],
+   "ptm3_en": [
+    456131.171,
+    1815356.374
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J02",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-03",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.589911,
+    16.412458,
+    1475.797
+   ],
+   "rim_elev_m": 1475.797,
+   "invert_elev_m": 1472.164,
+   "max_depth_m": 3.632,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242612.2,
+    1816090.258
+   ],
+   "ptm3_en": [
+    456051.755,
+    1815300.609
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J03",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-04",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5892621,
+    16.4119537,
+    1475.685
+   ],
+   "rim_elev_m": 1475.685,
+   "invert_elev_m": 1471.719,
+   "max_depth_m": 3.966,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242542.2,
+    1816035.258
+   ],
+   "ptm3_en": [
+    455982.333,
+    1815244.943
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J04",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-05",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5886132,
+    16.4114494,
+    1474.783
+   ],
+   "rim_elev_m": 1474.783,
+   "invert_elev_m": 1471.274,
+   "max_depth_m": 3.508,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242472.2,
+    1815980.258
+   ],
+   "ptm3_en": [
+    455912.911,
+    1815189.277
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J05",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-06",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5880584,
+    16.410901,
+    1458.954
+   ],
+   "rim_elev_m": 1458.954,
+   "invert_elev_m": 1455.954,
+   "max_depth_m": 3.0,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242412.2,
+    1815920.258
+   ],
+   "ptm3_en": [
+    455853.534,
+    1815128.714
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-J06",
+   "type": "JUNCTION",
+   "name": "Legarda Road MH-07",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5875967,
+    16.4103989,
+    1440.481
+   ],
+   "rim_elev_m": 1440.481,
+   "invert_elev_m": 1437.481,
+   "max_depth_m": 3.0,
+   "catchment_area_ha": 2.571,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242362.2,
+    1815865.258
+   ],
+   "ptm3_en": [
+    455804.102,
+    1815073.246
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LRQ-J00",
+   "type": "JUNCTION",
+   "name": "Lower Rock Quarry Lateral MH-01",
+   "barangay": "Lower Rock Quarry",
+   "network": "LATERAL",
+   "coordinates": [
+    120.5750939,
+    16.4051317,
+    1425.765
+   ],
+   "rim_elev_m": 1425.765,
+   "invert_elev_m": 1423.365,
+   "max_depth_m": 2.4,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    241019.295,
+    1815298.106
+   ],
+   "ptm3_en": [
+    454467.467,
+    1814493.092
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LRQ-J01",
+   "type": "JUNCTION",
+   "name": "Lower Rock Quarry Lateral MH-02",
+   "barangay": "Lower Rock Quarry",
+   "network": "LATERAL",
+   "coordinates": [
+    120.5745443,
+    16.4041769,
+    1424.185
+   ],
+   "rim_elev_m": 1424.185,
+   "invert_elev_m": 1421.785,
+   "max_depth_m": 2.4,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    240959.295,
+    1815193.106
+   ],
+   "ptm3_en": [
+    454408.535,
+    1814387.551
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LRQ-J02",
+   "type": "JUNCTION",
+   "name": "Lower Rock Quarry Lateral MH-03",
+   "barangay": "Lower Rock Quarry",
+   "network": "LATERAL",
+   "coordinates": [
+    120.5739484,
+    16.4031763,
+    1422.26
+   ],
+   "rim_elev_m": 1422.26,
+   "invert_elev_m": 1419.86,
+   "max_depth_m": 2.4,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    240894.295,
+    1815083.106
+   ],
+   "ptm3_en": [
+    454344.655,
+    1814276.962
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-J00",
+   "type": "JUNCTION",
+   "name": "Middle Rock Quarry Feeder MH-01",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.591187,
+    16.4076398,
+    1473.968
+   ],
+   "rim_elev_m": 1473.968,
+   "invert_elev_m": 1472.168,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    242742.2,
+    1815555.258
+   ],
+   "ptm3_en": [
+    456186.984,
+    1814767.155
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-J01",
+   "type": "JUNCTION",
+   "name": "Middle Rock Quarry Feeder MH-02",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5903443,
+    16.4076753,
+    1473.511
+   ],
+   "rim_elev_m": 1473.511,
+   "invert_elev_m": 1471.711,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    242652.2,
+    1815560.258
+   ],
+   "ptm3_en": [
+    456096.978,
+    1814771.263
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-J02",
+   "type": "JUNCTION",
+   "name": "Middle Rock Quarry Feeder MH-03",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5895032,
+    16.4075753,
+    1472.941
+   ],
+   "rim_elev_m": 1472.941,
+   "invert_elev_m": 1471.141,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    242562.2,
+    1815550.258
+   ],
+   "ptm3_en": [
+    456007.121,
+    1814760.377
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-J03",
+   "type": "JUNCTION",
+   "name": "Middle Rock Quarry Feeder MH-04",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5887552,
+    16.4075215,
+    1471.123
+   ],
+   "rim_elev_m": 1471.123,
+   "invert_elev_m": 1469.323,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 1.0,
+   "runoff_coeff": 0.82,
+   "utm51n_en": [
+    242482.2,
+    1815545.258
+   ],
+   "ptm3_en": [
+    455927.209,
+    1814754.589
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-J00",
+   "type": "JUNCTION",
+   "name": "Queen of Peace Road MH-01",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5903816,
+    16.4046496,
+    1472.128
+   ],
+   "rim_elev_m": 1472.128,
+   "invert_elev_m": 1469.328,
+   "max_depth_m": 2.8,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242652.2,
+    1815225.258
+   ],
+   "ptm3_en": [
+    456100.291,
+    1814436.426
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-J01",
+   "type": "JUNCTION",
+   "name": "Queen of Peace Road MH-02",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.589829,
+    16.4054381,
+    1472.083
+   ],
+   "rim_elev_m": 1472.083,
+   "invert_elev_m": 1468.801,
+   "max_depth_m": 3.282,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242594.2,
+    1815313.258
+   ],
+   "ptm3_en": [
+    456041.449,
+    1814523.81
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-J02",
+   "type": "JUNCTION",
+   "name": "Queen of Peace Road MH-03",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5892208,
+    16.40619,
+    1472.057
+   ],
+   "rim_elev_m": 1472.057,
+   "invert_elev_m": 1468.273,
+   "max_depth_m": 3.784,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242530.2,
+    1815397.258
+   ],
+   "ptm3_en": [
+    455976.65,
+    1814607.136
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-J03",
+   "type": "JUNCTION",
+   "name": "Queen of Peace Road MH-04",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5886135,
+    16.4068695,
+    1472.608
+   ],
+   "rim_elev_m": 1472.608,
+   "invert_elev_m": 1467.776,
+   "max_depth_m": 4.832,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242466.2,
+    1815473.258
+   ],
+   "ptm3_en": [
+    455911.929,
+    1814682.466
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-J04",
+   "type": "JUNCTION",
+   "name": "Queen of Peace Road MH-05",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5880256,
+    16.4074951,
+    1461.095
+   ],
+   "rim_elev_m": 1461.095,
+   "invert_elev_m": 1458.095,
+   "max_depth_m": 3.0,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242404.2,
+    1815543.258
+   ],
+   "ptm3_en": [
+    455849.267,
+    1814751.818
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-J00",
+   "type": "JUNCTION",
+   "name": "Upper Rock Quarry Feeder MH-01",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5876336,
+    16.4058827,
+    1473.904
+   ],
+   "rim_elev_m": 1473.904,
+   "invert_elev_m": 1472.104,
+   "max_depth_m": 1.8,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242360.2,
+    1815365.258
+   ],
+   "ptm3_en": [
+    455807.049,
+    1814573.47
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-J01",
+   "type": "JUNCTION",
+   "name": "Upper Rock Quarry Feeder MH-02",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5874886,
+    16.4062604,
+    1473.987
+   ],
+   "rim_elev_m": 1473.987,
+   "invert_elev_m": 1471.881,
+   "max_depth_m": 2.107,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242345.2,
+    1815407.258
+   ],
+   "ptm3_en": [
+    455791.641,
+    1814615.301
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-J02",
+   "type": "JUNCTION",
+   "name": "Upper Rock Quarry Feeder MH-03",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5873436,
+    16.4066381,
+    1470.305
+   ],
+   "rim_elev_m": 1470.305,
+   "invert_elev_m": 1468.205,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242330.2,
+    1815449.258
+   ],
+   "ptm3_en": [
+    455776.233,
+    1814657.132
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-J03",
+   "type": "JUNCTION",
+   "name": "Upper Rock Quarry Feeder MH-04",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "coordinates": [
+    120.5871892,
+    16.4070158,
+    1461.205
+   ],
+   "rim_elev_m": 1461.205,
+   "invert_elev_m": 1459.105,
+   "max_depth_m": 2.1,
+   "catchment_area_ha": 2.5,
+   "runoff_coeff": 0.8,
+   "utm51n_en": [
+    242314.2,
+    1815491.258
+   ],
+   "ptm3_en": [
+    455759.825,
+    1814698.954
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-J05",
+   "type": "JUNCTION",
+   "name": "Queen of Peace Road MH-06",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "coordinates": [
+    120.5874851,
+    16.408067,
+    1440.701
+   ],
+   "rim_elev_m": 1440.701,
+   "invert_elev_m": 1437.701,
+   "max_depth_m": 3.0,
+   "catchment_area_ha": 2.667,
+   "runoff_coeff": 0.85,
+   "utm51n_en": [
+    242347.2,
+    1815607.258
+   ],
+   "ptm3_en": [
+    455791.661,
+    1814815.224
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CITY_CAMP_LAGOON_STORAGE",
+   "type": "STORAGE",
+   "name": "City Camp Lagoon (karst doline)",
+   "barangay": "City Camp Central",
+   "network": "STORAGE",
+   "coordinates": [
+    120.5863,
+    16.4093,
+    1433.0
+   ],
+   "rim_elev_m": 1433.0,
+   "invert_elev_m": 1426.5,
+   "max_depth_m": 6.5,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": null,
+   "utm51n_en": [
+    242222.2,
+    1815745.258
+   ],
+   "ptm3_en": [
+    455665.357,
+    1814951.92
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "surface_area_m2": 30000.0,
+   "permanent_pool_depth_m": 1.5
+  },
+  {
+   "id": "TUN-J00",
+   "type": "JUNCTION",
+   "name": "Trash-rack intake drop shaft",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5853755,
+    16.4087706,
+    1433.028
+   ],
+   "rim_elev_m": 1433.028,
+   "invert_elev_m": 1418.0,
+   "max_depth_m": 15.028,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    242122.722,
+    1815687.824
+   ],
+   "ptm3_en": [
+    455566.497,
+    1814893.531
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J01",
+   "type": "JUNCTION",
+   "name": "Tunnel station 220 m",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.583696,
+    16.4076085,
+    1442.132
+   ],
+   "rim_elev_m": 1442.132,
+   "invert_elev_m": 1415.14,
+   "max_depth_m": 26.992,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241941.728,
+    1815561.316
+   ],
+   "ptm3_en": [
+    455386.842,
+    1814765.294
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J02",
+   "type": "JUNCTION",
+   "name": "Tunnel station 300 m",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5830793,
+    16.4071955,
+    1441.528
+   ],
+   "rim_elev_m": 1441.528,
+   "invert_elev_m": 1414.74,
+   "max_depth_m": 26.788,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241875.289,
+    1815516.391
+   ],
+   "ptm3_en": [
+    455320.881,
+    1814719.735
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J03",
+   "type": "JUNCTION",
+   "name": "Tunnel station 460 m",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5818295,
+    16.4063965,
+    1438.69
+   ],
+   "rim_elev_m": 1438.69,
+   "invert_elev_m": 1413.14,
+   "max_depth_m": 25.55,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241740.688,
+    1815429.527
+   ],
+   "ptm3_en": [
+    455187.205,
+    1814631.581
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J04",
+   "type": "JUNCTION",
+   "name": "Tunnel station 760 m",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5794118,
+    16.4050191,
+    1430.482
+   ],
+   "rim_elev_m": 1430.482,
+   "invert_elev_m": 1409.24,
+   "max_depth_m": 21.242,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241480.53,
+    1815280.134
+   ],
+   "ptm3_en": [
+    454928.652,
+    1814479.69
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J05",
+   "type": "JUNCTION",
+   "name": "Tunnel station 880 m",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5784176,
+    16.4045123,
+    1427.283
+   ],
+   "rim_elev_m": 1427.283,
+   "invert_elev_m": 1408.04,
+   "max_depth_m": 19.243,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241373.625,
+    1815225.299
+   ],
+   "ptm3_en": [
+    454822.342,
+    1814423.825
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J06",
+   "type": "JUNCTION",
+   "name": "Tunnel station 1130 m",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.576312,
+    16.4035125,
+    1423.169
+   ],
+   "rim_elev_m": 1423.169,
+   "invert_elev_m": 1404.79,
+   "max_depth_m": 18.379,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241147.303,
+    1815117.301
+   ],
+   "ptm3_en": [
+    454597.2,
+    1814313.642
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J07",
+   "type": "JUNCTION",
+   "name": "Tunnel station 1220 m",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5755485,
+    16.4031614,
+    1423.0
+   ],
+   "rim_elev_m": 1423.0,
+   "invert_elev_m": 1403.89,
+   "max_depth_m": 19.11,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    241065.256,
+    1815079.411
+   ],
+   "ptm3_en": [
+    454515.568,
+    1814274.959
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J08",
+   "type": "JUNCTION",
+   "name": "Lower Rock Quarry lateral junction",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.573353,
+    16.4021306,
+    1419.518
+   ],
+   "rim_elev_m": 1419.518,
+   "invert_elev_m": 1400.51,
+   "max_depth_m": 19.008,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    240829.295,
+    1814968.106
+   ],
+   "ptm3_en": [
+    454280.825,
+    1814161.377
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J09",
+   "type": "JUNCTION",
+   "name": "Tunnel station 1800 m",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5707226,
+    16.4007455,
+    1408.428
+   ],
+   "rim_elev_m": 1408.428,
+   "invert_elev_m": 1396.35,
+   "max_depth_m": 12.078,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    240546.377,
+    1814818.135
+   ],
+   "ptm3_en": [
+    453999.53,
+    1814008.683
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-J10",
+   "type": "JUNCTION",
+   "name": "Tunnel station 2150 m",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5679714,
+    16.3990257,
+    1396.261
+   ],
+   "rim_elev_m": 1396.261,
+   "invert_elev_m": 1391.8,
+   "max_depth_m": 4.461,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    240250.114,
+    1814631.276
+   ],
+   "ptm3_en": [
+    453705.262,
+    1813818.989
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "TUN-OUT",
+   "type": "OUTFALL",
+   "name": "Crystal Cave tunnel outfall portal",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "coordinates": [
+    120.5660614,
+    16.3977078,
+    1393.0
+   ],
+   "rim_elev_m": 1393.0,
+   "invert_elev_m": 1388.55,
+   "max_depth_m": 4.45,
+   "catchment_area_ha": 0.0,
+   "runoff_coeff": 0.0,
+   "utm51n_en": [
+    240044.261,
+    1814487.824
+   ],
+   "ptm3_en": [
+    453500.93,
+    1813673.574
+   ],
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  }
+ ],
+ "conduits": [
+  {
+   "id": "TUN-C01",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 1",
+   "road": "Main Drainage Tunnel",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "from_node": "TUN-J00",
+   "to_node": "TUN-J01",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.5853755,
+     16.4087706,
+     1418.0
+    ],
+    [
+     120.583696,
+     16.4076085,
+     1415.14
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1418.0,
+   "outlet_invert_m": 1415.14,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 220.82,
+   "length_3d_m": 220.84,
+   "slope": 0.01295,
+   "slope_eff_sin": 0.01295,
+   "manning_n": 0.013,
+   "q_full_cms": 44.819,
+   "q_max_cms": 51.922,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 15.3,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C02",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted transition apron 2",
+   "road": "Main Drainage Tunnel",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "from_node": "TUN-J01",
+   "to_node": "TUN-J02",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.583696,
+     16.4076085,
+     1415.14
+    ],
+    [
+     120.5830793,
+     16.4071955,
+     1414.74
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1415.14,
+   "outlet_invert_m": 1414.74,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 80.2,
+   "length_3d_m": 80.2,
+   "slope": 0.00499,
+   "slope_eff_sin": 0.00499,
+   "manning_n": 0.013,
+   "q_full_cms": 27.814,
+   "q_max_cms": 32.221,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 16.35,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_TRANSITION",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C03",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel unfinished bedrock choke (ARCH) 3",
+   "road": "Main Drainage Tunnel",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "from_node": "TUN-J02",
+   "to_node": "TUN-J03",
+   "shape": "ARCH",
+   "material": "Excavated limestone bedrock (unlined)",
+   "geometry": {
+    "rise_m": 1.7,
+    "span_m": 1.5,
+    "diameter_m": null,
+    "haunch_m": null,
+    "area_full_m2": 2.309
+   },
+   "coordinates": [
+    [
+     120.5830793,
+     16.4071955,
+     1414.74
+    ],
+    [
+     120.5818295,
+     16.4063965,
+     1413.14
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1414.74,
+   "outlet_invert_m": 1413.14,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 160.2,
+   "length_3d_m": 160.2,
+   "slope": 0.00999,
+   "slope_eff_sin": 0.00999,
+   "manning_n": 0.03,
+   "q_full_cms": 4.182,
+   "q_max_cms": 4.444,
+   "y_at_qmax_ratio": 0.943,
+   "tc_min": 18.4,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "UNFINISHED_ROCK_CHOKE",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C04",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 4",
+   "road": "Main Drainage Tunnel",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "from_node": "TUN-J03",
+   "to_node": "TUN-J04",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.5818295,
+     16.4063965,
+     1413.14
+    ],
+    [
+     120.5794118,
+     16.4050191,
+     1409.24
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1413.14,
+   "outlet_invert_m": 1409.24,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 300.0,
+   "length_3d_m": 300.03,
+   "slope": 0.013,
+   "slope_eff_sin": 0.013,
+   "manning_n": 0.013,
+   "q_full_cms": 44.903,
+   "q_max_cms": 52.019,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 22.16,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C05",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel unfinished bedrock choke (ARCH) 5",
+   "road": "Main Drainage Tunnel",
+   "barangay": "City Camp Central",
+   "network": "TUNNEL",
+   "from_node": "TUN-J04",
+   "to_node": "TUN-J05",
+   "shape": "ARCH",
+   "material": "Excavated limestone bedrock (unlined)",
+   "geometry": {
+    "rise_m": 1.7,
+    "span_m": 1.5,
+    "diameter_m": null,
+    "haunch_m": null,
+    "area_full_m2": 2.309
+   },
+   "coordinates": [
+    [
+     120.5794118,
+     16.4050191,
+     1409.24
+    ],
+    [
+     120.5784176,
+     16.4045123,
+     1408.04
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1409.24,
+   "outlet_invert_m": 1408.04,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 120.15,
+   "length_3d_m": 120.15,
+   "slope": 0.00999,
+   "slope_eff_sin": 0.00999,
+   "manning_n": 0.03,
+   "q_full_cms": 4.182,
+   "q_max_cms": 4.444,
+   "y_at_qmax_ratio": 0.943,
+   "tc_min": 23.7,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "UNFINISHED_ROCK_CHOKE",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C06",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 6",
+   "road": "Main Drainage Tunnel",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "from_node": "TUN-J05",
+   "to_node": "TUN-J06",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.5784176,
+     16.4045123,
+     1408.04
+    ],
+    [
+     120.576312,
+     16.4035125,
+     1404.79
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1408.04,
+   "outlet_invert_m": 1404.79,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 250.77,
+   "length_3d_m": 250.79,
+   "slope": 0.01296,
+   "slope_eff_sin": 0.01296,
+   "manning_n": 0.013,
+   "q_full_cms": 44.834,
+   "q_max_cms": 51.939,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 26.83,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C07",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel unfinished bedrock choke (ARCH) 7",
+   "road": "Main Drainage Tunnel",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "from_node": "TUN-J06",
+   "to_node": "TUN-J07",
+   "shape": "ARCH",
+   "material": "Excavated limestone bedrock (unlined)",
+   "geometry": {
+    "rise_m": 1.7,
+    "span_m": 1.5,
+    "diameter_m": null,
+    "haunch_m": null,
+    "area_full_m2": 2.309
+   },
+   "coordinates": [
+    [
+     120.576312,
+     16.4035125,
+     1404.79
+    ],
+    [
+     120.5755485,
+     16.4031614,
+     1403.89
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1404.79,
+   "outlet_invert_m": 1403.89,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 90.37,
+   "length_3d_m": 90.38,
+   "slope": 0.00996,
+   "slope_eff_sin": 0.00996,
+   "manning_n": 0.03,
+   "q_full_cms": 4.176,
+   "q_max_cms": 4.437,
+   "y_at_qmax_ratio": 0.943,
+   "tc_min": 27.98,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "UNFINISHED_ROCK_CHOKE",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C08",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 8",
+   "road": "Main Drainage Tunnel",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "from_node": "TUN-J07",
+   "to_node": "TUN-J08",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.5755485,
+     16.4031614,
+     1403.89
+    ],
+    [
+     120.573353,
+     16.4021306,
+     1400.51
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1403.89,
+   "outlet_invert_m": 1400.51,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 260.89,
+   "length_3d_m": 260.92,
+   "slope": 0.01296,
+   "slope_eff_sin": 0.01295,
+   "manning_n": 0.013,
+   "q_full_cms": 44.826,
+   "q_max_cms": 51.93,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 31.21,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C09",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 9",
+   "road": "Main Drainage Tunnel",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "from_node": "TUN-J08",
+   "to_node": "TUN-J09",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.573353,
+     16.4021306,
+     1400.51
+    ],
+    [
+     120.5707226,
+     16.4007455,
+     1396.35
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1400.51,
+   "outlet_invert_m": 1396.35,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 320.21,
+   "length_3d_m": 320.24,
+   "slope": 0.01299,
+   "slope_eff_sin": 0.01299,
+   "manning_n": 0.013,
+   "q_full_cms": 44.889,
+   "q_max_cms": 52.002,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 35.12,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C10",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 10",
+   "road": "Main Drainage Tunnel",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "from_node": "TUN-J09",
+   "to_node": "TUN-J10",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.5707226,
+     16.4007455,
+     1396.35
+    ],
+    [
+     120.5679714,
+     16.3990257,
+     1391.8
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1396.35,
+   "outlet_invert_m": 1391.8,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 350.27,
+   "length_3d_m": 350.3,
+   "slope": 0.01299,
+   "slope_eff_sin": 0.01299,
+   "manning_n": 0.013,
+   "q_full_cms": 44.886,
+   "q_max_cms": 51.999,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 39.34,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "TUN-C11",
+   "link_type": "CONDUIT",
+   "name": "City Camp-Crystal Cave tunnel concreted lined segment 11",
+   "road": "Main Drainage Tunnel",
+   "barangay": "Lower Rock Quarry",
+   "network": "TUNNEL",
+   "from_node": "TUN-J10",
+   "to_node": "TUN-OUT",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "diameter_m": null,
+    "haunch_m": 0.152,
+    "area_full_m2": 6.704
+   },
+   "coordinates": [
+    [
+     120.5679714,
+     16.3990257,
+     1391.8
+    ],
+    [
+     120.5660614,
+     16.3977078,
+     1388.55
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1391.8,
+   "outlet_invert_m": 1388.55,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 250.91,
+   "length_3d_m": 250.93,
+   "slope": 0.01295,
+   "slope_eff_sin": 0.01295,
+   "manning_n": 0.013,
+   "q_full_cms": 44.822,
+   "q_max_cms": 51.925,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 42.34,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "segment_class": "CONCRETED_LINED",
+   "spec_reference": "DPWH BCDEO Contracts 18PD0020 & 19PD0032"
+  },
+  {
+   "id": "LGD-C01",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 1",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J00",
+   "to_node": "LGD-J01",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5914879,
+     16.4136052,
+     1473.22
+    ],
+    [
+     120.5906535,
+     16.4129633,
+     1472.65
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1473.22,
+   "outlet_invert_m": 1472.65,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 114.02,
+   "length_3d_m": 114.02,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 10.75,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-C02",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 2",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J01",
+   "to_node": "LGD-J02",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5906535,
+     16.4129633,
+     1472.65
+    ],
+    [
+     120.589911,
+     16.412458,
+     1472.164
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1472.65,
+   "outlet_invert_m": 1472.164,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 97.08,
+   "length_3d_m": 97.08,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 14.24,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-C03",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 3",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J02",
+   "to_node": "LGD-J03",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.589911,
+     16.412458,
+     1472.164
+    ],
+    [
+     120.5892621,
+     16.4119537,
+     1471.719
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1472.164,
+   "outlet_invert_m": 1471.719,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 89.02,
+   "length_3d_m": 89.02,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 17.12,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-C04",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 4",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J03",
+   "to_node": "LGD-J04",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5892621,
+     16.4119537,
+     1471.719
+    ],
+    [
+     120.5886132,
+     16.4114494,
+     1471.274
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.719,
+   "outlet_invert_m": 1471.274,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 89.02,
+   "length_3d_m": 89.02,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 19.8,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-C05",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 5",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J04",
+   "to_node": "LGD-J05",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "diameter_m": null,
+    "haunch_m": 0.305,
+    "area_full_m2": 6.814
+   },
+   "coordinates": [
+    [
+     120.5886132,
+     16.4114494,
+     1471.274
+    ],
+    [
+     120.5880584,
+     16.410901,
+     1455.954
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.274,
+   "outlet_invert_m": 1455.954,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 84.85,
+   "length_3d_m": 86.22,
+   "slope": 0.18055,
+   "slope_eff_sin": 0.17768,
+   "manning_n": 0.013,
+   "q_full_cms": 167.903,
+   "q_max_cms": 205.338,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 13.05,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-C06",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 6",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J05",
+   "to_node": "LGD-J06",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "diameter_m": null,
+    "haunch_m": 0.305,
+    "area_full_m2": 6.814
+   },
+   "coordinates": [
+    [
+     120.5880584,
+     16.410901,
+     1455.954
+    ],
+    [
+     120.5875967,
+     16.4103989,
+     1437.481
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1455.954,
+   "outlet_invert_m": 1437.481,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 74.33,
+   "length_3d_m": 76.59,
+   "slope": 0.24852,
+   "slope_eff_sin": 0.24118,
+   "manning_n": 0.013,
+   "q_full_cms": 195.621,
+   "q_max_cms": 239.237,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.05,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LGD-C07",
+   "link_type": "CONDUIT",
+   "name": "Legarda Road RCBC segment 7",
+   "road": "Legarda Road",
+   "barangay": "City Camp Central",
+   "network": "ARTERIAL",
+   "from_node": "LGD-J06",
+   "to_node": "CITY_CAMP_LAGOON_STORAGE",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "diameter_m": null,
+    "haunch_m": 0.305,
+    "area_full_m2": 6.814
+   },
+   "coordinates": [
+    [
+     120.5875967,
+     16.4103989,
+     1437.481
+    ],
+    [
+     120.5870201,
+     16.409941,
+     1430.0
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1437.481,
+   "outlet_invert_m": 1430.0,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 3.5,
+   "length_m": 79.79,
+   "length_3d_m": 80.14,
+   "slope": 0.09377,
+   "slope_eff_sin": 0.09336,
+   "manning_n": 0.013,
+   "q_full_cms": 121.709,
+   "q_max_cms": 148.845,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.69,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C01",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 1",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J00",
+   "to_node": "DHR-J01",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5804716,
+     16.4114009,
+     1465.613
+    ],
+    [
+     120.5813633,
+     16.4111854,
+     1465.122
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1465.613,
+   "outlet_invert_m": 1465.122,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 98.23,
+   "length_3d_m": 98.24,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 10.13,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C02",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 2",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J01",
+   "to_node": "DHR-J02",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5813633,
+     16.4111854,
+     1465.122
+    ],
+    [
+     120.5822092,
+     16.410897,
+     1464.642
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1465.122,
+   "outlet_invert_m": 1464.642,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 95.86,
+   "length_3d_m": 95.86,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 13.66,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C03",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 3",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J02",
+   "to_node": "DHR-J03",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5822092,
+     16.410897,
+     1464.642
+    ],
+    [
+     120.5830081,
+     16.4106171,
+     1464.188
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1464.642,
+   "outlet_invert_m": 1464.188,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 90.82,
+   "length_3d_m": 90.83,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 16.64,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C04",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 4",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J03",
+   "to_node": "DHR-J04",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5830081,
+     16.4106171,
+     1464.188
+    ],
+    [
+     120.5837607,
+     16.4103096,
+     1460.553
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1464.188,
+   "outlet_invert_m": 1460.553,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 87.32,
+   "length_3d_m": 87.4,
+   "slope": 0.04162,
+   "slope_eff_sin": 0.04159,
+   "manning_n": 0.013,
+   "q_full_cms": 58.05,
+   "q_max_cms": 70.935,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 13.8,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C05",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 5",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J04",
+   "to_node": "DHR-J05",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5837607,
+     16.4103096,
+     1460.553
+    ],
+    [
+     120.5845137,
+     16.409957,
+     1441.101
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1460.553,
+   "outlet_invert_m": 1441.101,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 89.44,
+   "length_3d_m": 91.53,
+   "slope": 0.21749,
+   "slope_eff_sin": 0.21252,
+   "manning_n": 0.013,
+   "q_full_cms": 131.227,
+   "q_max_cms": 160.354,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.63,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C06",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 6",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J05",
+   "to_node": "DHR-J06",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5845137,
+     16.409957,
+     1441.101
+    ],
+    [
+     120.5850323,
+     16.4096468,
+     1431.115
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1441.101,
+   "outlet_invert_m": 1431.115,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 65.19,
+   "length_3d_m": 65.95,
+   "slope": 0.15317,
+   "slope_eff_sin": 0.1514,
+   "manning_n": 0.013,
+   "q_full_cms": 110.761,
+   "q_max_cms": 135.346,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.83,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "DHR-C07",
+   "link_type": "CONDUIT",
+   "name": "Dominican Hill Road RCBC segment 7",
+   "road": "Dominican Hill Road",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "ARTERIAL",
+   "from_node": "DHR-J06",
+   "to_node": "CITY_CAMP_LAGOON_STORAGE",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5850323,
+     16.4096468,
+     1431.115
+    ],
+    [
+     120.5854544,
+     16.4095861,
+     1430.2
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1431.115,
+   "outlet_invert_m": 1430.2,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 3.7,
+   "length_m": 45.6,
+   "length_3d_m": 45.61,
+   "slope": 0.02007,
+   "slope_eff_sin": 0.02007,
+   "manning_n": 0.013,
+   "q_full_cms": 40.325,
+   "q_max_cms": 49.276,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 13.42,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C01",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 1",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J00",
+   "to_node": "KSD-J01",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5867901,
+     16.4150869,
+     1469.458
+    ],
+    [
+     120.5866136,
+     16.4142267,
+     1468.973
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1469.458,
+   "outlet_invert_m": 1468.973,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 97.08,
+   "length_3d_m": 97.08,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 10.08,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C02",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 2",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J01",
+   "to_node": "KSD-J02",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5866136,
+     16.4142267,
+     1468.973
+    ],
+    [
+     120.5864177,
+     16.4134115,
+     1468.51
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1468.973,
+   "outlet_invert_m": 1468.51,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 92.65,
+   "length_3d_m": 92.65,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 13.51,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C03",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 3",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J02",
+   "to_node": "KSD-J03",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5864177,
+     16.4134115,
+     1468.51
+    ],
+    [
+     120.5862406,
+     16.4125965,
+     1468.049
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1468.51,
+   "outlet_invert_m": 1468.049,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 92.2,
+   "length_3d_m": 92.2,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 16.55,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C04",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 4",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J03",
+   "to_node": "KSD-J04",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5862406,
+     16.4125965,
+     1468.049
+    ],
+    [
+     120.5862688,
+     16.411829,
+     1460.389
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1468.049,
+   "outlet_invert_m": 1460.389,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 85.02,
+   "length_3d_m": 85.37,
+   "slope": 0.09008,
+   "slope_eff_sin": 0.08972,
+   "manning_n": 0.013,
+   "q_full_cms": 85.265,
+   "q_max_cms": 104.19,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.66,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C05",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 5",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J04",
+   "to_node": "KSD-J05",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5862688,
+     16.411829,
+     1460.389
+    ],
+    [
+     120.5863526,
+     16.4111073,
+     1440.939
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1460.389,
+   "outlet_invert_m": 1440.939,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 80.4,
+   "length_3d_m": 82.72,
+   "slope": 0.24192,
+   "slope_eff_sin": 0.23514,
+   "manning_n": 0.013,
+   "q_full_cms": 138.034,
+   "q_max_cms": 168.672,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 11.23,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C06",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 6",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J05",
+   "to_node": "KSD-J06",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5863526,
+     16.4111073,
+     1440.939
+    ],
+    [
+     120.5863972,
+     16.4105206,
+     1430.705
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1440.939,
+   "outlet_invert_m": 1430.705,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 65.12,
+   "length_3d_m": 65.92,
+   "slope": 0.15715,
+   "slope_eff_sin": 0.15524,
+   "manning_n": 0.013,
+   "q_full_cms": 112.157,
+   "q_max_cms": 137.051,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 11.31,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "KSD-C07",
+   "link_type": "CONDUIT",
+   "name": "Kisad Road RCBC segment 7",
+   "road": "Kisad Road",
+   "barangay": "City Camp Proper",
+   "network": "ARTERIAL",
+   "from_node": "KSD-J06",
+   "to_node": "CITY_CAMP_LAGOON_STORAGE",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5863972,
+     16.4105206,
+     1430.705
+    ],
+    [
+     120.5862607,
+     16.4101091,
+     1430.2
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1430.705,
+   "outlet_invert_m": 1430.2,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 3.7,
+   "length_m": 47.83,
+   "length_3d_m": 47.83,
+   "slope": 0.01056,
+   "slope_eff_sin": 0.01056,
+   "manning_n": 0.013,
+   "q_full_cms": 29.247,
+   "q_max_cms": 35.739,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 11.96,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-C01",
+   "link_type": "CONDUIT",
+   "name": "Queen of Peace Road RCBC segment 1",
+   "road": "Queen of Peace Road",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "from_node": "QOP-J00",
+   "to_node": "QOP-J01",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5903816,
+     16.4046496,
+     1469.328
+    ],
+    [
+     120.589829,
+     16.4054381,
+     1468.801
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1469.328,
+   "outlet_invert_m": 1468.801,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 105.39,
+   "length_3d_m": 105.4,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 10.41,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-C02",
+   "link_type": "CONDUIT",
+   "name": "Queen of Peace Road RCBC segment 2",
+   "road": "Queen of Peace Road",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "from_node": "QOP-J01",
+   "to_node": "QOP-J02",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.589829,
+     16.4054381,
+     1468.801
+    ],
+    [
+     120.5892208,
+     16.40619,
+     1468.273
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1468.801,
+   "outlet_invert_m": 1468.273,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 105.6,
+   "length_3d_m": 105.6,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 14.24,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-C03",
+   "link_type": "CONDUIT",
+   "name": "Queen of Peace Road RCBC segment 3",
+   "road": "Queen of Peace Road",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "from_node": "QOP-J02",
+   "to_node": "QOP-J03",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "diameter_m": null,
+    "haunch_m": 0.229,
+    "area_full_m2": 5.295
+   },
+   "coordinates": [
+    [
+     120.5892208,
+     16.40619,
+     1468.273
+    ],
+    [
+     120.5886135,
+     16.4068695,
+     1467.776
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1468.273,
+   "outlet_invert_m": 1467.776,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 99.36,
+   "length_3d_m": 99.36,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 20.128,
+   "q_max_cms": 24.596,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 17.44,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-C04",
+   "link_type": "CONDUIT",
+   "name": "Queen of Peace Road RCBC segment 4",
+   "road": "Queen of Peace Road",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "from_node": "QOP-J03",
+   "to_node": "QOP-J04",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "diameter_m": null,
+    "haunch_m": 0.305,
+    "area_full_m2": 6.814
+   },
+   "coordinates": [
+    [
+     120.5886135,
+     16.4068695,
+     1467.776
+    ],
+    [
+     120.5880256,
+     16.4074951,
+     1458.095
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1467.776,
+   "outlet_invert_m": 1458.095,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 93.51,
+   "length_3d_m": 94.01,
+   "slope": 0.10353,
+   "slope_eff_sin": 0.10298,
+   "manning_n": 0.013,
+   "q_full_cms": 127.826,
+   "q_max_cms": 156.326,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.88,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-C05",
+   "link_type": "CONDUIT",
+   "name": "Queen of Peace Road RCBC segment 5",
+   "road": "Queen of Peace Road",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "from_node": "QOP-J04",
+   "to_node": "QOP-J05",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "diameter_m": null,
+    "haunch_m": 0.305,
+    "area_full_m2": 6.814
+   },
+   "coordinates": [
+    [
+     120.5880256,
+     16.4074951,
+     1458.095
+    ],
+    [
+     120.5874851,
+     16.408067,
+     1437.701
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1458.095,
+   "outlet_invert_m": 1437.701,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 85.7,
+   "length_3d_m": 88.1,
+   "slope": 0.23796,
+   "slope_eff_sin": 0.2315,
+   "manning_n": 0.013,
+   "q_full_cms": 191.653,
+   "q_max_cms": 234.384,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 11.42,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "QOP-C06",
+   "link_type": "CONDUIT",
+   "name": "Queen of Peace Road RCBC segment 6",
+   "road": "Queen of Peace Road",
+   "barangay": "Middle Rock Quarry",
+   "network": "ARTERIAL",
+   "from_node": "QOP-J05",
+   "to_node": "CITY_CAMP_LAGOON_STORAGE",
+   "shape": "RECT_CLOSED",
+   "material": "Precast RCBC (closed box, haunched)",
+   "geometry": {
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "diameter_m": null,
+    "haunch_m": 0.305,
+    "area_full_m2": 6.814
+   },
+   "coordinates": [
+    [
+     120.5874851,
+     16.408067,
+     1437.701
+    ],
+    [
+     120.5868276,
+     16.4087478,
+     1430.0
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1437.701,
+   "outlet_invert_m": 1430.0,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 3.5,
+   "length_m": 103.03,
+   "length_3d_m": 103.32,
+   "slope": 0.07474,
+   "slope_eff_sin": 0.07454,
+   "manning_n": 0.013,
+   "q_full_cms": 108.749,
+   "q_max_cms": 132.995,
+   "y_at_qmax_ratio": 0.98,
+   "tc_min": 12.41,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-C01",
+   "link_type": "CONDUIT",
+   "name": "Guisad Surong Feeder RCPC segment 1",
+   "road": "Guisad Surong Feeder",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "from_node": "GSF-J00",
+   "to_node": "GSF-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5856387,
+     16.4128334,
+     1472.186
+    ],
+    [
+     120.5857007,
+     16.4123644,
+     1471.925
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1472.186,
+   "outlet_invert_m": 1471.925,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 52.35,
+   "length_3d_m": 52.35,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 0.434,
+   "q_max_cms": 0.467,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 8.16,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-C02",
+   "link_type": "CONDUIT",
+   "name": "Guisad Surong Feeder RCPC segment 2",
+   "road": "Guisad Surong Feeder",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "from_node": "GSF-J01",
+   "to_node": "GSF-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5857007,
+     16.4123644,
+     1471.925
+    ],
+    [
+     120.5857805,
+     16.4119588,
+     1466.027
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.925,
+   "outlet_invert_m": 1466.027,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.3,
+   "length_m": 45.71,
+   "length_3d_m": 46.08,
+   "slope": 0.12904,
+   "slope_eff_sin": 0.12798,
+   "manning_n": 0.013,
+   "q_full_cms": 2.197,
+   "q_max_cms": 2.363,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 6.94,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-C03",
+   "link_type": "CONDUIT",
+   "name": "Guisad Surong Feeder RCPC segment 3",
+   "road": "Guisad Surong Feeder",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "from_node": "GSF-J02",
+   "to_node": "GSF-J03",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5857805,
+     16.4119588,
+     1465.727
+    ],
+    [
+     120.5858603,
+     16.4115623,
+     1455.475
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1465.727,
+   "outlet_invert_m": 1455.475,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 44.72,
+   "length_3d_m": 45.88,
+   "slope": 0.22923,
+   "slope_eff_sin": 0.22343,
+   "manning_n": 0.013,
+   "q_full_cms": 8.557,
+   "q_max_cms": 9.205,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 7.06,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "GSF-C04",
+   "link_type": "CONDUIT",
+   "name": "Guisad Surong Feeder RCPC segment 4",
+   "road": "Guisad Surong Feeder",
+   "barangay": "Guisad Surong",
+   "network": "FEEDER",
+   "from_node": "GSF-J03",
+   "to_node": "KSD-J05",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5858603,
+     16.4115623,
+     1455.475
+    ],
+    [
+     120.5863526,
+     16.4111073,
+     1441.639
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1455.475,
+   "outlet_invert_m": 1441.639,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.7,
+   "length_m": 72.84,
+   "length_3d_m": 74.14,
+   "slope": 0.18997,
+   "slope_eff_sin": 0.18663,
+   "manning_n": 0.013,
+   "q_full_cms": 7.821,
+   "q_max_cms": 8.413,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 7.63,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-C01",
+   "link_type": "CONDUIT",
+   "name": "Lourdes Extension Feeder RCPC segment 1",
+   "road": "Lourdes Extension Feeder",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "from_node": "LEF-J00",
+   "to_node": "LEF-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5810073,
+     16.4134847,
+     1473.82
+    ],
+    [
+     120.5815315,
+     16.4127229,
+     1473.314
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1473.82,
+   "outlet_invert_m": 1473.314,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 101.24,
+   "length_3d_m": 101.24,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 1.28,
+   "q_max_cms": 1.377,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 10.25,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-C02",
+   "link_type": "CONDUIT",
+   "name": "Lourdes Extension Feeder RCPC segment 2",
+   "road": "Lourdes Extension Feeder",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "from_node": "LEF-J01",
+   "to_node": "LEF-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5815315,
+     16.4127229,
+     1473.314
+    ],
+    [
+     120.5820083,
+     16.4120058,
+     1472.514
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1473.314,
+   "outlet_invert_m": 1472.514,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 94.34,
+   "length_3d_m": 94.34,
+   "slope": 0.00848,
+   "slope_eff_sin": 0.00848,
+   "manning_n": 0.013,
+   "q_full_cms": 1.667,
+   "q_max_cms": 1.793,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 12.8,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-C03",
+   "link_type": "CONDUIT",
+   "name": "Lourdes Extension Feeder RCPC segment 3",
+   "road": "Lourdes Extension Feeder",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "from_node": "LEF-J02",
+   "to_node": "LEF-J03",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5820083,
+     16.4120058,
+     1472.514
+    ],
+    [
+     120.5824851,
+     16.4112886,
+     1470.963
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1472.514,
+   "outlet_invert_m": 1470.963,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 94.34,
+   "length_3d_m": 94.35,
+   "slope": 0.01644,
+   "slope_eff_sin": 0.01644,
+   "manning_n": 0.013,
+   "q_full_cms": 2.321,
+   "q_max_cms": 2.497,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 14.09,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LEF-C04",
+   "link_type": "CONDUIT",
+   "name": "Lourdes Extension Feeder RCPC segment 4",
+   "road": "Lourdes Extension Feeder",
+   "barangay": "Lourdes Subdivision Extension",
+   "network": "FEEDER",
+   "from_node": "LEF-J03",
+   "to_node": "DHR-J03",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5824851,
+     16.4112886,
+     1470.963
+    ],
+    [
+     120.5830081,
+     16.4106171,
+     1468.272
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1470.963,
+   "outlet_invert_m": 1468.272,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 4.084,
+   "length_m": 93.01,
+   "length_3d_m": 93.04,
+   "slope": 0.02894,
+   "slope_eff_sin": 0.02892,
+   "manning_n": 0.013,
+   "q_full_cms": 3.079,
+   "q_max_cms": 3.312,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 14.71,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCP-C01",
+   "link_type": "CONDUIT",
+   "name": "City Camp Proper Feeder RCPC segment 1",
+   "road": "City Camp Proper Feeder",
+   "barangay": "City Camp Proper",
+   "network": "FEEDER",
+   "from_node": "CCP-J00",
+   "to_node": "CCP-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5826551,
+     16.4088967,
+     1449.263
+    ],
+    [
+     120.5833518,
+     16.4093113,
+     1448.825
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1449.263,
+   "outlet_invert_m": 1448.825,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 87.46,
+   "length_3d_m": 87.47,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 0.434,
+   "q_max_cms": 0.467,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.69,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCP-C02",
+   "link_type": "CONDUIT",
+   "name": "City Camp Proper Feeder RCPC segment 2",
+   "road": "City Camp Proper Feeder",
+   "barangay": "City Camp Proper",
+   "network": "FEEDER",
+   "from_node": "CCP-J01",
+   "to_node": "CCP-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5833518,
+     16.4093113,
+     1448.825
+    ],
+    [
+     120.5839562,
+     16.4096344,
+     1448.456
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1448.825,
+   "outlet_invert_m": 1448.456,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 73.82,
+   "length_3d_m": 73.83,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 0.434,
+   "q_max_cms": 0.467,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 12.51,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCP-C03",
+   "link_type": "CONDUIT",
+   "name": "City Camp Proper Feeder RCPC segment 3",
+   "road": "City Camp Proper Feeder",
+   "barangay": "City Camp Proper",
+   "network": "FEEDER",
+   "from_node": "CCP-J02",
+   "to_node": "DHR-J05",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5839562,
+     16.4096344,
+     1448.456
+    ],
+    [
+     120.5845137,
+     16.409957,
+     1442.101
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1448.456,
+   "outlet_invert_m": 1442.101,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 1.0,
+   "length_m": 69.46,
+   "length_3d_m": 69.75,
+   "slope": 0.0915,
+   "slope_eff_sin": 0.09112,
+   "manning_n": 0.013,
+   "q_full_cms": 1.853,
+   "q_max_cms": 1.994,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.91,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCC-C01",
+   "link_type": "CONDUIT",
+   "name": "City Camp Central Feeder RCPC segment 1",
+   "road": "City Camp Central Feeder",
+   "barangay": "City Camp Central",
+   "network": "FEEDER",
+   "from_node": "CCC-J00",
+   "to_node": "CCC-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5905031,
+     16.4099806,
+     1475.654
+    ],
+    [
+     120.5897511,
+     16.410243,
+     1475.227
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1475.654,
+   "outlet_invert_m": 1475.227,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 85.44,
+   "length_3d_m": 85.44,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 1.28,
+   "q_max_cms": 1.377,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.61,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCC-C02",
+   "link_type": "CONDUIT",
+   "name": "City Camp Central Feeder RCPC segment 2",
+   "road": "City Camp Central Feeder",
+   "barangay": "City Camp Central",
+   "network": "FEEDER",
+   "from_node": "CCC-J01",
+   "to_node": "CCC-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5897511,
+     16.410243,
+     1475.227
+    ],
+    [
+     120.5889981,
+     16.4105957,
+     1471.701
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1475.227,
+   "outlet_invert_m": 1471.701,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 89.44,
+   "length_3d_m": 89.51,
+   "slope": 0.03942,
+   "slope_eff_sin": 0.03939,
+   "manning_n": 0.013,
+   "q_full_cms": 3.593,
+   "q_max_cms": 3.865,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.47,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "CCC-C03",
+   "link_type": "CONDUIT",
+   "name": "City Camp Central Feeder RCPC segment 3",
+   "road": "City Camp Central Feeder",
+   "barangay": "City Camp Central",
+   "network": "FEEDER",
+   "from_node": "CCC-J02",
+   "to_node": "LGD-J05",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5889981,
+     16.4105957,
+     1471.701
+    ],
+    [
+     120.5880584,
+     16.410901,
+     1456.854
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.701,
+   "outlet_invert_m": 1456.854,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.9,
+   "length_m": 105.95,
+   "length_3d_m": 106.98,
+   "slope": 0.14013,
+   "slope_eff_sin": 0.13878,
+   "manning_n": 0.013,
+   "q_full_cms": 6.744,
+   "q_max_cms": 7.254,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.26,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-C01",
+   "link_type": "CONDUIT",
+   "name": "Upper Rock Quarry Feeder RCPC segment 1",
+   "road": "Upper Rock Quarry Feeder",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "URQ-J00",
+   "to_node": "URQ-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5876336,
+     16.4058827,
+     1472.104
+    ],
+    [
+     120.5874886,
+     16.4062604,
+     1471.881
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1472.104,
+   "outlet_invert_m": 1471.881,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 44.6,
+   "length_3d_m": 44.6,
+   "slope": 0.005,
+   "slope_eff_sin": 0.005,
+   "manning_n": 0.013,
+   "q_full_cms": 0.434,
+   "q_max_cms": 0.467,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 7.79,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-C02",
+   "link_type": "CONDUIT",
+   "name": "Upper Rock Quarry Feeder RCPC segment 2",
+   "road": "Upper Rock Quarry Feeder",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "URQ-J01",
+   "to_node": "URQ-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5874886,
+     16.4062604,
+     1471.881
+    ],
+    [
+     120.5873436,
+     16.4066381,
+     1468.505
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.881,
+   "outlet_invert_m": 1468.505,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.3,
+   "length_m": 44.6,
+   "length_3d_m": 44.73,
+   "slope": 0.07569,
+   "slope_eff_sin": 0.07548,
+   "manning_n": 0.013,
+   "q_full_cms": 1.687,
+   "q_max_cms": 1.815,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 7.13,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-C03",
+   "link_type": "CONDUIT",
+   "name": "Upper Rock Quarry Feeder RCPC segment 3",
+   "road": "Upper Rock Quarry Feeder",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "URQ-J02",
+   "to_node": "URQ-J03",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5873436,
+     16.4066381,
+     1468.205
+    ],
+    [
+     120.5871892,
+     16.4070158,
+     1459.105
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1468.205,
+   "outlet_invert_m": 1459.105,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 44.94,
+   "length_3d_m": 45.86,
+   "slope": 0.20248,
+   "slope_eff_sin": 0.19845,
+   "manning_n": 0.013,
+   "q_full_cms": 8.065,
+   "q_max_cms": 8.675,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 7.1,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "URQ-C04",
+   "link_type": "CONDUIT",
+   "name": "Upper Rock Quarry Feeder RCPC segment 4",
+   "road": "Upper Rock Quarry Feeder",
+   "barangay": "Upper Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "URQ-J03",
+   "to_node": "QOP-J05",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.9,
+    "span_m": 0.9,
+    "diameter_m": 0.9,
+    "haunch_m": null,
+    "area_full_m2": 0.636
+   },
+   "coordinates": [
+    [
+     120.5871892,
+     16.4070158,
+     1459.105
+    ],
+    [
+     120.5874851,
+     16.408067,
+     1438.601
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1459.105,
+   "outlet_invert_m": 1438.601,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.9,
+   "length_m": 120.6,
+   "length_3d_m": 122.33,
+   "slope": 0.17001,
+   "slope_eff_sin": 0.16761,
+   "manning_n": 0.013,
+   "q_full_cms": 7.411,
+   "q_max_cms": 7.972,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 8.07,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-C01",
+   "link_type": "CONDUIT",
+   "name": "Middle Rock Quarry Feeder RCPC segment 1",
+   "road": "Middle Rock Quarry Feeder",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "MRQ-J00",
+   "to_node": "MRQ-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.591187,
+     16.4076398,
+     1472.168
+    ],
+    [
+     120.5903443,
+     16.4076753,
+     1471.711
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1472.168,
+   "outlet_invert_m": 1471.711,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 90.14,
+   "length_3d_m": 90.14,
+   "slope": 0.00507,
+   "slope_eff_sin": 0.00507,
+   "manning_n": 0.013,
+   "q_full_cms": 0.437,
+   "q_max_cms": 0.47,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.77,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-C02",
+   "link_type": "CONDUIT",
+   "name": "Middle Rock Quarry Feeder RCPC segment 2",
+   "road": "Middle Rock Quarry Feeder",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "MRQ-J01",
+   "to_node": "MRQ-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5903443,
+     16.4076753,
+     1471.711
+    ],
+    [
+     120.5895032,
+     16.4075753,
+     1471.141
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.711,
+   "outlet_invert_m": 1471.141,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 90.55,
+   "length_3d_m": 90.56,
+   "slope": 0.00629,
+   "slope_eff_sin": 0.00629,
+   "manning_n": 0.013,
+   "q_full_cms": 0.487,
+   "q_max_cms": 0.524,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 12.81,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-C03",
+   "link_type": "CONDUIT",
+   "name": "Middle Rock Quarry Feeder RCPC segment 3",
+   "road": "Middle Rock Quarry Feeder",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "MRQ-J02",
+   "to_node": "MRQ-J03",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5895032,
+     16.4075753,
+     1471.141
+    ],
+    [
+     120.5887552,
+     16.4075215,
+     1469.323
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1471.141,
+   "outlet_invert_m": 1469.323,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 80.16,
+   "length_3d_m": 80.18,
+   "slope": 0.02268,
+   "slope_eff_sin": 0.02267,
+   "manning_n": 0.013,
+   "q_full_cms": 0.925,
+   "q_max_cms": 0.995,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 13.06,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "MRQ-C04",
+   "link_type": "CONDUIT",
+   "name": "Middle Rock Quarry Feeder RCPC segment 4",
+   "road": "Middle Rock Quarry Feeder",
+   "barangay": "Middle Rock Quarry",
+   "network": "FEEDER",
+   "from_node": "MRQ-J03",
+   "to_node": "QOP-J04",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "diameter_m": 0.6,
+    "haunch_m": null,
+    "area_full_m2": 0.283
+   },
+   "coordinates": [
+    [
+     120.5887552,
+     16.4075215,
+     1469.323
+    ],
+    [
+     120.5880256,
+     16.4074951,
+     1459.295
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1469.323,
+   "outlet_invert_m": 1459.295,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 1.2,
+   "length_m": 78.03,
+   "length_3d_m": 78.67,
+   "slope": 0.12852,
+   "slope_eff_sin": 0.12748,
+   "manning_n": 0.013,
+   "q_full_cms": 2.192,
+   "q_max_cms": 2.358,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 11.11,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LRQ-C01",
+   "link_type": "CONDUIT",
+   "name": "Lower Rock Quarry Lateral RCPC segment 1",
+   "road": "Lower Rock Quarry Lateral",
+   "barangay": "Lower Rock Quarry",
+   "network": "LATERAL",
+   "from_node": "LRQ-J00",
+   "to_node": "LRQ-J01",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 1.2,
+    "span_m": 1.2,
+    "diameter_m": 1.2,
+    "haunch_m": null,
+    "area_full_m2": 1.131
+   },
+   "coordinates": [
+    [
+     120.5750939,
+     16.4051317,
+     1423.365
+    ],
+    [
+     120.5745443,
+     16.4041769,
+     1421.785
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1423.365,
+   "outlet_invert_m": 1421.785,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 120.93,
+   "length_3d_m": 120.94,
+   "slope": 0.01307,
+   "slope_eff_sin": 0.01307,
+   "manning_n": 0.013,
+   "q_full_cms": 4.456,
+   "q_max_cms": 4.794,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 9.16,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LRQ-C02",
+   "link_type": "CONDUIT",
+   "name": "Lower Rock Quarry Lateral RCPC segment 2",
+   "road": "Lower Rock Quarry Lateral",
+   "barangay": "Lower Rock Quarry",
+   "network": "LATERAL",
+   "from_node": "LRQ-J01",
+   "to_node": "LRQ-J02",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 1.2,
+    "span_m": 1.2,
+    "diameter_m": 1.2,
+    "haunch_m": null,
+    "area_full_m2": 1.131
+   },
+   "coordinates": [
+    [
+     120.5745443,
+     16.4041769,
+     1421.785
+    ],
+    [
+     120.5739484,
+     16.4031763,
+     1419.86
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1421.785,
+   "outlet_invert_m": 1419.86,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 0.0,
+   "length_m": 127.77,
+   "length_3d_m": 127.78,
+   "slope": 0.01507,
+   "slope_eff_sin": 0.01506,
+   "manning_n": 0.013,
+   "q_full_cms": 4.785,
+   "q_max_cms": 5.147,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 12.04,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "LRQ-C03",
+   "link_type": "CONDUIT",
+   "name": "Lower Rock Quarry Lateral RCPC segment 3",
+   "road": "Lower Rock Quarry Lateral",
+   "barangay": "Lower Rock Quarry",
+   "network": "LATERAL",
+   "from_node": "LRQ-J02",
+   "to_node": "TUN-J08",
+   "shape": "CIRCULAR",
+   "material": "RCPC",
+   "geometry": {
+    "rise_m": 1.2,
+    "span_m": 1.2,
+    "diameter_m": 1.2,
+    "haunch_m": null,
+    "area_full_m2": 1.131
+   },
+   "coordinates": [
+    [
+     120.5739484,
+     16.4031763,
+     1419.86
+    ],
+    [
+     120.573353,
+     16.4021306,
+     1417.118
+    ]
+   ],
+   "coordinates_ref": "INVERT",
+   "inlet_invert_m": 1419.86,
+   "outlet_invert_m": 1417.118,
+   "inlet_offset_m": 0.0,
+   "outlet_offset_m": 16.608,
+   "length_m": 132.1,
+   "length_3d_m": 132.13,
+   "slope": 0.02076,
+   "slope_eff_sin": 0.02076,
+   "manning_n": 0.013,
+   "q_full_cms": 5.617,
+   "q_max_cms": 6.042,
+   "y_at_qmax_ratio": 0.9382,
+   "tc_min": 14.21,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  }
+ ],
+ "orifices": [
+  {
+   "id": "CITY_CAMP_TRASH_RACK",
+   "link_type": "ORIFICE",
+   "name": "City Camp tunnel intake trash rack",
+   "from_node": "CITY_CAMP_LAGOON_STORAGE",
+   "to_node": "TUN-J00",
+   "coordinates": [
+    120.585456,
+    16.4088167,
+    1428.0
+   ],
+   "sill_elev_m": 1428.0,
+   "width_m": 3.0,
+   "height_m": 2.0,
+   "gross_area_m2": 6.0,
+   "discharge_coeff": 0.6,
+   "bar_thickness_m": 0.012,
+   "bar_clear_spacing_m": 0.05,
+   "bar_angle_deg": 75.0,
+   "kirschmer_beta": 2.42,
+   "bar_open_ratio": 0.8065,
+   "xi_clean": 0.3486,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  }
+ ],
+ "lagoon": {
+  "node_id": "CITY_CAMP_LAGOON_STORAGE",
+  "polygon": [
+   [
+    [
+     120.5873135,
+     16.4093116
+    ],
+    [
+     120.5873231,
+     16.4093765
+    ],
+    [
+     120.5873251,
+     16.4094423
+    ],
+    [
+     120.5873193,
+     16.4095079
+    ],
+    [
+     120.5873058,
+     16.4095725
+    ],
+    [
+     120.5872846,
+     16.4096353
+    ],
+    [
+     120.5872563,
+     16.4096953
+    ],
+    [
+     120.5872214,
+     16.4097518
+    ],
+    [
+     120.5871806,
+     16.4098043
+    ],
+    [
+     120.5871347,
+     16.4098523
+    ],
+    [
+     120.5870846,
+     16.4098956
+    ],
+    [
+     120.5870311,
+     16.4099339
+    ],
+    [
+     120.5869752,
+     16.4099674
+    ],
+    [
+     120.5869176,
+     16.4099962
+    ],
+    [
+     120.5868589,
+     16.4100207
+    ],
+    [
+     120.5868,
+     16.4100412
+    ],
+    [
+     120.5867411,
+     16.4100581
+    ],
+    [
+     120.5866826,
+     16.4100719
+    ],
+    [
+     120.5866248,
+     16.410083
+    ],
+    [
+     120.5865676,
+     16.4100919
+    ],
+    [
+     120.5865112,
+     16.4100988
+    ],
+    [
+     120.5864554,
+     16.4101039
+    ],
+    [
+     120.5864,
+     16.4101075
+    ],
+    [
+     120.5863449,
+     16.4101094
+    ],
+    [
+     120.58629,
+     16.4101097
+    ],
+    [
+     120.5862351,
+     16.4101082
+    ],
+    [
+     120.5861801,
+     16.4101046
+    ],
+    [
+     120.5861252,
+     16.4100986
+    ],
+    [
+     120.5860702,
+     16.41009
+    ],
+    [
+     120.5860155,
+     16.4100784
+    ],
+    [
+     120.5859612,
+     16.4100635
+    ],
+    [
+     120.5859078,
+     16.4100452
+    ],
+    [
+     120.5858554,
+     16.4100232
+    ],
+    [
+     120.5858046,
+     16.4099975
+    ],
+    [
+     120.5857557,
+     16.409968
+    ],
+    [
+     120.5857092,
+     16.4099349
+    ],
+    [
+     120.5856652,
+     16.4098983
+    ],
+    [
+     120.5856242,
+     16.4098584
+    ],
+    [
+     120.5855864,
+     16.4098156
+    ],
+    [
+     120.5855519,
+     16.4097701
+    ],
+    [
+     120.5855208,
+     16.4097223
+    ],
+    [
+     120.5854931,
+     16.4096726
+    ],
+    [
+     120.5854688,
+     16.4096212
+    ],
+    [
+     120.5854477,
+     16.4095684
+    ],
+    [
+     120.5854298,
+     16.4095144
+    ],
+    [
+     120.5854148,
+     16.4094594
+    ],
+    [
+     120.5854028,
+     16.4094035
+    ],
+    [
+     120.5853936,
+     16.4093469
+    ],
+    [
+     120.5853872,
+     16.4092895
+    ],
+    [
+     120.5853837,
+     16.4092314
+    ],
+    [
+     120.5853832,
+     16.4091728
+    ],
+    [
+     120.5853858,
+     16.4091135
+    ],
+    [
+     120.5853918,
+     16.4090539
+    ],
+    [
+     120.5854016,
+     16.4089941
+    ],
+    [
+     120.5854153,
+     16.4089343
+    ],
+    [
+     120.5854334,
+     16.408875
+    ],
+    [
+     120.585456,
+     16.4088167
+    ],
+    [
+     120.5854835,
+     16.4087597
+    ],
+    [
+     120.585516,
+     16.4087049
+    ],
+    [
+     120.5855536,
+     16.4086528
+    ],
+    [
+     120.5855961,
+     16.4086042
+    ],
+    [
+     120.5856434,
+     16.4085597
+    ],
+    [
+     120.585695,
+     16.40852
+    ],
+    [
+     120.5857506,
+     16.4084856
+    ],
+    [
+     120.5858096,
+     16.4084571
+    ],
+    [
+     120.5858711,
+     16.4084348
+    ],
+    [
+     120.5859346,
+     16.4084189
+    ],
+    [
+     120.585999,
+     16.4084095
+    ],
+    [
+     120.5860637,
+     16.4084064
+    ],
+    [
+     120.5861278,
+     16.4084093
+    ],
+    [
+     120.5861907,
+     16.4084178
+    ],
+    [
+     120.5862518,
+     16.4084313
+    ],
+    [
+     120.5863105,
+     16.4084492
+    ],
+    [
+     120.5863666,
+     16.4084705
+    ],
+    [
+     120.58642,
+     16.4084947
+    ],
+    [
+     120.5864706,
+     16.4085208
+    ],
+    [
+     120.5865187,
+     16.4085482
+    ],
+    [
+     120.5865645,
+     16.4085763
+    ],
+    [
+     120.5866085,
+     16.4086046
+    ],
+    [
+     120.5866512,
+     16.4086327
+    ],
+    [
+     120.5866931,
+     16.4086604
+    ],
+    [
+     120.5867348,
+     16.4086878
+    ],
+    [
+     120.5867766,
+     16.408715
+    ],
+    [
+     120.586819,
+     16.4087423
+    ],
+    [
+     120.5868622,
+     16.4087701
+    ],
+    [
+     120.5869063,
+     16.408799
+    ],
+    [
+     120.5869512,
+     16.4088295
+    ],
+    [
+     120.5869966,
+     16.4088622
+    ],
+    [
+     120.587042,
+     16.4088978
+    ],
+    [
+     120.5870869,
+     16.4089366
+    ],
+    [
+     120.5871305,
+     16.4089791
+    ],
+    [
+     120.5871718,
+     16.4090255
+    ],
+    [
+     120.5872101,
+     16.4090758
+    ],
+    [
+     120.5872443,
+     16.40913
+    ],
+    [
+     120.5872735,
+     16.4091877
+    ],
+    [
+     120.5872968,
+     16.4092484
+    ],
+    [
+     120.5873135,
+     16.4093116
+    ]
+   ]
+  ],
+  "area_m2": 30000.0,
+  "invert_elev_m": 1426.5,
+  "rim_elev_m": 1433.0,
+  "max_depth_m": 6.5,
+  "permanent_pool_depth_m": 1.5,
+  "bottom_area_m2": 12000.0,
+  "full_volume_m3": 136500.0,
+  "stage_storage": [
+   {
+    "depth_m": 0.0,
+    "surface_area_m2": 12000.0,
+    "volume_m3": 0.0
+   },
+   {
+    "depth_m": 0.5,
+    "surface_area_m2": 13384.6,
+    "volume_m3": 6346.2
+   },
+   {
+    "depth_m": 1.0,
+    "surface_area_m2": 14769.2,
+    "volume_m3": 13384.6
+   },
+   {
+    "depth_m": 1.5,
+    "surface_area_m2": 16153.8,
+    "volume_m3": 21115.4
+   },
+   {
+    "depth_m": 2.0,
+    "surface_area_m2": 17538.5,
+    "volume_m3": 29538.5
+   },
+   {
+    "depth_m": 2.5,
+    "surface_area_m2": 18923.1,
+    "volume_m3": 38653.8
+   },
+   {
+    "depth_m": 3.0,
+    "surface_area_m2": 20307.7,
+    "volume_m3": 48461.5
+   },
+   {
+    "depth_m": 3.5,
+    "surface_area_m2": 21692.3,
+    "volume_m3": 58961.5
+   },
+   {
+    "depth_m": 4.0,
+    "surface_area_m2": 23076.9,
+    "volume_m3": 70153.8
+   },
+   {
+    "depth_m": 4.5,
+    "surface_area_m2": 24461.5,
+    "volume_m3": 82038.5
+   },
+   {
+    "depth_m": 5.0,
+    "surface_area_m2": 25846.2,
+    "volume_m3": 94615.4
+   },
+   {
+    "depth_m": 5.5,
+    "surface_area_m2": 27230.8,
+    "volume_m3": 107884.6
+   },
+   {
+    "depth_m": 6.0,
+    "surface_area_m2": 28615.4,
+    "volume_m3": 121846.2
+   },
+   {
+    "depth_m": 6.5,
+    "surface_area_m2": 30000.0,
+    "volume_m3": 136500.0
+   }
+  ],
+  "geology": "Endorheic karst doline, Mirador Limestone / Kennon Formation; pores sealed by silt",
+  "source_type": "SYNTHETIC_OSMNX",
+  "is_active": true
+ },
+ "buildings": [
+  {
+   "id": "BLDG-001",
+   "barangay": "City Camp Central",
+   "levels": 4,
+   "height_m": 12.48,
+   "ground_elev_m": 1433.538,
+   "footprint_area_m2": 153.2,
+   "coordinates": [
+    [
+     [
+      120.5876621,
+      16.4095286
+     ],
+     [
+      120.5876358,
+      16.4096441
+     ],
+     [
+      120.5875288,
+      16.4096213
+     ],
+     [
+      120.5875551,
+      16.4095059
+     ],
+     [
+      120.5876621,
+      16.4095286
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-002",
+   "barangay": "City Camp Proper",
+   "levels": 6,
+   "height_m": 18.85,
+   "ground_elev_m": 1472.315,
+   "footprint_area_m2": 147.7,
+   "coordinates": [
+    [
+     [
+      120.5864867,
+      16.4131949
+     ],
+     [
+      120.5864647,
+      16.4130941
+     ],
+     [
+      120.5865833,
+      16.41307
+     ],
+     [
+      120.5866052,
+      16.4131709
+     ],
+     [
+      120.5864867,
+      16.4131949
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-003",
+   "barangay": "City Camp Proper",
+   "levels": 2,
+   "height_m": 6.28,
+   "ground_elev_m": 1471.791,
+   "footprint_area_m2": 162.3,
+   "coordinates": [
+    [
+     [
+      120.5863427,
+      16.4124389
+     ],
+     [
+      120.5863478,
+      16.4123001
+     ],
+     [
+      120.5864466,
+      16.4123035
+     ],
+     [
+      120.5864415,
+      16.4124422
+     ],
+     [
+      120.5863427,
+      16.4124389
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-004",
+   "barangay": "Middle Rock Quarry",
+   "levels": 6,
+   "height_m": 18.46,
+   "ground_elev_m": 1433.0,
+   "footprint_area_m2": 81.8,
+   "coordinates": [
+    [
+     [
+      120.5871911,
+      16.4086371
+     ],
+     [
+      120.5871332,
+      16.4086971
+     ],
+     [
+      120.5870715,
+      16.4086416
+     ],
+     [
+      120.5871295,
+      16.4085816
+     ],
+     [
+      120.5871911,
+      16.4086371
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-005",
+   "barangay": "City Camp Central",
+   "levels": 6,
+   "height_m": 19.16,
+   "ground_elev_m": 1475.972,
+   "footprint_area_m2": 115.1,
+   "coordinates": [
+    [
+     [
+      120.5898198,
+      16.41225
+     ],
+     [
+      120.5897516,
+      16.4121971
+     ],
+     [
+      120.5898239,
+      16.4121104
+     ],
+     [
+      120.589892,
+      16.4121634
+     ],
+     [
+      120.5898198,
+      16.41225
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-006",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 6,
+   "height_m": 18.61,
+   "ground_elev_m": 1467.852,
+   "footprint_area_m2": 116.0,
+   "coordinates": [
+    [
+     [
+      120.5810041,
+      16.4110619
+     ],
+     [
+      120.5810848,
+      16.4110424
+     ],
+     [
+      120.5811145,
+      16.4111568
+     ],
+     [
+      120.5810338,
+      16.4111763
+     ],
+     [
+      120.5810041,
+      16.4110619
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-007",
+   "barangay": "Upper Rock Quarry",
+   "levels": 3,
+   "height_m": 9.7,
+   "ground_elev_m": 1446.619,
+   "footprint_area_m2": 87.3,
+   "coordinates": [
+    [
+     [
+      120.5875558,
+      16.4076618
+     ],
+     [
+      120.587581,
+      16.4077512
+     ],
+     [
+      120.5875041,
+      16.4077714
+     ],
+     [
+      120.5874789,
+      16.407682
+     ],
+     [
+      120.5875558,
+      16.4076618
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-008",
+   "barangay": "Lower Rock Quarry",
+   "levels": 4,
+   "height_m": 12.54,
+   "ground_elev_m": 1424.83,
+   "footprint_area_m2": 116.7,
+   "coordinates": [
+    [
+     [
+      120.5744847,
+      16.4046416
+     ],
+     [
+      120.5744338,
+      16.4045531
+     ],
+     [
+      120.574519,
+      16.4045074
+     ],
+     [
+      120.5745699,
+      16.4045959
+     ],
+     [
+      120.5744847,
+      16.4046416
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-009",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 3,
+   "height_m": 9.74,
+   "ground_elev_m": 1468.272,
+   "footprint_area_m2": 185.8,
+   "coordinates": [
+    [
+     [
+      120.5830908,
+      16.4103836
+     ],
+     [
+      120.5832284,
+      16.4103274
+     ],
+     [
+      120.5832709,
+      16.4104242
+     ],
+     [
+      120.5831333,
+      16.4104804
+     ],
+     [
+      120.5830908,
+      16.4103836
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-010",
+   "barangay": "City Camp Proper",
+   "levels": 3,
+   "height_m": 10.15,
+   "ground_elev_m": 1450.927,
+   "footprint_area_m2": 121.1,
+   "coordinates": [
+    [
+     [
+      120.5836025,
+      16.4092032
+     ],
+     [
+      120.5836764,
+      16.4092427
+     ],
+     [
+      120.5836156,
+      16.4093487
+     ],
+     [
+      120.5835417,
+      16.4093092
+     ],
+     [
+      120.5836025,
+      16.4092032
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-011",
+   "barangay": "City Camp Central",
+   "levels": 3,
+   "height_m": 9.14,
+   "ground_elev_m": 1433.155,
+   "footprint_area_m2": 174.4,
+   "coordinates": [
+    [
+     [
+      120.586968,
+      16.4104135
+     ],
+     [
+      120.5868643,
+      16.4104658
+     ],
+     [
+      120.5868039,
+      16.4103541
+     ],
+     [
+      120.5869077,
+      16.4103019
+     ],
+     [
+      120.586968,
+      16.4104135
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-012",
+   "barangay": "Upper Rock Quarry",
+   "levels": 2,
+   "height_m": 6.91,
+   "ground_elev_m": 1473.7,
+   "footprint_area_m2": 116.1,
+   "coordinates": [
+    [
+     [
+      120.587741,
+      16.4061467
+     ],
+     [
+      120.5876903,
+      16.4062788
+     ],
+     [
+      120.587625,
+      16.4062554
+     ],
+     [
+      120.5876757,
+      16.4061234
+     ],
+     [
+      120.587741,
+      16.4061467
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-013",
+   "barangay": "Guisad Surong",
+   "levels": 3,
+   "height_m": 9.98,
+   "ground_elev_m": 1473.564,
+   "footprint_area_m2": 119.3,
+   "coordinates": [
+    [
+     [
+      120.5857888,
+      16.4127581
+     ],
+     [
+      120.5858016,
+      16.4126613
+     ],
+     [
+      120.5859042,
+      16.412674
+     ],
+     [
+      120.5858914,
+      16.4127707
+     ],
+     [
+      120.5857888,
+      16.4127581
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-014",
+   "barangay": "City Camp Proper",
+   "levels": 5,
+   "height_m": 16.07,
+   "ground_elev_m": 1454.607,
+   "footprint_area_m2": 75.7,
+   "coordinates": [
+    [
+     [
+      120.5836811,
+      16.4096158
+     ],
+     [
+      120.5837558,
+      16.4096557
+     ],
+     [
+      120.5837182,
+      16.4097212
+     ],
+     [
+      120.5836435,
+      16.4096813
+     ],
+     [
+      120.5836811,
+      16.4096158
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-015",
+   "barangay": "City Camp Proper",
+   "levels": 3,
+   "height_m": 10.14,
+   "ground_elev_m": 1442.471,
+   "footprint_area_m2": 98.6,
+   "coordinates": [
+    [
+     [
+      120.5844036,
+      16.4096851
+     ],
+     [
+      120.5844795,
+      16.409729
+     ],
+     [
+      120.5844293,
+      16.4098098
+     ],
+     [
+      120.5843535,
+      16.4097659
+     ],
+     [
+      120.5844036,
+      16.4096851
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-016",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.27,
+   "ground_elev_m": 1433.053,
+   "footprint_area_m2": 178.4,
+   "coordinates": [
+    [
+     [
+      120.5851606,
+      16.4098496
+     ],
+     [
+      120.5851068,
+      16.4097303
+     ],
+     [
+      120.5852131,
+      16.4096857
+     ],
+     [
+      120.5852669,
+      16.409805
+     ],
+     [
+      120.5851606,
+      16.4098496
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-017",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 4,
+   "height_m": 13.05,
+   "ground_elev_m": 1468.929,
+   "footprint_area_m2": 86.1,
+   "coordinates": [
+    [
+     [
+      120.5826595,
+      16.4105583
+     ],
+     [
+      120.5827572,
+      16.4105241
+     ],
+     [
+      120.5827819,
+      16.4105899
+     ],
+     [
+      120.5826843,
+      16.4106241
+     ],
+     [
+      120.5826595,
+      16.4105583
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-018",
+   "barangay": "City Camp Proper",
+   "levels": 5,
+   "height_m": 15.96,
+   "ground_elev_m": 1472.7,
+   "footprint_area_m2": 128.5,
+   "coordinates": [
+    [
+     [
+      120.5861891,
+      16.4132811
+     ],
+     [
+      120.5861564,
+      16.4131305
+     ],
+     [
+      120.5862255,
+      16.4131165
+     ],
+     [
+      120.5862582,
+      16.4132671
+     ],
+     [
+      120.5861891,
+      16.4132811
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-019",
+   "barangay": "City Camp Proper",
+   "levels": 3,
+   "height_m": 9.14,
+   "ground_elev_m": 1433.447,
+   "footprint_area_m2": 132.6,
+   "coordinates": [
+    [
+     [
+      120.5858927,
+      16.4080794
+     ],
+     [
+      120.5860387,
+      16.4080427
+     ],
+     [
+      120.5860581,
+      16.4081146
+     ],
+     [
+      120.5859121,
+      16.4081513
+     ],
+     [
+      120.5858927,
+      16.4080794
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-020",
+   "barangay": "City Camp Central",
+   "levels": 3,
+   "height_m": 10.04,
+   "ground_elev_m": 1433.002,
+   "footprint_area_m2": 182.4,
+   "coordinates": [
+    [
+     [
+      120.5853826,
+      16.4100465
+     ],
+     [
+      120.5852932,
+      16.4099301
+     ],
+     [
+      120.5853787,
+      16.4098689
+     ],
+     [
+      120.5854681,
+      16.4099853
+     ],
+     [
+      120.5853826,
+      16.4100465
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-021",
+   "barangay": "City Camp Central",
+   "levels": 4,
+   "height_m": 12.73,
+   "ground_elev_m": 1433.031,
+   "footprint_area_m2": 141.8,
+   "coordinates": [
+    [
+     [
+      120.5851118,
+      16.4094072
+     ],
+     [
+      120.5851069,
+      16.4092751
+     ],
+     [
+      120.5851975,
+      16.409272
+     ],
+     [
+      120.5852024,
+      16.4094041
+     ],
+     [
+      120.5851118,
+      16.4094072
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-022",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.33,
+   "ground_elev_m": 1472.716,
+   "footprint_area_m2": 112.3,
+   "coordinates": [
+    [
+     [
+      120.5891921,
+      16.4103366
+     ],
+     [
+      120.589119,
+      16.4103708
+     ],
+     [
+      120.5890662,
+      16.4102658
+     ],
+     [
+      120.5891393,
+      16.4102315
+     ],
+     [
+      120.5891921,
+      16.4103366
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-023",
+   "barangay": "Middle Rock Quarry",
+   "levels": 2,
+   "height_m": 6.4,
+   "ground_elev_m": 1472.631,
+   "footprint_area_m2": 144.4,
+   "coordinates": [
+    [
+     [
+      120.589843,
+      16.4074572
+     ],
+     [
+      120.589708,
+      16.4074411
+     ],
+     [
+      120.5897194,
+      16.4073521
+     ],
+     [
+      120.5898543,
+      16.4073681
+     ],
+     [
+      120.589843,
+      16.4074572
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-024",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 5,
+   "height_m": 15.49,
+   "ground_elev_m": 1474.59,
+   "footprint_area_m2": 160.2,
+   "coordinates": [
+    [
+     [
+      120.5814589,
+      16.4124377
+     ],
+     [
+      120.5815187,
+      16.4123478
+     ],
+     [
+      120.5816255,
+      16.412414
+     ],
+     [
+      120.5815658,
+      16.4125038
+     ],
+     [
+      120.5814589,
+      16.4124377
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-025",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 4,
+   "height_m": 13.05,
+   "ground_elev_m": 1468.323,
+   "footprint_area_m2": 149.1,
+   "coordinates": [
+    [
+     [
+      120.581801,
+      16.4108052
+     ],
+     [
+      120.5819595,
+      16.4107511
+     ],
+     [
+      120.5819854,
+      16.4108219
+     ],
+     [
+      120.5818269,
+      16.4108759
+     ],
+     [
+      120.581801,
+      16.4108052
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-026",
+   "barangay": "City Camp Central",
+   "levels": 4,
+   "height_m": 12.0,
+   "ground_elev_m": 1476.095,
+   "footprint_area_m2": 147.6,
+   "coordinates": [
+    [
+     [
+      120.5896324,
+      16.4120113
+     ],
+     [
+      120.5895141,
+      16.4119194
+     ],
+     [
+      120.5895675,
+      16.4118554
+     ],
+     [
+      120.5896858,
+      16.4119473
+     ],
+     [
+      120.5896324,
+      16.4120113
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-027",
+   "barangay": "City Camp Proper",
+   "levels": 6,
+   "height_m": 18.51,
+   "ground_elev_m": 1433.0,
+   "footprint_area_m2": 122.8,
+   "coordinates": [
+    [
+     [
+      120.5867058,
+      16.4083758
+     ],
+     [
+      120.5868437,
+      16.4084443
+     ],
+     [
+      120.586812,
+      16.4085038
+     ],
+     [
+      120.586674,
+      16.4084352
+     ],
+     [
+      120.5867058,
+      16.4083758
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-028",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 4,
+   "height_m": 12.6,
+   "ground_elev_m": 1471.036,
+   "footprint_area_m2": 112.7,
+   "coordinates": [
+    [
+     [
+      120.5832421,
+      16.4106505
+     ],
+     [
+      120.5833217,
+      16.410618
+     ],
+     [
+      120.5833662,
+      16.4107194
+     ],
+     [
+      120.5832865,
+      16.4107519
+     ],
+     [
+      120.5832421,
+      16.4106505
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-029",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.16,
+   "ground_elev_m": 1476.056,
+   "footprint_area_m2": 160.1,
+   "coordinates": [
+    [
+     [
+      120.5905545,
+      16.4127808
+     ],
+     [
+      120.5904194,
+      16.4126889
+     ],
+     [
+      120.5904683,
+      16.412622
+     ],
+     [
+      120.5906034,
+      16.4127139
+     ],
+     [
+      120.5905545,
+      16.4127808
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-030",
+   "barangay": "Middle Rock Quarry",
+   "levels": 3,
+   "height_m": 9.4,
+   "ground_elev_m": 1434.984,
+   "footprint_area_m2": 118.9,
+   "coordinates": [
+    [
+     [
+      120.5875137,
+      16.4084188
+     ],
+     [
+      120.5874562,
+      16.4084784
+     ],
+     [
+      120.587366,
+      16.4083973
+     ],
+     [
+      120.5874236,
+      16.4083377
+     ],
+     [
+      120.5875137,
+      16.4084188
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-031",
+   "barangay": "City Camp Central",
+   "levels": 6,
+   "height_m": 18.56,
+   "ground_elev_m": 1477.452,
+   "footprint_area_m2": 127.9,
+   "coordinates": [
+    [
+     [
+      120.5896896,
+      16.4105652
+     ],
+     [
+      120.5895996,
+      16.4106074
+     ],
+     [
+      120.5895508,
+      16.4105102
+     ],
+     [
+      120.5896408,
+      16.410468
+     ],
+     [
+      120.5896896,
+      16.4105652
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-032",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.78,
+   "ground_elev_m": 1433.007,
+   "footprint_area_m2": 89.9,
+   "coordinates": [
+    [
+     [
+      120.5870927,
+      16.4101763
+     ],
+     [
+      120.5869983,
+      16.4102482
+     ],
+     [
+      120.5869577,
+      16.4101985
+     ],
+     [
+      120.5870521,
+      16.4101266
+     ],
+     [
+      120.5870927,
+      16.4101763
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-033",
+   "barangay": "Lower Rock Quarry",
+   "levels": 2,
+   "height_m": 6.4,
+   "ground_elev_m": 1424.171,
+   "footprint_area_m2": 133.1,
+   "coordinates": [
+    [
+     [
+      120.5748904,
+      16.4044467
+     ],
+     [
+      120.5748195,
+      16.4043236
+     ],
+     [
+      120.5748893,
+      16.4042861
+     ],
+     [
+      120.5749602,
+      16.4044093
+     ],
+     [
+      120.5748904,
+      16.4044467
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-034",
+   "barangay": "City Camp Central",
+   "levels": 2,
+   "height_m": 6.09,
+   "ground_elev_m": 1464.245,
+   "footprint_area_m2": 127.1,
+   "coordinates": [
+    [
+     [
+      120.5883088,
+      16.4110495
+     ],
+     [
+      120.5882435,
+      16.410985
+     ],
+     [
+      120.5883288,
+      16.4109046
+     ],
+     [
+      120.588394,
+      16.4109691
+     ],
+     [
+      120.5883088,
+      16.4110495
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-035",
+   "barangay": "City Camp Central",
+   "levels": 4,
+   "height_m": 12.93,
+   "ground_elev_m": 1475.024,
+   "footprint_area_m2": 63.9,
+   "coordinates": [
+    [
+     [
+      120.5889321,
+      16.412023
+     ],
+     [
+      120.588873,
+      16.4119771
+     ],
+     [
+      120.5889193,
+      16.4119216
+     ],
+     [
+      120.5889784,
+      16.4119675
+     ],
+     [
+      120.5889321,
+      16.412023
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-036",
+   "barangay": "Middle Rock Quarry",
+   "levels": 5,
+   "height_m": 16.15,
+   "ground_elev_m": 1472.201,
+   "footprint_area_m2": 84.0,
+   "coordinates": [
+    [
+     [
+      120.5900957,
+      16.4047482
+     ],
+     [
+      120.5900384,
+      16.4048299
+     ],
+     [
+      120.5899788,
+      16.4047909
+     ],
+     [
+      120.590036,
+      16.4047092
+     ],
+     [
+      120.5900957,
+      16.4047482
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-037",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 3,
+   "height_m": 9.62,
+   "ground_elev_m": 1475.816,
+   "footprint_area_m2": 166.8,
+   "coordinates": [
+    [
+     [
+      120.581427,
+      16.4130804
+     ],
+     [
+      120.5815179,
+      16.4129484
+     ],
+     [
+      120.581592,
+      16.412996
+     ],
+     [
+      120.5815012,
+      16.4131279
+     ],
+     [
+      120.581427,
+      16.4130804
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-038",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 6,
+   "height_m": 19.1,
+   "ground_elev_m": 1475.189,
+   "footprint_area_m2": 89.5,
+   "coordinates": [
+    [
+     [
+      120.5819331,
+      16.4123214
+     ],
+     [
+      120.5819882,
+      16.4122386
+     ],
+     [
+      120.5820529,
+      16.4122787
+     ],
+     [
+      120.5819978,
+      16.4123615
+     ],
+     [
+      120.5819331,
+      16.4123214
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-039",
+   "barangay": "City Camp Proper",
+   "levels": 4,
+   "height_m": 12.22,
+   "ground_elev_m": 1448.305,
+   "footprint_area_m2": 113.0,
+   "coordinates": [
+    [
+     [
+      120.5864742,
+      16.4114062
+     ],
+     [
+      120.5864894,
+      16.4112747
+     ],
+     [
+      120.5865611,
+      16.4112824
+     ],
+     [
+      120.5865459,
+      16.411414
+     ],
+     [
+      120.5864742,
+      16.4114062
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-040",
+   "barangay": "City Camp Central",
+   "levels": 4,
+   "height_m": 12.38,
+   "ground_elev_m": 1476.135,
+   "footprint_area_m2": 126.0,
+   "coordinates": [
+    [
+     [
+      120.5910378,
+      16.4131189
+     ],
+     [
+      120.5909114,
+      16.4130216
+     ],
+     [
+      120.5909539,
+      16.4129701
+     ],
+     [
+      120.5910803,
+      16.4130673
+     ],
+     [
+      120.5910378,
+      16.4131189
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-041",
+   "barangay": "Guisad Surong",
+   "levels": 3,
+   "height_m": 9.67,
+   "ground_elev_m": 1474.409,
+   "footprint_area_m2": 241.0,
+   "coordinates": [
+    [
+     [
+      120.5853923,
+      16.4125502
+     ],
+     [
+      120.5854133,
+      16.4123914
+     ],
+     [
+      120.5855396,
+      16.4124069
+     ],
+     [
+      120.5855186,
+      16.4125657
+     ],
+     [
+      120.5853923,
+      16.4125502
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-042",
+   "barangay": "Middle Rock Quarry",
+   "levels": 5,
+   "height_m": 15.53,
+   "ground_elev_m": 1471.528,
+   "footprint_area_m2": 77.3,
+   "coordinates": [
+    [
+     [
+      120.5886653,
+      16.4071964
+     ],
+     [
+      120.5886028,
+      16.4072629
+     ],
+     [
+      120.5885489,
+      16.4072157
+     ],
+     [
+      120.5886114,
+      16.4071492
+     ],
+     [
+      120.5886653,
+      16.4071964
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-043",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 2,
+   "height_m": 6.31,
+   "ground_elev_m": 1434.796,
+   "footprint_area_m2": 136.4,
+   "coordinates": [
+    [
+     [
+      120.5848831,
+      16.4098459
+     ],
+     [
+      120.5849722,
+      16.4097926
+     ],
+     [
+      120.5850323,
+      16.409886
+     ],
+     [
+      120.5849431,
+      16.4099393
+     ],
+     [
+      120.5848831,
+      16.4098459
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-044",
+   "barangay": "Guisad Surong",
+   "levels": 5,
+   "height_m": 15.88,
+   "ground_elev_m": 1448.569,
+   "footprint_area_m2": 118.0,
+   "coordinates": [
+    [
+     [
+      120.5858319,
+      16.411346
+     ],
+     [
+      120.585933,
+      16.4112525
+     ],
+     [
+      120.5859841,
+      16.4113041
+     ],
+     [
+      120.585883,
+      16.4113975
+     ],
+     [
+      120.5858319,
+      16.411346
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-045",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 5,
+   "height_m": 15.04,
+   "ground_elev_m": 1470.449,
+   "footprint_area_m2": 125.0,
+   "coordinates": [
+    [
+     [
+      120.5816194,
+      16.4112316
+     ],
+     [
+      120.5817017,
+      16.4112035
+     ],
+     [
+      120.5817434,
+      16.4113177
+     ],
+     [
+      120.5816612,
+      16.4113458
+     ],
+     [
+      120.5816194,
+      16.4112316
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-046",
+   "barangay": "Middle Rock Quarry",
+   "levels": 3,
+   "height_m": 9.76,
+   "ground_elev_m": 1473.257,
+   "footprint_area_m2": 164.1,
+   "coordinates": [
+    [
+     [
+      120.5906503,
+      16.4075529
+     ],
+     [
+      120.590534,
+      16.4075578
+     ],
+     [
+      120.5905286,
+      16.4074388
+     ],
+     [
+      120.590645,
+      16.4074339
+     ],
+     [
+      120.5906503,
+      16.4075529
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-047",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 6,
+   "height_m": 18.44,
+   "ground_elev_m": 1468.074,
+   "footprint_area_m2": 134.1,
+   "coordinates": [
+    [
+     [
+      120.5814938,
+      16.4108923
+     ],
+     [
+      120.5815786,
+      16.4108634
+     ],
+     [
+      120.5816221,
+      16.4109822
+     ],
+     [
+      120.5815373,
+      16.4110111
+     ],
+     [
+      120.5814938,
+      16.4108923
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-048",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.31,
+   "ground_elev_m": 1474.913,
+   "footprint_area_m2": 225.8,
+   "coordinates": [
+    [
+     [
+      120.5887076,
+      16.4118441
+     ],
+     [
+      120.5885829,
+      16.4117472
+     ],
+     [
+      120.5886603,
+      16.4116544
+     ],
+     [
+      120.588785,
+      16.4117513
+     ],
+     [
+      120.5887076,
+      16.4118441
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-049",
+   "barangay": "Upper Rock Quarry",
+   "levels": 4,
+   "height_m": 12.46,
+   "ground_elev_m": 1473.017,
+   "footprint_area_m2": 130.6,
+   "coordinates": [
+    [
+     [
+      120.5876544,
+      16.4063784
+     ],
+     [
+      120.587607,
+      16.4065018
+     ],
+     [
+      120.5875284,
+      16.4064737
+     ],
+     [
+      120.5875758,
+      16.4063503
+     ],
+     [
+      120.5876544,
+      16.4063784
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-050",
+   "barangay": "City Camp Central",
+   "levels": 3,
+   "height_m": 9.49,
+   "ground_elev_m": 1450.938,
+   "footprint_area_m2": 104.8,
+   "coordinates": [
+    [
+     [
+      120.5877615,
+      16.4109648
+     ],
+     [
+      120.5876805,
+      16.4108768
+     ],
+     [
+      120.5877369,
+      16.4108285
+     ],
+     [
+      120.5878178,
+      16.4109165
+     ],
+     [
+      120.5877615,
+      16.4109648
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-051",
+   "barangay": "Middle Rock Quarry",
+   "levels": 6,
+   "height_m": 18.73,
+   "ground_elev_m": 1464.789,
+   "footprint_area_m2": 177.4,
+   "coordinates": [
+    [
+     [
+      120.5886125,
+      16.4077199
+     ],
+     [
+      120.5884443,
+      16.4077138
+     ],
+     [
+      120.5884477,
+      16.4076248
+     ],
+     [
+      120.588616,
+      16.4076309
+     ],
+     [
+      120.5886125,
+      16.4077199
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-052",
+   "barangay": "Middle Rock Quarry",
+   "levels": 5,
+   "height_m": 15.37,
+   "ground_elev_m": 1473.818,
+   "footprint_area_m2": 114.8,
+   "coordinates": [
+    [
+     [
+      120.5906611,
+      16.4078575
+     ],
+     [
+      120.5905508,
+      16.4078621
+     ],
+     [
+      120.5905468,
+      16.4077742
+     ],
+     [
+      120.5906571,
+      16.4077696
+     ],
+     [
+      120.5906611,
+      16.4078575
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-053",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 5,
+   "height_m": 15.51,
+   "ground_elev_m": 1470.608,
+   "footprint_area_m2": 122.3,
+   "coordinates": [
+    [
+     [
+      120.5819281,
+      16.4111116
+     ],
+     [
+      120.5820601,
+      16.4110666
+     ],
+     [
+      120.5820856,
+      16.4111362
+     ],
+     [
+      120.5819535,
+      16.4111812
+     ],
+     [
+      120.5819281,
+      16.4111116
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-054",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.43,
+   "ground_elev_m": 1475.629,
+   "footprint_area_m2": 126.6,
+   "coordinates": [
+    [
+     [
+      120.5911069,
+      16.4136568
+     ],
+     [
+      120.5910202,
+      16.4135901
+     ],
+     [
+      120.5910825,
+      16.4135146
+     ],
+     [
+      120.5911692,
+      16.4135813
+     ],
+     [
+      120.5911069,
+      16.4136568
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-055",
+   "barangay": "City Camp Proper",
+   "levels": 3,
+   "height_m": 9.42,
+   "ground_elev_m": 1433.36,
+   "footprint_area_m2": 163.4,
+   "coordinates": [
+    [
+     [
+      120.5852348,
+      16.4085643
+     ],
+     [
+      120.5853175,
+      16.4084639
+     ],
+     [
+      120.5854017,
+      16.4085286
+     ],
+     [
+      120.585319,
+      16.408629
+     ],
+     [
+      120.5852348,
+      16.4085643
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-056",
+   "barangay": "Upper Rock Quarry",
+   "levels": 4,
+   "height_m": 12.22,
+   "ground_elev_m": 1462.898,
+   "footprint_area_m2": 135.9,
+   "coordinates": [
+    [
+     [
+      120.5871274,
+      16.4067921
+     ],
+     [
+      120.5870784,
+      16.4069118
+     ],
+     [
+      120.5869954,
+      16.4068802
+     ],
+     [
+      120.5870443,
+      16.4067605
+     ],
+     [
+      120.5871274,
+      16.4067921
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-057",
+   "barangay": "City Camp Central",
+   "levels": 2,
+   "height_m": 6.47,
+   "ground_elev_m": 1435.365,
+   "footprint_area_m2": 110.7,
+   "coordinates": [
+    [
+     [
+      120.5875487,
+      16.4101999
+     ],
+     [
+      120.5874622,
+      16.4101313
+     ],
+     [
+      120.5875172,
+      16.4100668
+     ],
+     [
+      120.5876037,
+      16.4101354
+     ],
+     [
+      120.5875487,
+      16.4101999
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-058",
+   "barangay": "City Camp Proper",
+   "levels": 6,
+   "height_m": 19.1,
+   "ground_elev_m": 1434.536,
+   "footprint_area_m2": 116.6,
+   "coordinates": [
+    [
+     [
+      120.5856517,
+      16.4080214
+     ],
+     [
+      120.5857589,
+      16.4079757
+     ],
+     [
+      120.585794,
+      16.4080527
+     ],
+     [
+      120.5856868,
+      16.4080983
+     ],
+     [
+      120.5856517,
+      16.4080214
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-059",
+   "barangay": "Lower Rock Quarry",
+   "levels": 5,
+   "height_m": 15.96,
+   "ground_elev_m": 1422.861,
+   "footprint_area_m2": 91.7,
+   "coordinates": [
+    [
+     [
+      120.573977,
+      16.4036044
+     ],
+     [
+      120.573937,
+      16.4035373
+     ],
+     [
+      120.5740238,
+      16.4034892
+     ],
+     [
+      120.5740638,
+      16.4035563
+     ],
+     [
+      120.573977,
+      16.4036044
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-060",
+   "barangay": "City Camp Proper",
+   "levels": 4,
+   "height_m": 12.96,
+   "ground_elev_m": 1434.633,
+   "footprint_area_m2": 92.3,
+   "coordinates": [
+    [
+     [
+      120.5861762,
+      16.4107279
+     ],
+     [
+      120.5861831,
+      16.4106363
+     ],
+     [
+      120.5862678,
+      16.4106423
+     ],
+     [
+      120.5862608,
+      16.4107339
+     ],
+     [
+      120.5861762,
+      16.4107279
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-061",
+   "barangay": "Lower Rock Quarry",
+   "levels": 4,
+   "height_m": 12.57,
+   "ground_elev_m": 1420.455,
+   "footprint_area_m2": 89.4,
+   "coordinates": [
+    [
+     [
+      120.5736973,
+      16.4024168
+     ],
+     [
+      120.5736446,
+      16.4023241
+     ],
+     [
+      120.5737072,
+      16.4022909
+     ],
+     [
+      120.57376,
+      16.4023835
+     ],
+     [
+      120.5736973,
+      16.4024168
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-062",
+   "barangay": "Upper Rock Quarry",
+   "levels": 2,
+   "height_m": 6.95,
+   "ground_elev_m": 1471.428,
+   "footprint_area_m2": 126.4,
+   "coordinates": [
+    [
+     [
+      120.5872217,
+      16.406399
+     ],
+     [
+      120.5871767,
+      16.4065162
+     ],
+     [
+      120.5870966,
+      16.4064876
+     ],
+     [
+      120.5871416,
+      16.4063703
+     ],
+     [
+      120.5872217,
+      16.406399
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-063",
+   "barangay": "City Camp Central",
+   "levels": 2,
+   "height_m": 6.35,
+   "ground_elev_m": 1443.842,
+   "footprint_area_m2": 209.5,
+   "coordinates": [
+    [
+     [
+      120.5878398,
+      16.4105588
+     ],
+     [
+      120.5877381,
+      16.4104482
+     ],
+     [
+      120.5878276,
+      16.4103715
+     ],
+     [
+      120.5879293,
+      16.4104821
+     ],
+     [
+      120.5878398,
+      16.4105588
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-064",
+   "barangay": "Middle Rock Quarry",
+   "levels": 2,
+   "height_m": 6.87,
+   "ground_elev_m": 1471.982,
+   "footprint_area_m2": 136.0,
+   "coordinates": [
+    [
+     [
+      120.5892773,
+      16.4064933
+     ],
+     [
+      120.5891755,
+      16.4066071
+     ],
+     [
+      120.5891176,
+      16.4065589
+     ],
+     [
+      120.5892194,
+      16.406445
+     ],
+     [
+      120.5892773,
+      16.4064933
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-065",
+   "barangay": "Middle Rock Quarry",
+   "levels": 6,
+   "height_m": 18.72,
+   "ground_elev_m": 1472.347,
+   "footprint_area_m2": 129.4,
+   "coordinates": [
+    [
+     [
+      120.5887144,
+      16.4065199
+     ],
+     [
+      120.5886344,
+      16.4066095
+     ],
+     [
+      120.5885644,
+      16.4065511
+     ],
+     [
+      120.5886444,
+      16.4064616
+     ],
+     [
+      120.5887144,
+      16.4065199
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-066",
+   "barangay": "City Camp Proper",
+   "levels": 2,
+   "height_m": 6.47,
+   "ground_elev_m": 1455.595,
+   "footprint_area_m2": 130.8,
+   "coordinates": [
+    [
+     [
+      120.5834102,
+      16.4094556
+     ],
+     [
+      120.5835567,
+      16.409534
+     ],
+     [
+      120.5835235,
+      16.4095917
+     ],
+     [
+      120.5833771,
+      16.4095134
+     ],
+     [
+      120.5834102,
+      16.4094556
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-067",
+   "barangay": "City Camp Central",
+   "levels": 5,
+   "height_m": 15.42,
+   "ground_elev_m": 1433.004,
+   "footprint_area_m2": 82.0,
+   "coordinates": [
+    [
+     [
+      120.5858115,
+      16.4103867
+     ],
+     [
+      120.585741,
+      16.4103546
+     ],
+     [
+      120.5857804,
+      16.4102742
+     ],
+     [
+      120.5858509,
+      16.4103063
+     ],
+     [
+      120.5858115,
+      16.4103867
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-068",
+   "barangay": "City Camp Proper",
+   "levels": 5,
+   "height_m": 15.94,
+   "ground_elev_m": 1433.346,
+   "footprint_area_m2": 57.6,
+   "coordinates": [
+    [
+     [
+      120.5851377,
+      16.4088228
+     ],
+     [
+      120.5851697,
+      16.4087559
+     ],
+     [
+      120.5852297,
+      16.4087826
+     ],
+     [
+      120.5851977,
+      16.4088495
+     ],
+     [
+      120.5851377,
+      16.4088228
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-069",
+   "barangay": "Upper Rock Quarry",
+   "levels": 5,
+   "height_m": 15.65,
+   "ground_elev_m": 1456.481,
+   "footprint_area_m2": 94.1,
+   "coordinates": [
+    [
+     [
+      120.5875427,
+      16.4072225
+     ],
+     [
+      120.5875632,
+      16.4072955
+     ],
+     [
+      120.5874618,
+      16.4073221
+     ],
+     [
+      120.5874413,
+      16.4072491
+     ],
+     [
+      120.5875427,
+      16.4072225
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-070",
+   "barangay": "Middle Rock Quarry",
+   "levels": 3,
+   "height_m": 9.81,
+   "ground_elev_m": 1472.868,
+   "footprint_area_m2": 149.6,
+   "coordinates": [
+    [
+     [
+      120.5901768,
+      16.4075015
+     ],
+     [
+      120.5900458,
+      16.407486
+     ],
+     [
+      120.590058,
+      16.4073909
+     ],
+     [
+      120.5901889,
+      16.4074064
+     ],
+     [
+      120.5901768,
+      16.4075015
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-071",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 2,
+   "height_m": 6.18,
+   "ground_elev_m": 1435.739,
+   "footprint_area_m2": 83.9,
+   "coordinates": [
+    [
+     [
+      120.5847117,
+      16.4095836
+     ],
+     [
+      120.5848052,
+      16.4095277
+     ],
+     [
+      120.5848404,
+      16.4095825
+     ],
+     [
+      120.5847469,
+      16.4096385
+     ],
+     [
+      120.5847117,
+      16.4095836
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-072",
+   "barangay": "City Camp Central",
+   "levels": 2,
+   "height_m": 6.6,
+   "ground_elev_m": 1477.914,
+   "footprint_area_m2": 108.2,
+   "coordinates": [
+    [
+     [
+      120.5904098,
+      16.4102962
+     ],
+     [
+      120.5903327,
+      16.4103231
+     ],
+     [
+      120.5902934,
+      16.4102183
+     ],
+     [
+      120.5903706,
+      16.4101914
+     ],
+     [
+      120.5904098,
+      16.4102962
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-073",
+   "barangay": "City Camp Central",
+   "levels": 2,
+   "height_m": 6.83,
+   "ground_elev_m": 1470.25,
+   "footprint_area_m2": 187.2,
+   "coordinates": [
+    [
+     [
+      120.5883112,
+      16.4115067
+     ],
+     [
+      120.5882138,
+      16.4114105
+     ],
+     [
+      120.5882981,
+      16.4113311
+     ],
+     [
+      120.5883954,
+      16.4114273
+     ],
+     [
+      120.5883112,
+      16.4115067
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-074",
+   "barangay": "Upper Rock Quarry",
+   "levels": 5,
+   "height_m": 15.48,
+   "ground_elev_m": 1474.047,
+   "footprint_area_m2": 218.0,
+   "coordinates": [
+    [
+     [
+      120.5874679,
+      16.4060453
+     ],
+     [
+      120.5874147,
+      16.4061838
+     ],
+     [
+      120.5872977,
+      16.406142
+     ],
+     [
+      120.5873509,
+      16.4060035
+     ],
+     [
+      120.5874679,
+      16.4060453
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-075",
+   "barangay": "City Camp Proper",
+   "levels": 6,
+   "height_m": 18.67,
+   "ground_elev_m": 1453.097,
+   "footprint_area_m2": 146.2,
+   "coordinates": [
+    [
+     [
+      120.582771,
+      16.4090755
+     ],
+     [
+      120.5828556,
+      16.4091258
+     ],
+     [
+      120.5827879,
+      16.4092317
+     ],
+     [
+      120.5827034,
+      16.4091814
+     ],
+     [
+      120.582771,
+      16.4090755
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-076",
+   "barangay": "Middle Rock Quarry",
+   "levels": 5,
+   "height_m": 15.11,
+   "ground_elev_m": 1444.604,
+   "footprint_area_m2": 156.4,
+   "coordinates": [
+    [
+     [
+      120.5878836,
+      16.407998
+     ],
+     [
+      120.5877746,
+      16.4081132
+     ],
+     [
+      120.587712,
+      16.4080581
+     ],
+     [
+      120.5878209,
+      16.4079428
+     ],
+     [
+      120.5878836,
+      16.407998
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-077",
+   "barangay": "City Camp Proper",
+   "levels": 6,
+   "height_m": 18.15,
+   "ground_elev_m": 1434.945,
+   "footprint_area_m2": 131.4,
+   "coordinates": [
+    [
+     [
+      120.5865142,
+      16.4107636
+     ],
+     [
+      120.5865229,
+      16.4106487
+     ],
+     [
+      120.5866191,
+      16.4106555
+     ],
+     [
+      120.5866103,
+      16.4107704
+     ],
+     [
+      120.5865142,
+      16.4107636
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-078",
+   "barangay": "Middle Rock Quarry",
+   "levels": 6,
+   "height_m": 18.95,
+   "ground_elev_m": 1434.823,
+   "footprint_area_m2": 144.4,
+   "coordinates": [
+    [
+     [
+      120.5872229,
+      16.4081398
+     ],
+     [
+      120.5871474,
+      16.408218
+     ],
+     [
+      120.5870638,
+      16.4081428
+     ],
+     [
+      120.5871393,
+      16.4080646
+     ],
+     [
+      120.5872229,
+      16.4081398
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-079",
+   "barangay": "City Camp Proper",
+   "levels": 3,
+   "height_m": 9.81,
+   "ground_elev_m": 1472.197,
+   "footprint_area_m2": 151.8,
+   "coordinates": [
+    [
+     [
+      120.586697,
+      16.4140222
+     ],
+     [
+      120.5866643,
+      16.4138858
+     ],
+     [
+      120.5867536,
+      16.4138659
+     ],
+     [
+      120.5867863,
+      16.4140022
+     ],
+     [
+      120.586697,
+      16.4140222
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-080",
+   "barangay": "City Camp Proper",
+   "levels": 4,
+   "height_m": 12.19,
+   "ground_elev_m": 1455.852,
+   "footprint_area_m2": 118.6,
+   "coordinates": [
+    [
+     [
+      120.5829852,
+      16.4092938
+     ],
+     [
+      120.5831147,
+      16.4093709
+     ],
+     [
+      120.5830789,
+      16.409427
+     ],
+     [
+      120.5829494,
+      16.4093499
+     ],
+     [
+      120.5829852,
+      16.4092938
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-081",
+   "barangay": "Lourdes Subdivision Extension",
+   "levels": 3,
+   "height_m": 10.11,
+   "ground_elev_m": 1457.229,
+   "footprint_area_m2": 98.2,
+   "coordinates": [
+    [
+     [
+      120.5839852,
+      16.4103122
+     ],
+     [
+      120.5840757,
+      16.4102698
+     ],
+     [
+      120.584113,
+      16.4103441
+     ],
+     [
+      120.5840225,
+      16.4103865
+     ],
+     [
+      120.5839852,
+      16.4103122
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-082",
+   "barangay": "City Camp Central",
+   "levels": 6,
+   "height_m": 19.2,
+   "ground_elev_m": 1470.836,
+   "footprint_area_m2": 66.2,
+   "coordinates": [
+    [
+     [
+      120.5888134,
+      16.4108418
+     ],
+     [
+      120.5887356,
+      16.4108671
+     ],
+     [
+      120.5887131,
+      16.4108025
+     ],
+     [
+      120.5887908,
+      16.4107772
+     ],
+     [
+      120.5888134,
+      16.4108418
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-083",
+   "barangay": "City Camp Proper",
+   "levels": 2,
+   "height_m": 6.4,
+   "ground_elev_m": 1438.288,
+   "footprint_area_m2": 162.6,
+   "coordinates": [
+    [
+     [
+      120.5860856,
+      16.4109673
+     ],
+     [
+      120.586094,
+      16.4108561
+     ],
+     [
+      120.5862169,
+      16.4108648
+     ],
+     [
+      120.5862085,
+      16.410976
+     ],
+     [
+      120.5860856,
+      16.4109673
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  },
+  {
+   "id": "BLDG-084",
+   "barangay": "City Camp Proper",
+   "levels": 2,
+   "height_m": 6.27,
+   "ground_elev_m": 1433.0,
+   "footprint_area_m2": 76.9,
+   "coordinates": [
+    [
+     [
+      120.5873208,
+      16.4087318
+     ],
+     [
+      120.5873676,
+      16.4088185
+     ],
+     [
+      120.5873085,
+      16.4088481
+     ],
+     [
+      120.5872618,
+      16.4087615
+     ],
+     [
+      120.5873208,
+      16.4087318
+     ]
+    ]
+   ],
+   "generator": "BUILTIN_FALLBACK",
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true
+  }
+ ],
+ "sensors": [
+  {
+   "sensor_id": "EN-01",
+   "name": "Guisad Surong hillside tributary",
+   "role": "HILLSIDE_TRIBUTARY",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000001",
+   "attached_kind": "CONDUIT",
+   "attached_to": "GSF-C02",
+   "mount_node": "GSF-J02",
+   "coordinates": [
+    120.5857805,
+    16.4119588,
+    1467.827
+   ],
+   "pipe_geometry": {
+    "shape": "CIRCULAR",
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "manning_n": 0.013,
+    "slope": 0.12904,
+    "invert_elev_m": 1466.027,
+    "q_full_cms": 2.197,
+    "q_max_cms": 2.363
+   },
+   "vbat_v": 4.12,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-02",
+   "name": "Upper Rock Quarry hillside tributary",
+   "role": "HILLSIDE_TRIBUTARY",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000002",
+   "attached_kind": "CONDUIT",
+   "attached_to": "URQ-C02",
+   "mount_node": "URQ-J02",
+   "coordinates": [
+    120.5873436,
+    16.4066381,
+    1470.305
+   ],
+   "pipe_geometry": {
+    "shape": "CIRCULAR",
+    "rise_m": 0.6,
+    "span_m": 0.6,
+    "manning_n": 0.013,
+    "slope": 0.07569,
+    "invert_elev_m": 1468.505,
+    "q_full_cms": 1.687,
+    "q_max_cms": 1.815
+   },
+   "vbat_v": 4.04,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-03",
+   "name": "Legarda Rd RCBC lagoon outlet",
+   "role": "ARTERIAL_BOX_CULVERT",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000003",
+   "attached_kind": "CONDUIT",
+   "attached_to": "LGD-C07",
+   "mount_node": "LGD-C07-OUTLET-HEADWALL",
+   "coordinates": [
+    120.5870201,
+    16.409941,
+    1433.0
+   ],
+   "pipe_geometry": {
+    "shape": "RECT_CLOSED",
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "manning_n": 0.013,
+    "slope": 0.09377,
+    "invert_elev_m": 1430.0,
+    "q_full_cms": 121.709,
+    "q_max_cms": 148.845
+   },
+   "vbat_v": 3.96,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-04",
+   "name": "Dominican Hill Rd RCBC mid-reach",
+   "role": "ARTERIAL_BOX_CULVERT",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000004",
+   "attached_kind": "CONDUIT",
+   "attached_to": "DHR-C04",
+   "mount_node": "DHR-J04",
+   "coordinates": [
+    120.5837607,
+    16.4103096,
+    1463.353
+   ],
+   "pipe_geometry": {
+    "shape": "RECT_CLOSED",
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "manning_n": 0.013,
+    "slope": 0.04162,
+    "invert_elev_m": 1460.553,
+    "q_full_cms": 58.05,
+    "q_max_cms": 70.935
+   },
+   "vbat_v": 4.08,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-05",
+   "name": "Kisad Rd RCBC mid-reach",
+   "role": "ARTERIAL_BOX_CULVERT",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000005",
+   "attached_kind": "CONDUIT",
+   "attached_to": "KSD-C03",
+   "mount_node": "KSD-J03",
+   "coordinates": [
+    120.5862406,
+    16.4125965,
+    1473.175
+   ],
+   "pipe_geometry": {
+    "shape": "RECT_CLOSED",
+    "rise_m": 1.8,
+    "span_m": 3.0,
+    "manning_n": 0.013,
+    "slope": 0.005,
+    "invert_elev_m": 1468.049,
+    "q_full_cms": 20.128,
+    "q_max_cms": 24.596
+   },
+   "vbat_v": 3.88,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-06",
+   "name": "Queen of Peace Rd RCBC lagoon outlet",
+   "role": "ARTERIAL_BOX_CULVERT",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000006",
+   "attached_kind": "CONDUIT",
+   "attached_to": "QOP-C06",
+   "mount_node": "QOP-C06-OUTLET-HEADWALL",
+   "coordinates": [
+    120.5868276,
+    16.4087478,
+    1433.0
+   ],
+   "pipe_geometry": {
+    "shape": "RECT_CLOSED",
+    "rise_m": 2.0,
+    "span_m": 3.5,
+    "manning_n": 0.013,
+    "slope": 0.07474,
+    "invert_elev_m": 1430.0,
+    "q_full_cms": 108.749,
+    "q_max_cms": 132.995
+   },
+   "vbat_v": 3.92,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-07",
+   "name": "City Camp Lagoon bowl stage",
+   "role": "LAGOON_BOWL",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000007",
+   "attached_kind": "STORAGE",
+   "attached_to": "CITY_CAMP_LAGOON_STORAGE",
+   "mount_node": "CITY_CAMP_LAGOON_STORAGE",
+   "coordinates": [
+    120.5859775,
+    16.4084119,
+    1433.0
+   ],
+   "pipe_geometry": {
+    "shape": "STORAGE",
+    "max_depth_m": 6.5,
+    "invert_elev_m": 1426.5,
+    "surface_area_m2": 30000.0
+   },
+   "vbat_v": 4.16,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-08",
+   "name": "Trash rack intake ultrasonic",
+   "role": "TRASH_RACK_ULTRASONIC",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C1000000008",
+   "attached_kind": "ORIFICE",
+   "attached_to": "CITY_CAMP_TRASH_RACK",
+   "mount_node": "CITY_CAMP_TRASH_RACK",
+   "coordinates": [
+    120.585456,
+    16.4088167,
+    1433.0
+   ],
+   "pipe_geometry": {
+    "shape": "ORIFICE",
+    "width_m": 3.0,
+    "height_m": 2.0,
+    "sill_elev_m": 1428.0,
+    "discharge_coeff": 0.6
+   },
+   "vbat_v": 3.84,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  },
+  {
+   "sensor_id": "EN-09",
+   "name": "Trash rack YOLOv8 vision",
+   "role": "TRASH_RACK_VISION",
+   "hardware": "JETSON_YOLO_TRASHRACK",
+   "device_eui": "02BA6C1000000009",
+   "attached_kind": "ORIFICE",
+   "attached_to": "CITY_CAMP_TRASH_RACK",
+   "mount_node": "CITY_CAMP_TRASH_RACK",
+   "coordinates": [
+    120.585456,
+    16.4088167,
+    1433.0
+   ],
+   "pipe_geometry": {
+    "shape": "ORIFICE",
+    "width_m": 3.0,
+    "height_m": 2.0,
+    "sill_elev_m": 1428.0,
+    "discharge_coeff": 0.6
+   },
+   "vbat_v": 4.2,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "vision": {
+    "model": "YOLOv8",
+    "output": "blockage_ratio_p",
+    "range": [
+     0.0,
+     0.95
+    ]
+   },
+   "payload_note": "cap_code carries visual blockage % (0-95) for this hardware class"
+  },
+  {
+   "sensor_id": "EN-10",
+   "name": "Rock tunnel choke transition",
+   "role": "TUNNEL_CHOKE_TRANSITION",
+   "hardware": "XIAO_ESP32S3_A02YYUW",
+   "device_eui": "02BA6C100000000A",
+   "attached_kind": "CONDUIT",
+   "attached_to": "TUN-C02",
+   "mount_node": "TUN-J02",
+   "coordinates": [
+    120.5830793,
+    16.4071955,
+    1441.528
+   ],
+   "pipe_geometry": {
+    "shape": "RECT_CLOSED",
+    "rise_m": 2.7,
+    "span_m": 2.5,
+    "manning_n": 0.013,
+    "slope": 0.00499,
+    "invert_elev_m": 1414.74,
+    "q_full_cms": 27.814,
+    "q_max_cms": 32.221
+   },
+   "vbat_v": 3.8,
+   "source_type": "SYNTHETIC_OSMNX",
+   "is_active": true,
+   "radio": {
+    "lorawan_region": "AS923-3",
+    "band_mhz": [
+     915.0,
+     918.0
+    ],
+    "transceiver": "Wio-SX1262"
+   },
+   "sensors": [
+    "DFRobot A02YYUW (UART 9600, 30 mm blind zone)",
+    "DS18B20"
+   ]
+  }
+ ]
+}
