@@ -120,6 +120,63 @@ export function fullnessStatus(pct: number): NodeStatus {
   return { label: 'Normal Flow', tone: 'normal' };
 }
 
+// ---------------------------------------------------------------- 3D markers + map badges
+/** Fullness at which a sensor marker blinks red and its conduit pulses (Phase 7A). */
+export const ALARM_PCT = 80;
+export const ELEVATED_PCT = 45;
+/** Blink rate of an alarmed marker / conduit, Hz. */
+export const ALARM_BLINK_HZ = 3;
+
+export type MarkerTone = 'normal' | 'elevated' | 'alarm';
+
+export const MARKER_COLORS = {
+  normal: '#10B981',
+  elevated: '#F59E0B',
+  alarm: '#DC2626',
+  alarmLight: '#FCA5A5',
+} as const;
+
+/**
+ * Marker status: alarm when the node is >= 80 % full, surcharged, or a physical (hardware)
+ * uplink reports a live surge there; elevated from 45 %; otherwise normal.
+ */
+export function markerTone(S: SensorState): MarkerTone {
+  const pct = nodeFullnessPct(S);
+  if (pct >= ALARM_PCT || S.anomaly === 'SURCHARGED' || S.liveSurge) return 'alarm';
+  return pct >= ELEVATED_PCT ? 'elevated' : 'normal';
+}
+
+/** Red <-> light-red blink colour of an alarmed marker at time t (s). */
+export function alarmBlink(t: number): number {
+  return 0.5 + 0.5 * Math.sin(t * 2 * Math.PI * ALARM_BLINK_HZ);
+}
+
+export interface BadgeContent {
+  id: string;
+  /** "88%" or, for the Jetson vision node, "15% blk" (its own visual-blockage reading) */
+  value: string;
+  vision: boolean;
+  tone: MarkerTone;
+}
+
+/** Compact clickable map pill: status dot + id + one number + chevron. */
+export function badgeContent(S: SensorState): BadgeContent {
+  const blk = visualBlockagePct(S);
+  return {
+    id: S.id,
+    value: blk !== null ? `${blk.toFixed(0)}% blk` : `${nodeFullnessPct(S).toFixed(0)}%`,
+    vision: blk !== null,
+    tone: markerTone(S),
+  };
+}
+
+/** Conduit a sensor's alarm pulses: its own conduit, or the tunnel intake reach for the rack nodes. */
+export function alarmConduitId(sensor: Sensor): string | null {
+  if (sensor.attached_kind === 'CONDUIT') return sensor.attached_to;
+  if (sensor.attached_kind === 'ORIFICE') return 'TUN-C01';
+  return null;
+}
+
 /** Conduit index of a sensor's structure (for Q / V / depth readouts), or -1. */
 export function sensorConduitIndex(S: SensorState, conduitIndex: Map<string, number>): number {
   return S.sensor.attached_kind === 'CONDUIT' ? (conduitIndex.get(S.sensor.attached_to) ?? -1) : -1;

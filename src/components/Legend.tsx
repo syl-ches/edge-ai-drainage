@@ -7,7 +7,7 @@ const SHOWN: AnomalyClass[] = ['NORMAL', 'FLASH_SURGE', 'TRASH_BLOCKAGE', 'SUPER
 export function Legend({ theme }: { theme: Theme }) {
   const bands = bandsFor(theme);
   return (
-    <div className="pointer-events-none absolute bottom-8 right-14 z-10 hidden w-60 rounded-xl border border-white/10 bg-slate-950/75 p-3 text-[11px] text-slate-300 shadow-lg shadow-black/20 backdrop-blur-md sm:block">
+    <div className="pointer-events-none absolute bottom-8 right-14 z-10 hidden w-60 hud-card rounded-xl p-3 text-[11px] text-slate-300 sm:block">
       <div className="mb-1.5 text-[10px] uppercase tracking-wider text-slate-500">Conduit / node fullness</div>
       <div className="flex overflow-hidden rounded">
         {bands.map((b) => (

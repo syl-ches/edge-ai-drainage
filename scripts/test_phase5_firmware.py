@@ -322,6 +322,18 @@ def main() -> int:
                     errs = " | ".join(ln for ln in proc.stderr.splitlines() if "main.cpp" in ln or "error" in ln)[:600]
             record("firmware src/main.cpp compiles against Arduino/RadioLib API stubs (3 variants, -Werror)", ok_main,
                    "" if ok_main else errs)
+            demo = ROOT / "firmware" / "arduino_aquarium_demo"
+            ok_demo, errs = True, ""
+            for variant in (["-DSENSOR_TYPE=1"], ["-DSENSOR_TYPE=2"], ["-DSENSOR_TYPE=1", "-DARDUINO_ARCH_ESP32"],
+                            ["-DSENSOR_TYPE=2", "-DARDUINO_ARCH_ESP32"]):
+                proc = subprocess.run(cxx + ["-std=c++17", "-c", "-x", "c++", "-Wall", "-Wextra", "-Werror", "-include", "Arduino.h",
+                                             f"-I{demo / 'test' / 'host_stubs'}", *variant, str(demo / "arduino_aquarium_demo.ino"),
+                                             "-o", str(tmp / "demo.o")], capture_output=True, text=True)
+                if proc.returncode != 0:
+                    ok_demo = False
+                    errs = " | ".join(ln for ln in proc.stderr.splitlines() if "error" in ln)[:600]
+            record("arduino_aquarium_demo.ino compiles for HC-SR04 / A02YYUW on AVR + ESP32 stubs (4 variants, -Werror)",
+                   ok_demo, "" if ok_demo else errs)
     else:
         print("No C++ compiler found (g++/clang++/c++/zig/$CXX). Running fallback verifier only.")
         record("fallback: Python reference golden vectors", dsp.pack_payload(5115, -1, 127, 7, 4.2) == 0xFFFFFFFF)

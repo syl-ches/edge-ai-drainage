@@ -6,3 +6,4 @@ __pycache__/
 firmware/citycamp_edge_node/include/secrets.h
 firmware/citycamp_edge_node/.pio/
 .venv/
+.cache/

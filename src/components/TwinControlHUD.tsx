@@ -5,6 +5,8 @@ import {
   ChevronDown,
   ChevronUp,
   CloudRain,
+  CloudSun,
+  Cpu,
   Crosshair,
   Maximize2,
   Play,
@@ -12,12 +14,18 @@ import {
   Radio,
   ShieldCheck,
   SlidersHorizontal,
+  Usb,
   Waves,
   WifiOff,
 } from 'lucide-react';
 import type { CameraPreset, CameraPresetId } from '../three/TwinEngine';
 import type { FusionVerdict } from '../types/live';
 import type { LiveSnapshot } from '../live/telemetry';
+import type { LiveDriver, LiveTarget } from '../live/liveDriver';
+import type { WeatherNow } from '../live/weather';
+import type { Forecast, StormDef } from '../forecast/stgnn';
+import type { UsbRig } from '../live/useUsbRig';
+import { ForecastPanel } from './ForecastPanel';
 import { rainfallClass, type TwinState } from '../utils/lutInterpolator';
 import type { HudMode } from '../utils/urlState';
 import { fmt } from './describe';
@@ -47,6 +55,16 @@ interface Props {
   onCamera(id: CameraPresetId): void;
   fps: number;
   live: LiveSnapshot | null;
+  driver: LiveDriver;
+  onDriver(d: LiveDriver): void;
+  liveTarget: LiveTarget;
+  weather: WeatherNow;
+  storms: StormDef[];
+  forecast: Forecast | null;
+  forecastOrigin: 'BACKEND' | 'BROWSER';
+  usb: UsbRig;
+  usbSensorId: string;
+  onHardwareSim(): void;
   fusion: FusionVerdict;
   dspHistory: DspSample[];
   dspSensor: string;
@@ -57,7 +75,7 @@ interface Props {
 function Section({ icon, title, right, children }: { icon: ReactNode; title: string; right?: ReactNode; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
+      <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         <span className="flex items-center gap-1.5">
           {icon}
           {title}
@@ -71,14 +89,12 @@ function Section({ icon, title, right, children }: { icon: ReactNode; title: str
 
 function Seg({ items, value, onChange, fmt: f }: { items: number[]; value: number; onChange(v: number): void; fmt(v: number): string }) {
   return (
-    <div className="flex rounded-lg bg-slate-900/80 p-0.5 ring-1 ring-white/5">
+    <div className="flex gap-1">
       {items.map((it) => (
         <button
           key={it}
           onClick={() => onChange(it)}
-          className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition ${
-            Math.abs(it - value) < 1e-6 ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/40' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className={`flex-1 rounded-lg px-2 py-1.5 text-[11px] ${Math.abs(it - value) < 1e-6 ? 'btn-active' : 'btn-idle'}`}
         >
           {f(it)}
         </button>
@@ -126,8 +142,8 @@ function Slider({
 function Stat({ label, value, tone = 'text-slate-100', sub }: { label: string; value: string; tone?: string; sub?: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[9px] uppercase tracking-wider text-slate-500">{label}</div>
-      <div className={`truncate font-mono text-[13px] ${tone}`}>{value}</div>
+      <div className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
+      <div className={`truncate font-mono text-[13px] font-semibold ${tone}`}>{value}</div>
       {sub && <div className="truncate text-[9px] text-slate-500">{sub}</div>}
     </div>
   );
@@ -152,18 +168,18 @@ function TwinControlHUDImpl(p: Props) {
 
   return (
     <aside
-      className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 flex max-h-[62vh] flex-col rounded-t-2xl border border-slate-800/80 bg-slate-950/75 text-slate-200 shadow-2xl shadow-black/60 backdrop-blur-md sm:inset-x-auto sm:bottom-auto sm:left-3 sm:top-3 sm:max-h-[calc(100vh-24px)] sm:w-[380px] sm:rounded-2xl"
+      className="hud-card pointer-events-auto absolute inset-x-0 bottom-0 z-30 flex max-h-[62vh] flex-col rounded-t-2xl text-slate-200 sm:inset-x-auto sm:bottom-auto sm:left-3 sm:top-3 sm:max-h-[calc(100vh-24px)] sm:w-[380px] sm:rounded-2xl"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 px-4 pb-2 pt-3">
         <button onClick={() => setOpen(!open)} className="min-w-0 text-left">
           <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-sky-300 ring-1 ring-sky-400/30">
+          <div className="btn-accent inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] uppercase tracking-[0.16em]">
             <Waves size={10} /> Edge-AI Digital Twin
           </div>
-          <h1 className="mt-1 text-[15px] font-semibold leading-tight text-white">City Camp Lagoon 3D Subsurface Digital Twin</h1>
-          <div className="text-[11px] text-slate-400">Baguio City · Mirador karst doline · 1426.5 m ASL</div>
+          <h1 className="mt-1 text-[15px] font-bold leading-tight text-white">City Camp Lagoon 3D Subsurface Digital Twin</h1>
+          <div className="text-[11px] font-medium text-slate-400">Baguio City · Mirador karst doline · 1426.5 m ASL</div>
         </button>
         <div className="flex shrink-0 items-center gap-1.5">
           {p.basemapOffline && <WifiOff size={14} className="text-amber-400" aria-label="Basemap offline" />}
@@ -171,10 +187,10 @@ function TwinControlHUDImpl(p: Props) {
             <Activity size={11} className="mr-0.5 inline" />
             {p.fps.toFixed(0)}
           </span>
-          <button onClick={p.onShare} className="rounded-lg p-1.5 text-slate-300 ring-1 ring-white/10 hover:bg-white/5" aria-label="Share via QR">
+          <button onClick={p.onShare} className="btn-idle rounded-lg p-1.5" aria-label="Share via QR">
             <QrCode size={15} />
           </button>
-          <button onClick={() => setOpen(!open)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-label="Collapse panel">
+          <button onClick={() => setOpen(!open)} className="btn-idle rounded-lg p-1.5" aria-label="Collapse panel">
             {open ? <ChevronDown size={15} className="sm:rotate-180" /> : <ChevronUp size={15} className="sm:rotate-180" />}
           </button>
         </div>
@@ -183,18 +199,18 @@ function TwinControlHUDImpl(p: Props) {
       {open && (
         <div className="space-y-4 overflow-y-auto overscroll-contain px-4 pb-4">
           {/* Mode switch */}
-          <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-900/80 p-1 ring-1 ring-white/5">
+          <div className="grid grid-cols-2 gap-1">
             {(
               [
+                ['LIVE', 'Live Weather & Telemetry', <Radio key="i" size={12} />],
                 ['SIM', 'Scenario Simulation', <SlidersHorizontal key="i" size={12} />],
-                ['LIVE', 'Live Telemetry Preview', <Radio key="i" size={12} />],
               ] as const
             ).map(([m, label, icon]) => (
               <button
                 key={m}
                 onClick={() => p.onMode(m)}
-                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition ${
-                  p.mode === m ? (m === 'LIVE' ? 'bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/40' : 'bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/40') : 'text-slate-400 hover:text-slate-200'
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[10px] uppercase tracking-wider ${
+                  p.mode === m ? (m === 'LIVE' ? 'btn-accent' : 'btn-active') : 'btn-idle'
                 }`}
               >
                 {icon}
@@ -203,23 +219,87 @@ function TwinControlHUDImpl(p: Props) {
             ))}
           </div>
 
-          {live && p.live && (
-            <div className="space-y-2 rounded-xl bg-slate-900/60 p-3 ring-1 ring-white/5">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-rose-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-400" />
-                  {p.live.source === 'BACKEND_WS' ? 'Backend stream' : 'Local storm playback'}
+          {live && (
+            <div className="space-y-2 rounded-xl bg-slate-900/60 p-3 ring-1 ring-slate-700">
+              <div className="flex items-center justify-between gap-2 text-[10px]">
+                <span className="flex min-w-0 items-center gap-1.5 font-bold uppercase tracking-wider text-emerald-300">
+                  <span className={`h-2 w-2 shrink-0 animate-pulse rounded-full ${p.liveTarget.source === 'HARDWARE' ? 'bg-[#dc2626]' : 'bg-[#10b981]'}`} />
+                  <span className="truncate">{p.liveTarget.label}</span>
                 </span>
-                <span className="font-mono text-slate-400">
-                  T+{Math.floor(p.live.clockS / 60)}:{String(Math.floor(p.live.clockS % 60)).padStart(2, '0')} / {Math.round(p.live.periodS)} s
+                <span className="shrink-0 font-mono font-semibold text-slate-400">
+                  {p.live?.source === 'BACKEND_WS' ? 'backend ● live' : 'backend offline'}
                 </span>
               </div>
-              <div className="h-1 overflow-hidden rounded-full bg-slate-800">
-                <div className="h-full bg-gradient-to-r from-sky-400 via-amber-400 to-rose-500" style={{ width: `${(p.live.clockS / p.live.periodS) * 100}%` }} />
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-200">
+                <CloudSun size={14} className="shrink-0 text-sky-300" />
+                <span className="font-mono">{p.weather.rainMmHr.toFixed(1)} mm/hr</span>
+                <span className="font-mono">{p.weather.temperatureC !== null ? `${p.weather.temperatureC.toFixed(1)} °C` : '— °C'}</span>
+                <span className="truncate">{p.weather.label}</span>
+                <span className="ml-auto shrink-0 text-[9px] font-medium uppercase text-slate-500">
+                  {p.weather.source === 'OPEN_METEO' ? 'Open-Meteo' : p.weather.source === 'CACHED' ? 'cached' : 'baseline'}
+                </span>
               </div>
+              {p.driver.kind === 'REPLAY' && p.live && p.live.source !== 'OFFLINE' && (
+                <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+                  <div className="h-full bg-gradient-to-r from-sky-400 via-amber-400 to-rose-500" style={{ width: `${(p.live.clockS / p.live.periodS) * 100}%` }} />
+                </div>
+              )}
+              <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Live pitch scenarios (pushed to the edge fleet)</div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => p.onDriver({ kind: 'WEATHER' })}
+                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] ${p.driver.kind === 'WEATHER' ? 'btn-accent' : 'btn-idle'}`}
+                >
+                  <CloudSun size={11} /> Live weather
+                </button>
+                {HUD_PRESETS.filter((pr) => pr.id !== 'dry').map((pr) => (
+                  <button
+                    key={pr.id}
+                    onClick={() => p.onDriver({ kind: 'PITCH', id: pr.id, label: pr.label, rain: pr.rain, clog: pr.clog })}
+                    className={`rounded-full px-2.5 py-1 text-[10px] ${p.driver.kind === 'PITCH' && p.driver.id === pr.id ? 'btn-active' : 'btn-idle'}`}
+                  >
+                    {pr.label}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Historical Baguio storm replay (ST-GNN source)</div>
+              <div className="flex gap-1.5">
+                <select
+                  aria-label="Historical storm"
+                  value={p.driver.kind === 'REPLAY' ? p.driver.stormId : ''}
+                  onChange={(e) => {
+                    const st = p.storms.find((x) => x.id === e.target.value);
+                    if (st) p.onDriver({ kind: 'REPLAY', stormId: st.id, label: st.label });
+                  }}
+                  className="btn-idle min-w-0 flex-1 rounded-lg px-2 py-1 text-[10px]"
+                >
+                  <option value="" disabled>
+                    Choose a storm hyetograph…
+                  </option>
+                  {p.storms.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {st.label} · peak {st.peak_mm_hr.toFixed(0)} mm/h · {(st.duration_min / 60).toFixed(0)} h
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    const st = p.storms.find((x) => x.id === (p.driver.kind === 'REPLAY' ? p.driver.stormId : 'DESIGN_TYPHOON_12H')) ?? p.storms[0];
+                    p.onDriver({ kind: 'REPLAY', stormId: st.id, label: st.label });
+                  }}
+                  className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] ${p.driver.kind === 'REPLAY' ? 'btn-danger' : 'btn-amber'}`}
+                >
+                  <Play size={11} /> Replay
+                </button>
+              </div>
+              <div className="text-[9px] text-slate-500">Synthetic design hyetographs shaped after each event, not gauge records.</div>
+              {p.live?.frame?.hardware_override && (
+                <div className="btn-danger flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px]">
+                  <Cpu size={12} /> Hardware override · {p.live.frame.hardware_override.sensor_id} ({p.live.frame.hardware_override.age_s.toFixed(0)} s ago)
+                </div>
+              )}
               <div className="truncate font-mono text-[9px] text-slate-500">
-                {p.live.source === 'BACKEND_WS' ? `${p.live.wsUrl} · seq ${p.live.frame?.seq ?? 0}` : `Waiting for ${p.live.wsUrl} (auto-retry 5 s)`}
-                {p.live.frame?.hardware_override && ` · HW ${p.live.frame.hardware_override.sensor_id}`}
+                {p.live?.source === 'BACKEND_WS' ? `${p.live.wsUrl} · seq ${p.live.frame?.seq ?? 0}` : `Waiting for ${p.live?.wsUrl ?? 'backend'} (auto-retry 5 s)`}
               </div>
             </div>
           )}
@@ -235,8 +315,8 @@ function TwinControlHUDImpl(p: Props) {
             }
           >
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-2xl font-semibold text-white">
-                {p.rain.toFixed(0)}
+              <span className="font-mono text-2xl font-bold text-white">
+                {p.rain.toFixed(p.rain < 10 && p.rain % 1 !== 0 ? 1 : 0)}
                 <span className="ml-1 text-xs text-slate-400">mm/hr</span>
               </span>
               <span className="text-[10px] text-slate-500">0 – 250</span>
@@ -254,7 +334,7 @@ function TwinControlHUDImpl(p: Props) {
             }
           >
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-2xl font-semibold text-white">
+              <span className="font-mono text-2xl font-bold text-white">
                 {p.clog.toFixed(0)}
                 <span className="ml-1 text-xs text-slate-400">% occluded</span>
               </span>
@@ -279,12 +359,10 @@ function TwinControlHUDImpl(p: Props) {
                       p.onRain(pr.rain);
                       p.onClog(pr.clog);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
-                      active ? 'bg-sky-500/20 text-sky-200 ring-1 ring-sky-400/50' : 'bg-slate-900/70 text-slate-300 ring-1 ring-white/10 hover:bg-slate-800'
-                    }`}
+                    className={`rounded-full px-2.5 py-1 text-[10px] ${active ? 'btn-active' : 'btn-idle'}`}
                   >
                     {pr.label}
-                    <span className="ml-1 font-mono text-slate-500">
+                    <span className="ml-1 font-mono opacity-70">
                       {pr.rain}/{pr.clog}%
                     </span>
                   </button>
@@ -372,20 +450,44 @@ function TwinControlHUDImpl(p: Props) {
             </Section>
           )}
 
-          {live && p.live?.frame && (
-            <Section icon={<Play size={11} />} title="ST-GNN nowcast">
-              <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-900/60 p-2 ring-1 ring-white/5">
-                {p.live.frame.nowcast.horizons.map((h) => (
-                  <div key={h.minutes} className="min-w-0">
-                    <div className="text-[9px] uppercase text-slate-500">+{h.minutes} min</div>
-                    <div className="font-mono text-[13px] text-teal-200">{h.lagoon_depth_m.toFixed(2)} m</div>
-                    <div className="font-mono text-[9px] text-rose-300">P(surch) {h.surcharge_probability_pct.toFixed(0)}%</div>
-                    <div className="font-mono text-[9px] text-slate-500">{h.time_to_overflow_min === null ? 'no overflow' : `ovf ${h.time_to_overflow_min.toFixed(0)} min`}</div>
-                  </div>
-                ))}
-              </div>
+          {p.forecast && (
+            <Section icon={<Play size={11} />} title="ST-GNN forecast · +15 / +30 / +60 min">
+              <ForecastPanel forecast={p.forecast} origin={p.forecastOrigin} />
             </Section>
           )}
+
+          {/* Physical rig */}
+          <Section icon={<Cpu size={11} />} title="Arduino / ESP32 hardware rig">
+            <div className="space-y-2 rounded-xl bg-slate-900/60 p-3 ring-1 ring-slate-700">
+              <div className="flex flex-wrap gap-1.5">
+                {p.usb.status === 'connected' ? (
+                  <button onClick={() => void p.usb.disconnect()} className="btn-danger flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px]">
+                    <Usb size={12} /> Disconnect {p.usb.label}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => void p.usb.connect()}
+                    disabled={p.usb.status === 'unsupported' || p.usb.status === 'connecting'}
+                    title={p.usb.status === 'unsupported' ? 'Web Serial needs Chrome or Edge on desktop (or use scripts/serial_bridge.py)' : 'Pick the board in the browser port dialog (115200 baud)'}
+                    className="btn-active flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] disabled:opacity-50"
+                  >
+                    <Usb size={12} /> {p.usb.status === 'connecting' ? 'Connecting…' : 'Connect Physical USB Arduino / ESP32'}
+                  </button>
+                )}
+                <button onClick={p.onHardwareSim} className="btn-amber flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px]">
+                  <Cpu size={12} /> Aquarium Sim ↗
+                </button>
+              </div>
+              <div className="text-[10px] font-medium text-slate-400">
+                {p.usb.status === 'unsupported'
+                  ? 'Web Serial unavailable in this browser: use Chrome / Edge, the Aquarium Sim tab, or scripts/serial_bridge.py.'
+                  : p.usb.status === 'connected'
+                    ? `Streaming to ${p.usbSensorId} (select a sensor to retarget). Last: ${p.usb.lines.at(-1) ?? '—'}`
+                    : `Targets ${p.usbSensorId}. Accepts [EDGE_TX] frames, DIST_MM / DIST_CM / FILL_PCT lines or plain distances.`}
+                {p.usb.error && <span className="block text-rose-300">{p.usb.error}</span>}
+              </div>
+            </div>
+          </Section>
 
           {/* View */}
           <Section icon={<Maximize2 size={11} />} title="Pipe visibility scale">
@@ -397,7 +499,7 @@ function TwinControlHUDImpl(p: Props) {
                 <button
                   key={c.id}
                   onClick={() => p.onCamera(c.id)}
-                  className="rounded-lg bg-slate-900/70 px-2 py-1.5 text-left text-[11px] ring-1 ring-white/5 transition hover:bg-slate-800/80 hover:ring-sky-400/30"
+                  className="btn-idle rounded-lg px-2 py-1.5 text-left text-[11px]"
                 >
                   {c.label}
                 </button>

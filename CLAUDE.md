@@ -17,6 +17,8 @@ Lagoon endorheic karst catchment (`16.4093° N, 120.5863° E`, ~1,430 m ASL).
 | 4 | FastAPI live backend: virtual Edge-AI fleet, fusion, nowcast, WS stream, ingest (`backend/`) | **Done** |
 | 5 | XIAO ESP32-S3 firmware + C++ core, serial bridge, bench standpipe guide (`firmware/`, `docs/`) | **Done** |
 | 6 | Visual overhaul: daylight diorama theme, shading modes, dual-shell pipes, node gauges, Cross-Section Simulator, Subsurface Utility Inspector (§16) | **Done** |
+| 7A | Solid high-contrast UI, pure-white / outline-free glass buildings, surface sensor markers + alarm blink, compact badges, default Live Weather mode (§17) | **Done** |
+| 7B | Physics-informed ST-GNN forecaster (+15/+30/+60), live / historical precipitation sources, Arduino & aquarium companion site, Web Serial, cross-tab + backend rig sync (§18) | **Done** |
 
 **All Phase 1 geometry is synthetic**, laid out by hand around the real lagoon centroid
 (`source_type: SYNTHETIC_OSMNX`). Road alignments, catchment areas, inverts and the tunnel
@@ -28,7 +30,9 @@ alignment are plausible stand-ins, not surveyed data. Don't present them as as-b
    RNG `20240917`, no timestamps, no network by default). Any change to outputs is a
    deliberate, reviewable diff of `public/data/*.json`.
 2. **Offline first.** Nothing in Phase 1 may need an API key or network access. `osmnx` is
-   opt-in (`--osmnx`) and must fall back silently to built-in data.
+   opt-in (`--osmnx`) and must fall back silently to built-in data. The frontend's only
+   network dependencies are the basemap tiles and the zero-key Open-Meteo weather fetch
+   (§17). Both degrade gracefully when offline.
 3. **Compute in meters, export in degrees.** All geometry, lengths, slopes and areas are
    computed in `EPSG:32651`. Only the export step converts to `EPSG:4326`.
 4. **No vertical exaggeration.** Elevations are true meters ASL (`exaggeration = 1.0`) so
@@ -41,10 +45,17 @@ alignment are plausible stand-ins, not surveyed data. Don't present them as as-b
    set the synthetic one's `is_active: false`. Don't delete it. Consumers filter on `is_active`.
 7. **One telemetry contract.** Firmware, backend decoder and generator all implement §8
    bit-for-bit. Change it only with a version bump in all three.
-8. **Physics in one place.** Hydraulic equations live in the generator and in
-   `backend/edge_dsp.py`, which `firmware/.../edge_core.hpp` mirrors. The frontend only reads
-   and interpolates the LUT, apart from the structure-preserving outflow reconstruction defined
-   in §9 (`min(Q_rack, Q_choke)` plus the Kirschmer formula). It never solves hydraulics.
+8. **Physics in one place.** Hydraulic equations live in:
+   - the generator;
+   - `backend/edge_dsp.py`, which `firmware/.../edge_core.hpp` mirrors;
+   - `backend/stgnn.py`, the forecaster. It reuses the generator's rack, lagoon and spill
+     equations; `test_phase4` checks them against the generator.
+
+   The frontend reads and interpolates the LUT, apart from the structure-preserving outflow
+   reconstruction defined in §9 (`min(Q_rack, Q_choke)` plus the Kirschmer formula). Its only
+   solvers are two mirrors, each locked to Python by golden fixtures (§18):
+   `src/forecast/stgnn.ts` (≡ `stgnn.py`) and `src/edge/edgePipeline.ts` (≡ `edge_dsp.run_cycle`,
+   the no-geometry branch).
 
 ## 3. Repository layout
 
@@ -73,7 +84,8 @@ edge-ai-drainage/
 │   │   ├── shaders/                   # ramp (capacity GLSL), conduit (core + glass shell), water, shaft
 │   │   └── layers/                    # terrain, roads, buildings, conduits, lagoon, rack, nodes, sensors (gauges), weather
 │   ├── utils/                         # lutInterpolator, payloadCodec, fusion, urlState, fullness
-│   ├── live/telemetry.ts              # LIVE mode: WS /ws/live client + local storm playback fallback
+│   ├── live/telemetry.ts              # LIVE mode: WS /ws/live client (+ scenario commands), on-demand local typhoon replay
+│   ├── live/weather.ts, liveDriver.ts # Open-Meteo Baguio weather; what drives LIVE mode (§17)
 │   ├── types/live.ts                  # TwinFrame contract (mirrors backend/schemas.py)
 │   └── components/                    # MapView, TwinControlHUD, TopBar, ShaderModeBar, SensorBadges,
 │                                      # AssetInspectorDrawer, CrossSectionSimulator (+ crossSection/draw.ts),
@@ -83,8 +95,11 @@ edge-ai-drainage/
 │   ├── main.py                        # REST + WS /ws/live + /api/v1/ingest/lorawan
 │   ├── twin.py                        # closed-loop runtime: virtual fleet, hardware drive, frames
 │   ├── edge_dsp.py                    # REFERENCE edge pipeline (firmware must match bit-for-bit)
-│   ├── intelligence.py                # fusion arbitrator, FEWS fusion, graph nowcaster
+│   ├── intelligence.py                # fusion arbitrator, FEWS station fusion
+│   ├── stgnn.py                       # physics-informed ST-GNN forecaster (+15/+30/+60 min)
+│   ├── weather_feed.py                # LIVE_FEED (Open-Meteo / Tomorrow.io) + historical hyetographs
 │   └── lut.py, schemas.py             # numpy LUT interpolator; pydantic contracts
+├── firmware/arduino_aquarium_demo/    # Phase 7B universal Uno/Nano/Mega/ESP32 sketch (HC-SR04 / A02YYUW)
 ├── firmware/citycamp_edge_node/       # Phase 5 PlatformIO project (XIAO ESP32-S3 + Wio-SX1262)
 │   ├── include/edge_core.hpp          # header-only, zero-heap C++17 port of edge_dsp.py
 │   ├── include/node_profiles.hpp      # GENERATED by scripts/gen_firmware_profiles.py
@@ -92,10 +107,13 @@ edge-ai-drainage/
 │   └── test/                          # native harness + Arduino/RadioLib API stubs
 ├── scripts/
 │   ├── serial_bridge.py               # USB serial -> FastAPI bridge (+ --virtual-standpipe)
-│   ├── test_phase4_backend.py         # backend suite (22 tests)
-│   ├── test_phase5_firmware.py        # native C++ build + C++/Python differential suite
-│   └── gen_firmware_profiles.py
-├── tests/frontend/                    # vitest: interpolator + codec parity, URL state, node fullness
+│   ├── test_phase4_backend.py         # backend suite (35 tests incl. ST-GNN, feeds, control, scope)
+│   ├── test_phase5_firmware.py        # native C++ build + C++/Python differential suite (+ sketch)
+│   ├── gen_firmware_profiles.py
+│   ├── gen_precip_library.py          # writes public/data/precip_library.json (FEWS + storms)
+│   └── gen_frontend_goldens.py        # writes tests/frontend/fixtures/*.json (TS <-> Python locks)
+├── tests/frontend/                    # vitest: LUT/codec parity, URL state, fullness, ST-GNN /
+│                                      # edge / weather goldens, Arduino rig + cross-tab sync
 └── docs/HARDWARE_BENCH_DEMO_GUIDE.md  # BOM, wiring, PVC standpipe rig, demo checklist
 ```
 
@@ -124,6 +142,8 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # (bin/ 
 .venv/Scripts/python scripts/test_phase5_firmware.py [--cxx "zig c++"]   # needs g++/clang++/zig, else PARTIAL
 .venv/Scripts/python scripts/serial_bridge.py --virtual-standpipe        # no hardware needed
 .venv/Scripts/python scripts/gen_firmware_profiles.py                    # after any network regeneration
+.venv/Scripts/python scripts/gen_precip_library.py [--check]             # FEWS gauges + storm hyetographs
+.venv/Scripts/python scripts/gen_frontend_goldens.py [--check]           # after any stgnn / edge_dsp / weather change
 ```
 
 Debug handle: `window.__cityCampTwin = { map, engine }` (e.g. `engine.pick(x, y)`,
@@ -367,12 +387,16 @@ vision (Jetson), EN-10 TUN-C02 (choke transition).
   objects in the scene only carry these values; every custom material reads the shared
   `LIGHT_UNIFORMS`.
 - **Buildings** (`materials/buildingMaterials.ts`, shared with the Utility Inspector) have
-  three shading modes, switched by `TwinEngine.setShadingMode`:
-  - **Solid Concrete:** studio-lit white walls with storey window strips. Every 6th large
-    roof is a green roof.
-  - **Holo Wireframe:** edges only, emerald→slate by height, over a 4 % fill.
-  - **Fresnel Glass** (default): core `(0.96,0.99,0.97)`, rim `(0.06,0.72,0.50)`, base opacity
-    0.14, rim power 2.6, alpha clamped 0.10–0.58. X-ray uses a navy/sky variant.
+  three shading modes, switched by `TwinEngine.setShadingMode`. Edge `LineSegments` are drawn
+  **only** in Holo Wireframe (`SHADING_SHOWS_EDGES`):
+  - **Solid Concrete:** pure matte `#FFFFFF` walls and roofs, shaded only by the studio sun
+    and hemisphere. No floor bands, no outlines, no green roofs.
+  - **Holo Wireframe:** edges `#059669` (crown) → `#475569` (footing) over a 4 % fill.
+  - **Fresnel Glass** (default, outline-free, `GLASS`): core `(0.95,0.99,1.00)`, rim
+    `(0.06,0.72,0.58)`, base opacity 0.08, rim power 2.8,
+    `alpha = clamp(0.08 + F·0.48, 0.06, 0.62)`. N and V are world-space because the custom
+    projection has no usable view matrix (|N·V| is frame-invariant). X-ray uses a navy/sky
+    variant.
 
   Translucent modes are `transparent` with **`depthWrite: false`** and draw after conduits
   (`renderOrder` 20–21). The Fresnel eye position is `inverse(MVP)·(0,0,1,0)`.
@@ -397,7 +421,7 @@ vision (Jetson), EN-10 TUN-C02 (choke transition).
   grid, contours and 3D scene still render. CARTO raster tiles now return an "API key
   required" placeholder, so don't use them.
 - **Performance:** `pixelRatio: min(devicePixelRatio, 1.75)` on the map. The 3D content is
-  about 95 draw calls (measured). Half of them are the 10 node gauges, and every bulk layer
+  about 95 draw calls (measured before Phase 7A; the surface markers are a similar count). Every bulk layer
   (trees, buildings, conduits, circular pipes) is merged or instanced. `triggerRepaint()` runs every frame because flow and water animate
   continuously. Per-frame DOM work is limited to the 10 sensor badges (CSS transforms only,
   no React re-render).
@@ -407,15 +431,17 @@ vision (Jetson), EN-10 TUN-C02 (choke transition).
 - `App` owns `rain`/`clog`, and `LutInterpolator.evaluate()` (~43 µs) runs on every slider
   event. The engine's `applyState()` uploads textures and uniforms only. HUD, drawer and badges
   re-render from one mutated `TwinState` keyed by `state.rev`.
-- **LIVE mode** connects to `ws://<host>:8000/ws/live` (or `?api=` override). It falls back to a
-  local typhoon playback with the same `stormProfile` as the backend, and retries every 5 s.
-  Backend edge-DSP results override LUT sensor values (the edge is the source of truth).
+- **LIVE mode** (the default since 7A, see §17) connects to `ws://<host>:8000/ws/live` (or
+  `?api=` override) and retries every 5 s. The local typhoon replay (same `stormProfile` as the
+  backend) now runs only when the user picks "Typhoon replay". Backend edge-DSP results
+  override LUT sensor values (the edge is the source of truth).
 - Fusion (`src/utils/fusion.ts` ≡ `backend/intelligence.py::arbitrate`): EN-08 ponding plus
   vision ≥ 35 % → `CONFIRMED_TRASH_RACK_OCCLUSION`. EN-08 ponding plus vision < 35 % plus EN-10
   ≥ 50 % → `DOWNSTREAM_ROCK_CHOKE_BACKWATER` (false alarm suppressed). Lagoon overflow beats
   everything.
 - URL state: `lat,lng,z,pitch,bearing,rain,clog,scale,theme=day|xray,shader=solid|wire|glass,
-  bld,veg,net,badges (0/1),sim=node|profile,simnode=EN-xx,sel=kind:id,mode=live,api`.
+  bld,veg,net,badges (0/1),sim=node|profile,simnode=EN-xx,sel=kind:id,mode=sim,api`.
+  - LIVE is the default. Only `mode=sim` is written; the legacy `mode=live` still parses.
   - The legacy `xray=0` maps to `bld=0`.
   - It is written with a debounced `replaceState` and parsed on load, and the camera flies to
     the link.
@@ -442,20 +468,26 @@ is opened from LAN phones.
 
 | Endpoint | Purpose |
 |---|---|
-| `WS /ws/live` | `TwinFrame` JSON at 2 Hz (`CITYCAMP_FRAME_HZ`; 0 = no ticker). Clients may send `{"type":"scenario",…}` |
+| `WS /ws/live` | `TwinFrame` JSON at 2 Hz (`CITYCAMP_FRAME_HZ`; 0 = no ticker). Clients may send `{"type":"scenario",…}` or `{"type":"control",…}` |
+| `GET/POST /api/v1/live/control` | Precipitation source `{"precip_source":"LIVE_FEED"\|"HISTORICAL"\|"TWIN", "storm_id", "rainfall_mm_hr", "trash_rack_blockage_pct"}`; GET lists the storm library |
+| `GET /api/v1/forecast` | ST-GNN forecast (also in every frame as `forecast`) |
 | `GET /api/v1/health`, `/state`, `/network`, `/lut/meta`, `/sensors/{id}` | Status and latest data |
 | `POST /api/v1/scenario` | `{"mode":"PLAYBACK"\|"SCENARIO", "rainfall_mm_hr", "trash_rack_blockage_pct"}` |
-| `POST /api/v1/ingest/lorawan` | Physical uplink: direct JSON (`device_eui` = `EN-xx` or EUI, `payload_hex`/`payload_b64` + diagnostics), or a The Things Stack v3 webhook (`uplink_message.frm_payload`) |
+| `POST /api/v1/ingest/lorawan` | Physical uplink: direct JSON (`device_eui` = `EN-xx` or EUI, `payload_hex`/`payload_b64` + diagnostics), or a The Things Stack v3 webhook (`uplink_message.frm_payload`). `scope`: `full_catchment` (default) or `single_node` |
 | `POST /api/v1/decode` | Decode a 4-byte payload |
 
 - `TwinFrame` (`backend/schemas.py` ≡ `src/types/live.ts`): `scenario`, `lagoon`,
   `sensors{EN-xx: LiveSensor}` (raw burst, raw vs Kalman depth, σ_d², h/D, Q/V/Fr/He,
   capacity, anomaly plus scores, payload hex/b64, FSM state, current, LoRa link), `fusion`,
-  `nowcast` (4 FEWS stations, sub-catchments, +15/+30/+60 min horizons), `hardware_override`.
-- Modes: `PLAYBACK` (120 s loop = 12 h typhoon, 6 storm-min per wall-s), `SCENARIO` (pinned),
-  and `HARDWARE`. Any non-vision uplink in the last 30 s drives the twin: the measured capacity
-  is inverted through the LUT to the rainfall that reproduces it. A Jetson uplink sets the
-  blockage.
+  `nowcast` (4 FEWS stations, sub-catchments, +15/+30/+60 min summary of the forecast),
+  `hardware_override` (+ `scope`), `precip_source`, `storm_id`, `forecast` (ST-GNN, §18).
+- Modes:
+  - `PLAYBACK` replays the selected storm at 6 storm-min per wall-s. The default is
+    `DESIGN_TYPHOON_12H`, a 120 s loop.
+  - `SCENARIO` is pinned: `TWIN`, or `LIVE_FEED` with the rain following the feed.
+  - `HARDWARE`: any non-vision `full_catchment` uplink in the last 30 s drives the twin, and its
+    capacity is inverted through the LUT. `single_node` uplinks only replace that sensor's
+    record. A Jetson uplink sets the blockage.
 - Virtual fleet mounts: manhole lid when ≤ 4.4 m above the invert, otherwise crown-mounted
   (EN-05 at 5.1 m, EN-10 in the tunnel). The EN-07 mast is 7.3 m and the EN-08 mast is 5.9 m.
   The A02YYUW 4.47 m usable span cannot cover the lagoon's full 1.5–7.0 m stage; out of range
@@ -463,10 +495,9 @@ is opened from LAN phones.
 - LoRa: AS923-3 channels 916.6–918.0 MHz, log-distance (n = 2.9) link budget from the highest
   ridge manhole gateway, and ADR SF7–SF10 under the 400 ms dwell limit. Time-on-air (Semtech
   AN1200.13, 17-byte PHY): SF7 51.5 ms … SF10 329.7 ms.
-- Nowcast: damped rainfall-trend extrapolation, per-conduit concentration-time lag, LUT
-  pressurized fraction, and a 31-member ensemble, with downstream→upstream backwater risk
-  propagation (γ = 0.6). It is a physics-weighted message-passing scaffold with **no trained
-  weights**.
+- Forecast: the ST-GNN of §18. It replaced the Phase 4 trend-extrapolation nowcaster.
+  Cached per runtime, it is recomputed at most every 5 s unless the source, storm or hardware set
+  changes. Each forecast takes ~30–90 ms.
 - The ingest fast path (no frame recompute) forwards in ~3–4 ms. The ticker broadcasts the
   full frame.
 
@@ -500,7 +531,9 @@ is opened from LAN phones.
 - Contracts that must move together: §10 codec (generator, `payloadCodec.ts`, `edge_dsp.py`,
   `edge_core.hpp`), `TwinFrame` (`schemas.py` ↔ `live.ts`), the interpolation rules
   (`lutInterpolator.ts` ↔ `lut.py`), the capacity ramp (`palette.ts` bands ↔
-  `shaders/ramp.ts` GLSL), and the sensor mount rules (`fullness.ts` ↔ `backend/twin.py`).
+  `shaders/ramp.ts` GLSL), the sensor mount rules (`fullness.ts` ↔ `backend/twin.py`), and
+  the §18 mirrors: `stgnn.py` ↔ `stgnn.ts`, `edge_dsp.run_cycle` ↔ `edgePipeline.ts`, and
+  `weather_feed.parse_open_meteo` ↔ `weather.ts`. These are locked by golden fixtures.
 
 ## 16. Visual system & tools (Phase 6)
 
@@ -517,8 +550,8 @@ is opened from LAN phones.
   - vegetation, which also hides the terrain park tint and the basemap `landcover`/`park`
     layers;
   - drainage network (conduits, shafts, rack; surcharge rings stay);
-  - node badges and their 3D gauges.
-- **Node fullness** (`src/utils/fullness.ts`) is the single source for the gauges, badges,
+  - node badges and their surface markers (§17).
+- **Node fullness** (`src/utils/fullness.ts`) is the single source for the markers, badges,
   simulator and inspector.
   - Conduit, lagoon and EN-08 nodes use `capacityPct`. The Jetson (EN-09) uses rack stage h/D.
     All are clamped to the u7 `cap_code` scale (0–127 %). EN-09's badge also shows its own
@@ -541,3 +574,133 @@ is opened from LAN phones.
   `OrbitControls` block view (84 m slab, a 3.0×1.8 box culvert and a Ø0.9 pipe). It uses the
   shared building materials, so the shading segmented control drives both views. Its water
   levels follow the selected (or representative EN-03 / EN-01) node's h/D.
+
+## 17. High-contrast UI, surface markers & Live Weather default (Phase 7A)
+
+- **Solid controls.** `index.css` defines `.btn-active` (daylight slate-900, X-ray sky-600),
+  `.btn-idle` (slate-200 / slate-800), `.btn-accent` (emerald-600), `.btn-sky`,
+  `.btn-danger` (red-600: Drain Pipe, hardware override) and `.btn-amber` (Typhoon replay).
+  `.hud-card` is the near-opaque panel surface. These use literal colours, outside the §16
+  variable remap, so a solid button looks the same in both themes. Never use pale
+  translucent outline buttons. The daylight remap was darkened: `slate-400/500` →
+  `#334155/#475569`, `sky-300` → `#065f46`.
+- **Surface sensor markers** (`layers/sensors.ts`) replace the 14 m gauge columns:
+  - Each node has a flat concentric sonar pad flush with the street and a floating
+    inverted-teardrop pin. EN-09 gets a diamond. Both are scaled ×1.7.
+  - A dashed tether runs to the underground measurement point.
+  - Tone (`fullness.ts::markerTone`): `< 45 %` emerald `#10B981`; `45–79 %` amber `#F59E0B`.
+  - **Alarm:** `≥ ALARM_PCT (80 %)`, `SURCHARGED`, or `liveSurge` (a HARDWARE-origin uplink
+    reporting FLASH_SURGE/SURCHARGED, set in `App::applyLiveOverrides`). In alarm, pad and pin
+    blink `#DC2626 ↔ #FCA5A5` at 3 Hz (`alarmBlink`), three red ripples expand to 11 m, and
+    the sensor's conduit blinks `#EF4444 ↔ #FCA5A5` through the conduit `uAlarm` texture.
+  - `alarmConduitId`: own conduit, `TUN-C01` for the rack nodes, none for the lagoon.
+- **Compact badges** (`SensorBadges.tsx`, `badgeContent`):
+  - Each badge is one clickable pill: status dot + `EN-XX` + one number + chevron. EN-09
+    shows a camera + `NN% blk`.
+  - Pills are solid `#0F172A`. An alarmed pill pulses red with a `#FEE2E2` ring, and pills
+    lift on hover.
+  - Clicking a pill or the 3D pin opens the drawer plus the simulator's node cutaway.
+- **Live Weather & Telemetry is the startup mode.**
+  - `live/weather.ts` fetches Open-Meteo `current=temperature_2m,precipitation,rain,
+    showers,weather_code,wind_speed_10m` for 16.4093, 120.5863 every 10 min, and retries
+    after 60 s on failure.
+  - Rate = precipitation × 3600 / `current.interval`, clamped to 250.
+  - Fallback chain: the last good reading (localStorage) → a dry baseline.
+  - `live/liveDriver.ts::resolveLiveTarget` picks the driver in priority order:
+    1. a backend `HARDWARE` frame;
+    2. otherwise the user's driver: `WEATHER` (live rain, rack assumed clean),
+       `PITCH` (a pinned preset) or `REPLAY` (backend PLAYBACK, or the local profile when
+       offline).
+  - `backendCommand` pushes the same driver over the WS (`{"type":"scenario",…}`) on every
+    change and reconnect, so the virtual fleet follows it.
+  - `frameMatchesDriver` drops stale frames (e.g. the backend's default PLAYBACK) from the
+    sensor overrides.
+  - The top bar carries the solid Live Weather / Simulation Mode switch and the
+    "Baguio City Live Weather" pill (rate, °C, condition, sync status). It publishes its height
+    as `--topbar-h`, which the drawer and the mobile shader bar use.
+
+## 18. ST-GNN forecaster, precipitation sources & the Arduino / aquarium rig (Phase 7B)
+
+- **Forecaster** (`backend/stgnn.py` ≡ `src/forecast/stgnn.ts`). It is deterministic and
+  physics-informed, with **no trained weights**: GNN in structure, every weight from hydraulics.
+  - Graph: the 65 nodes and 63 conduits.
+  - Spatial layer: `A_hydro[j,i] = g_c = 1 − exp(−Δt/τ_c)` for each conduit `c: i → j`, with
+    - `τ_c = L/(5/3·V)` and `V = max(V_now, 0.25·V_full)`;
+    - `V_full = Q_full/A_full`, from Manning with `S = sin(atan S₀)`.
+  - Node messages: upstream conduit outflows plus `C·i·f_FEWS·A/360` and baseflow.
+  - State: linear-reservoir storage `W_c`, initialised at steady state `W = Q·Δt/g`, so constant
+    rain leaves the network steady. Δt = 1 min over 60 steps.
+  - Assimilation: each conduit sensor's measured/expected fullness ratio (clamped 0.25–4)
+    scales its upstream subtree's storage **and** runoff. The most local sensor wins.
+  - Lagoon: RK4 mass balance with graph inflow + direct rain − `min(Q_rack(h,p), 4.437)` −
+    spill − seepage.
+    - `Q_rack` is the generator's weir/orifice + Kirschmer bisection, using exact bar geometry.
+      It is tabulated on 721 stages, with p quantised to 0.5 %.
+    - The overflow tail runs lagoon-only to 12 h in 5-min RK4 steps, interpolating the
+      crossing. Members that can never overflow are skipped.
+  - Ensemble: 9 members `r·exp(z_k·σ(t))`, σ = 0.10 + 0.30·t/60, with the fixed z quantiles in
+    `ENSEMBLE_Z`. They give the p05/p95 bands and the surcharge probabilities (fullness ≥ 100 %).
+  - Output, per horizon (+15/+30/+60): lagoon depth + elevation with 90 % bands, time to
+    overflow, P(surcharge), conduits over capacity, per-sensor fullness (p05/p95, P), and the
+    **next critical bottleneck**: the highest-fullness sensor, with minutes until it reaches 80 %.
+  - Sensor mapping:
+    - conduit sensors = now + 100·Δcapacity of their conduit;
+    - EN-07 = now + 100·Δh/6.5;
+    - EN-08 = now + 100·Δh/2.0;
+    - EN-09 = its blockage, held constant.
+  - The frontend computes its own forecast (every 2 s) whenever no backend frame carries one.
+- **Precipitation sources** (`backend/weather_feed.py`; frontend `live/weather.ts`):
+  - **LIVE_FEED:** Open-Meteo `current` + `minutely_15` + `hourly`. A 15-min total ×4 gives
+    mm/h; the hourly value is already mm/h; gaps persist the last value. With
+    `TOMORROW_IO_API_KEY` set, Tomorrow.io's 1-min nowcast is used instead.
+    - The cache is 10 min, in memory and in `.cache/weather_feed.json`.
+    - Fetching happens on a background thread, so the ticker never blocks.
+    - Status is LIVE, STALE or OFFLINE.
+  - **HISTORICAL:** `public/data/precip_library.json`, written by `gen_precip_library.py`.
+    - Storms: design typhoon, Ompong 2018, Kristine/Egay orographic, afternoon cloudburst,
+      Habagat monsoon.
+    - These are **synthetic design hyetographs shaped after each event, not gauge records.**
+  - **TWIN:** the pinned scenario rainfall.
+  - FEWS gauges, in the same JSON: City Camp Lagoon 1430 m, Ferguson Rd 1465 m, Irisan 1485 m,
+    Brookspoint 1445 m. The lapse is +4 %/100 m; weights are IDW p = 2, normalised to an
+    area-weighted basin mean of 1.
+  - Frontend drivers map onto sources (`liveDriver.ts`): WEATHER → LIVE_FEED, PITCH → TWIN,
+    REPLAY (any library storm) → HISTORICAL. They are sent as WS `control` messages.
+    `frameMatchesDriver` checks `precip_source`/`storm_id`.
+- **Arduino / aquarium companion site** (`/?view=hardware-sim` or `/hardware-sim`;
+  `HardwareAquariumSimulator.tsx`). It is code-split, so it never loads MapLibre or Three.js, and
+  the top bar opens it in a new tab.
+  - Every 200 ms a virtual A02YYUW bursts 10 samples of the tank surface, with chop and splash
+    echoes. `serialRig.HardwareRig` runs them through `edgePipeline.runCycle` with the
+    **bench-standpipe convention**: 100 % = 74 % of the sensor height, 1 s = 1 storm-min.
+  - Controls:
+    - pour adds +15 % over 1.5 s with 16 mm chop, which raises FLASH_SURGE;
+    - hold-to-pour;
+    - an 82 % flat-pool preset, which raises TRASH_BLOCKAGE;
+    - the drain valve;
+    - targeted / full-catchment scope.
+  - **Web Serial** (`useUsbRig`, Chrome/Edge, 115200 baud) accepts `[EDGE_TX] {json}` (decoded
+    as-is), `DIST_MM:` / `DIST_CM:` / `FILL_PCT:` / `TEMP_C:` lines, `24 cm` / `240 mm`, and
+    bare numbers (> 120 is mm, otherwise cm, unless a unit is forced).
+    `firmware/arduino_aquarium_demo` prints exactly these lines (HC-SR04/JSN-SR04T or A02YYUW;
+    AVR or ESP32; LED blinks at 3 Hz when ≥ 80 %). `serial_bridge.py --scope` still works.
+- **Sync** (`live/hardwareSync.ts`) runs over two channels:
+  1. `BroadcastChannel('citycamp_hardware_sync')`, with a localStorage `storage` fallback. This
+     is tab-to-tab with no backend; the vitest check measures under 50 ms.
+  2. `POST /api/v1/ingest/lorawan` with `scope`, throttled to 2 Hz.
+
+  On the map (`App`):
+  - A packet holds for 30 s. `applyHardwarePacket` overrides the targeted sensor and its
+    conduit: fullness, depth = h/D × rise, and status. Its pill, pin, pad and pipe then blink red
+    at ≥ 80 %.
+  - `full_catchment` instead inverts the fullness to a rainfall (`invertRainForSensor`).
+  - `HardwareAlertBanner` shows "🔴 LIVE HARDWARE SENSOR ALERT: EN-xx IS NN% FULL" with
+    [Focus Camera] (`engine.flyToLngLat`) and [Disconnect Sim]. The disconnect sends a
+    `disconnect` message and mutes the bus for 2 s.
+- **Contract locks**: `gen_frontend_goldens.py` writes `stgnn_golden.json`, `edge_golden.json`
+  and `weather_golden.json`.
+  - vitest asserts that the TS reproduces them: depth ±2 mm, sensors ±0.2 %, identical
+    probabilities, bottlenecks, anomaly codes and payload hex.
+  - `test_phase4` fails if a fixture or the precip library is stale.
+  - Regenerate both after any change to `stgnn.py`, `edge_dsp.py` or `weather_feed.py`.
+

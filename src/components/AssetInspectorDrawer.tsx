@@ -289,7 +289,7 @@ export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistor
   }
 
   return (
-    <aside className="pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl border border-slate-800/80 bg-slate-950/90 shadow-2xl shadow-black/60 backdrop-blur-md sm:inset-x-auto sm:bottom-3 sm:right-3 sm:top-[64px] sm:max-h-none sm:w-[400px] sm:rounded-2xl">
+    <aside className="hud-card pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl sm:inset-x-auto sm:bottom-3 sm:right-3 sm:top-[calc(var(--topbar-h,52px)+20px)] sm:max-h-none sm:w-[400px] sm:rounded-2xl">
       <header className="flex items-start justify-between gap-2 border-b border-white/5 p-4" style={{ borderTop: `2px solid ${card.accent}`, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
         <div className="min-w-0">
           <div className="text-[10px] uppercase tracking-wider text-slate-500">{card.kicker}</div>
@@ -303,7 +303,7 @@ export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistor
             ))}
           </div>
         </div>
-        <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-label="Close inspector">
+        <button onClick={onClose} className="btn-idle rounded-lg p-1.5" aria-label="Close inspector">
           <X size={16} />
         </button>
       </header>

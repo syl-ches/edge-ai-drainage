@@ -1,6 +1,7 @@
 // WS /ws/live frame contract (Phase 4 backend → frontend). Mirrors backend/schemas.py
 // (`TwinFrame`). Keep both in lock-step; see CLAUDE.md §12.
 
+import type { Forecast } from '../forecast/stgnn';
 import type { AnomalyClass } from './twin';
 
 export type FsmState = 'STATE_DRY' | 'STATE_ACTIVE_RAIN' | 'STATE_CRITICAL_SURGE';
@@ -109,5 +110,10 @@ export interface TwinFrame {
   sensors: Record<string, LiveSensor>;
   fusion: FusionVerdict;
   nowcast: Nowcast;
-  hardware_override: { sensor_id: string; age_s: number } | null;
+  hardware_override: { sensor_id: string; age_s: number; scope?: 'single_node' | 'full_catchment' } | null;
+  /** Phase 7B: precipitation source driving the twin + forecast, and the replayed storm */
+  precip_source: 'LIVE_FEED' | 'HISTORICAL' | 'TWIN';
+  storm_id: string;
+  /** Phase 7B: ST-GNN +15/+30/+60 min forecast (backend/stgnn.py, mirrored by src/forecast/stgnn.ts) */
+  forecast: Forecast;
 }

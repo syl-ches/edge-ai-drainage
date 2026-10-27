@@ -1,12 +1,22 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './index.css';
-import App from './App';
+import { isHardwareSimRoute } from './main.route';
+
+// Two pages from one bundle: the 3D map, and the Phase 7B Arduino / aquarium companion site
+// (/?view=hardware-sim or /hardware-sim). Each is code-split so the companion never loads
+// MapLibre / Three.js.
+const App = lazy(() => import('./App'));
+const HardwareAquariumSimulator = lazy(() => import('./components/HardwareAquariumSimulator'));
+
+const Page = isHardwareSimRoute(window.location) ? HardwareAquariumSimulator : App;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Suspense fallback={<div className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">Loading…</div>}>
+      <Page />
+    </Suspense>
   </StrictMode>,
 );
 

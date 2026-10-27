@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Phase 4 backend verification suite.
+"""Phase 4 / 7B backend verification suite.
 
     python scripts/test_phase4_backend.py          (uses the project venv's packages)
 
 Covers: edge DSP (thermal comp, median/variance, Kalman), multi-shape hydraulics parity with
 the Phase 1 LUT, payload codec parity with the generator and every LUT record, INT8 classifier
 discrimination, fusion arbitration (backwater paradox), the numpy LUT interpolator, LoRa
-time-on-air, and the FastAPI surface (REST, three ingest formats, hardware drive, WS stream).
+time-on-air, the FastAPI surface (REST, three ingest formats, hardware drive, WS stream), and
+Phase 7B: the ST-GNN forecaster (graph, RK4 lagoon, assimilation, generator parity), the
+precipitation feeds (Open-Meteo / Tomorrow.io parsing, cache, offline), the historical storm
+library, /api/v1/forecast, /api/v1/live/control, ingest scope, and golden-fixture freshness.
 """
 from __future__ import annotations
 
@@ -15,7 +18,9 @@ import importlib.util
 import math
 import os
 import random
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -26,6 +31,9 @@ os.environ.setdefault("CITYCAMP_FRAME_HZ", "20")   # fast ticker so the WS test 
 from backend import edge_dsp as dsp  # noqa: E402
 from backend.intelligence import arbitrate, storm_profile  # noqa: E402
 from backend.lut import TwinLut  # noqa: E402
+from backend import stgnn  # noqa: E402
+from backend.stgnn import ForecastInput, STGNNForecaster  # noqa: E402
+from backend.weather_feed import LiveFeed, hyetograph_trajectory, load_library, parse_open_meteo, parse_tomorrow  # noqa: E402
 
 LUT = TwinLut()
 
@@ -197,6 +205,134 @@ class IntelligenceTests(unittest.TestCase):
         self.assertAlmostEqual(LUT.sensor_truth(r, 0)["EN-03"]["capacity_pct"], target, delta=3.0)
 
 
+def _scenario(key):
+    sc = LUT.lut["scenarios"][LUT.lut["index"][key]]
+    return sc
+
+
+class STGNNTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.f = STGNNForecaster(LUT.network, load_library(), LUT.tunnel_limit)
+
+    def _input(self, key, rain, clog, measured=None, persist=None):
+        sc = _scenario(key)
+        cs = [sc["conduits"][c["id"]] for c in self.f.conduits]
+        ref = {k: v["capacity_pct"] for k, v in sc["sensors"].items()}
+        return ForecastInput(rain_mm_hr=list(rain), persist_rain_mm_hr=persist if persist is not None else rain[-1],
+                             blockage_pct=clog, lagoon_depth_m=sc["lagoon"]["lagoon_water_depth_m"],
+                             conduit_flow_cms=[c["flow_cms"] for c in cs], conduit_velocity_ms=[c["velocity_ms"] for c in cs],
+                             conduit_capacity=[c["capacity_ratio"] for c in cs],
+                             sensor_capacity_pct=dict(ref, **(measured or {})), sensor_reference_pct=ref,
+                             source=dict(kind="TWIN", label=key))
+
+    def test_graph_is_the_drainage_network(self):
+        a = self.f.adjacency([1.0] * self.f.n_cond)
+        self.assertEqual(a.shape, (65, 65))
+        nz = a[a > 0]
+        self.assertEqual(nz.size, 63)
+        self.assertTrue(((nz > 0) & (nz < 1)).all())
+        self.assertAlmostEqual(float(self.f.upstream_area_ha.max()),
+                               sum(n["catchment_area_ha"] for n in LUT.network["nodes"] if n["id"].startswith(("LRQ", "TUN"))), delta=1e3)
+
+    def test_constants_and_rack_match_generator(self):
+        gen = load_generator()
+        self.assertEqual(stgnn.BASEFLOW_CMS_PER_HA, gen.BASEFLOW_CMS_PER_HA)
+        self.assertEqual(stgnn.LAGOON_SEEPAGE_CMS, gen.LAGOON_SEEPAGE_CMS)
+        self.assertEqual(stgnn.SPILL_WEIR_COEFF, gen.SPILL_WEIR_COEFF)
+        self.assertEqual(stgnn.SPILL_CREST_LENGTH_M, gen.SPILL_CREST_LENGTH_M)
+        for p in (0.0, 0.5, 0.9):
+            table = self.f.rack_table(p)
+            for k in (40, 160, 320, 600):
+                self.assertAlmostEqual(float(table[k]), gen.rack_flow(float(self.f.rack_h[k]), p), places=6)
+        for h in (0.0, 1.5, 4.0, 6.5, 6.9):
+            self.assertAlmostEqual(float(self.f.lagoon_volume(h)), gen.lagoon_volume(h), places=6)
+            self.assertAlmostEqual(float(self.f.lagoon_depth(gen.lagoon_volume(h))), h, places=9)
+
+    def test_steady_rain_keeps_the_network_steady(self):
+        out = self.f.forecast(self._input("R25_B0", [25.0] * 61, 0.0))
+        now = {k: v["capacity_pct"] for k, v in _scenario("R25_B0")["sensors"].items()}
+        for sid in ("EN-01", "EN-02", "EN-03", "EN-04", "EN-05", "EN-06"):
+            self.assertAlmostEqual(out["horizons"][-1]["sensors"][sid]["capacity_pct"], now[sid], delta=0.6)
+
+    def test_rk4_overflow_time_matches_generator_mass_balance(self):
+        out = self.f.forecast(self._input("R50_B0", [50.0] * 61, 0.0))
+        lut_remaining = _scenario("R50_B0")["lagoon"]["estimated_time_to_overflow_min"] - 180.0
+        self.assertAlmostEqual(out["time_to_overflow_min"], lut_remaining, delta=3.0)
+        h = out["horizons"]
+        self.assertEqual([x["minutes"] for x in h], [15, 30, 60])
+        self.assertTrue(h[0]["lagoon_depth_m"] < h[1]["lagoon_depth_m"] < h[2]["lagoon_depth_m"])
+
+    def test_bounds_probabilities_and_bottleneck(self):
+        out = self.f.forecast(self._input("R25_B25", hyetograph_trajectory(
+            {s["id"]: s for s in load_library()["storms"]}["AFTERNOON_CLOUDBURST"], 0.0), 25.0))
+        for h in out["horizons"]:
+            self.assertLessEqual(h["lagoon_depth_p05_m"], h["lagoon_depth_m"])
+            self.assertLessEqual(h["lagoon_depth_m"], h["lagoon_depth_p95_m"])
+            self.assertTrue(0.0 <= h["surcharge_probability_pct"] <= 100.0)
+            self.assertIn(h["next_bottleneck"]["sensor_id"], [f"EN-{i:02d}" for i in range(1, 11) if i != 9])
+            self.assertEqual(len(h["sensors"]), 10)
+        self.assertIsNotNone(out["time_to_overflow_min"])         # a 150 mm/h cloudburst on a 3 m bowl
+
+    def test_assimilation_pulls_the_subtree_toward_the_sensor(self):
+        base = self.f.forecast(self._input("R50_B0", [50.0] * 61, 0.0))
+        hot = self.f.forecast(self._input("R50_B0", [50.0] * 61, 0.0, measured={"EN-01": 95.0}))
+        self.assertGreater(hot["horizons"][0]["sensors"]["EN-01"]["capacity_pct"], base["horizons"][0]["sensors"]["EN-01"]["capacity_pct"] + 20)
+        self.assertAlmostEqual(hot["horizons"][0]["sensors"]["EN-04"]["capacity_pct"],
+                               base["horizons"][0]["sensors"]["EN-04"]["capacity_pct"], delta=0.5)
+
+    def test_storm_library_and_goldens_are_fresh(self):
+        lib = load_library()
+        self.assertEqual([s["id"] for s in lib["storms"]],
+                         ["DESIGN_TYPHOON_12H", "OMPONG_2018", "KRISTINE_EGAY_OROGRAPHIC", "AFTERNOON_CLOUDBURST", "HABAGAT_MONSOON"])
+        self.assertEqual([s["elevation_m"] for s in lib["fews_stations"]], [1430.0, 1465.0, 1485.0, 1445.0])
+        design = lib["storms"][0]
+        for t in (0.0, 0.25, 0.42, 0.8):
+            self.assertAlmostEqual(hyetograph_trajectory(design, t * 720.0)[0], storm_profile(t)[0], delta=6.0)
+        for script in ("gen_precip_library.py", "gen_frontend_goldens.py"):
+            r = subprocess.run([sys.executable, str(ROOT / "scripts" / script), "--check"], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, f"{script}: {r.stdout}{r.stderr} (re-run it and commit the output)")
+
+
+SAMPLE_OM = {
+    "current": {"time": "2026-10-27T14:15", "interval": 900, "temperature_2m": 18.6, "precipitation": 1.2,
+                "rain": 1.2, "showers": 0.0, "weather_code": 63},
+    "minutely_15": {"time": ["2026-10-27T14:30", "2026-10-27T14:45"], "precipitation": [2.0, 3.5]},
+    "hourly": {"time": ["2026-10-27T15:00", "2026-10-27T16:00"], "precipitation": [9.0, 3.0]},
+}
+
+
+class WeatherFeedTests(unittest.TestCase):
+    def test_open_meteo_trajectory(self):
+        d = parse_open_meteo(SAMPLE_OM)
+        t = d["trajectory_mm_hr"]
+        self.assertEqual(len(t), 61)
+        self.assertAlmostEqual(d["current_mm_hr"], 4.8)
+        self.assertEqual((t[0], t[10], t[20], t[40], t[60]), (4.8, 8.0, 14.0, 9.0, 3.0))
+
+    def test_tomorrow_parse(self):
+        mins = [{"time": f"2026-10-27T06:{k:02d}:00Z", "values": {"precipitationIntensity": 0.5 * k, "temperature": 19.0}} for k in range(30)]
+        d = parse_tomorrow({"timelines": {"minutely": mins}})
+        self.assertEqual(d["provider"], "TOMORROW_IO")
+        self.assertEqual(len(d["trajectory_mm_hr"]), 61)
+        self.assertEqual(d["trajectory_mm_hr"][29], 14.5)
+        self.assertEqual(d["trajectory_mm_hr"][60], 14.5)
+
+    def test_cache_and_offline_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "feed.json"
+            offline = LiveFeed(cache, fetch=lambda *a, **k: (_ for _ in ()).throw(OSError("no network")))
+            offline.refresh()
+            snap = offline.snapshot()
+            self.assertEqual(snap["status"], "OFFLINE")
+            ok = LiveFeed(cache, fetch=lambda *a, **k: SAMPLE_OM)
+            ok.refresh()
+            self.assertEqual(ok.snapshot()["status"], "LIVE")
+            self.assertTrue(cache.exists())
+            warm = LiveFeed(cache, fetch=lambda *a, **k: (_ for _ in ()).throw(OSError("no network")))
+            self.assertEqual(warm.snapshot()["current_mm_hr"], 4.8)        # disk cache survives restarts
+
+
 class ApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -217,6 +353,60 @@ class ApiTests(unittest.TestCase):
         self.assertEqual([h.minutes for h in frame.nowcast.horizons], [15, 30, 60])
         self.assertEqual(len(frame.nowcast.fews), 4)
         self.assertEqual(self.client.get("/api/v1/network").json()["meta"]["counts"]["conduits"], 63)
+
+    def test_forecast_endpoint_and_frame(self):
+        from backend.schemas import Forecast, TwinFrame
+        fc = Forecast.model_validate(self.client.get("/api/v1/forecast").json())
+        self.assertEqual(fc.model, "STGNN-PHYS-v1")
+        self.assertEqual([h.minutes for h in fc.horizons], [15, 30, 60])
+        self.assertEqual(fc.graph, {"nodes": 65, "edges": 63})
+        self.assertEqual(len(fc.rain_trajectory_mm_hr), 61)
+        frame = TwinFrame.model_validate(self.client.get("/api/v1/state").json())
+        self.assertEqual(sorted(frame.forecast.horizons[0].sensors), [f"EN-{i:02d}" for i in range(1, 11)])
+
+    def test_live_control_sources(self):
+        from backend.main import runtime
+        from backend.schemas import TwinFrame
+        storms = self.client.get("/api/v1/live/control").json()["storms"]
+        self.assertEqual(len(storms), 5)
+        r = self.client.post("/api/v1/live/control", json={"precip_source": "HISTORICAL", "storm_id": "OMPONG_2018"})
+        self.assertEqual(r.status_code, 200, r.text)
+        frame = TwinFrame.model_validate(runtime.tick(0.5))
+        self.assertEqual((frame.mode, frame.precip_source, frame.storm_id), ("PLAYBACK", "HISTORICAL", "OMPONG_2018"))
+        self.assertEqual(frame.forecast.source.kind, "HISTORICAL")
+        self.assertEqual(frame.storm_period_s, 240.0)
+        self.assertEqual(self.client.post("/api/v1/live/control", json={"precip_source": "HISTORICAL", "storm_id": "NOPE"}).status_code, 422)
+        # live feed with an injected (offline-safe) fetcher
+        old_feed = runtime.feed
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime.feed = LiveFeed(Path(tmp) / "f.json", fetch=lambda *a, **k: SAMPLE_OM)
+            runtime.feed.refresh()
+            self.client.post("/api/v1/live/control", json={"precip_source": "LIVE_FEED", "trash_rack_blockage_pct": 10})
+            frame = TwinFrame.model_validate(runtime.tick(0.5))
+            self.assertEqual((frame.mode, frame.precip_source), ("SCENARIO", "LIVE_FEED"))
+            self.assertAlmostEqual(frame.scenario.rainfall_mm_hr, 4.8)
+            self.assertEqual(frame.forecast.source.kind, "LIVE_FEED")
+            self.assertEqual(frame.forecast.rain_trajectory_mm_hr[10], 8.0)
+        runtime.feed = old_feed
+        self.client.post("/api/v1/live/control", json={"precip_source": "HISTORICAL", "storm_id": "DESIGN_TYPHOON_12H"})
+        self.client.post("/api/v1/scenario", json={"mode": "PLAYBACK"})
+
+    def test_ingest_scope_single_node_vs_full_catchment(self):
+        from backend.main import runtime
+        runtime.hardware.clear()
+        self.client.post("/api/v1/scenario", json={"mode": "SCENARIO", "rainfall_mm_hr": 25, "trash_rack_blockage_pct": 0})
+        word = dsp.pack_payload(1100.0, 40.0, 92.0, 1, 4.0)
+        r = self.client.post("/api/v1/ingest/lorawan", json={"device_eui": "EN-02", "payload_hex": dsp.payload_hex(word), "scope": "single_node"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual((r.json()["scope"], r.json()["twin"]["mode"]), ("single_node", "SCENARIO"))
+        frame = runtime.tick(0.5)
+        self.assertEqual(frame["mode"], "SCENARIO")
+        self.assertEqual(frame["hardware_override"]["scope"], "single_node")
+        self.assertEqual(frame["sensors"]["EN-02"]["origin"], "HARDWARE")
+        self.assertEqual(frame["scenario"]["rainfall_mm_hr"], 25)
+        r = self.client.post("/api/v1/ingest/lorawan", json={"device_eui": "EN-02", "payload_hex": dsp.payload_hex(word), "scope": "full_catchment"})
+        self.assertEqual(r.json()["twin"]["mode"], "HARDWARE")
+        self.client.post("/api/v1/scenario", json={"mode": "PLAYBACK"})
 
     def test_decode(self):
         r = self.client.post("/api/v1/decode", json={"payload_hex": "0xFFC036CF"}).json()

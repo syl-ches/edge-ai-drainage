@@ -69,6 +69,8 @@ export interface SensorState {
   payload: number;
   payloadHex: string;
   payloadBytes: string;
+  /** Set by LIVE mode when a physical (hardware) uplink reports a surge here; cleared by evaluate(). */
+  liveSurge: boolean;
 }
 
 export interface ConduitArrays {
@@ -158,7 +160,12 @@ export class LutInterpolator {
   private readonly cell = new Int32Array(4);
   private readonly w = new Float64Array(4);
 
-  constructor(data: TwinData) {
+  /** The (active-filtered) network this interpolator was built from. */
+  get network(): NetworkFile {
+    return this.net;
+  }
+
+  constructor(data: Pick<TwinData, 'network' | 'lut'>) {
     const { network, lut } = data;
     this.net = network;
     this.rainAxis = lut.axes.rainfall_mm_hr;
@@ -318,6 +325,7 @@ export class LutInterpolator {
         payload: 0,
         payloadHex: '0x00000000',
         payloadBytes: '00 00 00 00',
+        liveSurge: false,
       })),
       statusCounts: { NORMAL: 0, ELEVATED: 0, CRITICAL: 0, SURCHARGED: 0 },
     };
@@ -473,6 +481,7 @@ export class LutInterpolator {
       S.dhDtMmMin = this.lerp(this.sDhdt, this.nS, i);
       S.turbulence = this.lerp(this.sTurb, this.nS, i);
       S.capacityPct = this.lerp(this.sCap, this.nS, i);
+      S.liveSurge = false;
       const fr = this.lerpNullable(this.sFr, this.nS, i);
       S.froude = Number.isNaN(fr) ? null : fr;
       S.hRatio = S.depthMm / 1000 / this.sensorRise[i];

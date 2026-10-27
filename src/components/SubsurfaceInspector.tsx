@@ -114,18 +114,17 @@ export function SubsurfaceInspector(p: Props) {
   const statusColor = { normal: '#10B981', elevated: '#F59E0B', high: '#F97316', surcharge: '#EF4444' }[status.tone];
 
   const footprints = useMemo<Footprint[]>(() => {
-    const rect = (cx: number, cy: number, w: number, d: number, h: number, green = false): Footprint => ({
+    const rect = (cx: number, cy: number, w: number, d: number, h: number): Footprint => ({
       ring: [new Vector2(cx - w / 2, cy - d / 2), new Vector2(cx + w / 2, cy - d / 2), new Vector2(cx + w / 2, cy + d / 2), new Vector2(cx - w / 2, cy + d / 2)],
       baseZ: 0,
       height: h,
-      greenRoof: green,
     });
     return [
       rect(-21, 20, 18, 14, 24),
-      rect(-28, 34, 10, 10, 12, true),
+      rect(-28, 34, 10, 10, 12),
       rect(21, 21, 16, 16, 30),
       rect(32, 33, 10, 8, 10),
-      rect(-20, -21, 16, 12, 16, true),
+      rect(-20, -21, 16, 12, 16),
       rect(-31, -33, 9, 9, 9),
       rect(22, -20, 14, 14, 20),
       rect(33, -32, 9, 11, 13),
@@ -251,10 +250,7 @@ export function SubsurfaceInspector(p: Props) {
 
     api.current = {
       setMode(mode) {
-        bSolid.visible = mode === 'solid';
-        bGlass.visible = mode === 'glass';
-        bFill.visible = mode === 'wire';
-        bMats.setMode(mode);
+        bMats.apply(mode, { solid: bSolid, glass: bGlass, wireFill: bFill, edges: bEdges });
       },
       setWater(box, pipe, mh) {
         const bw = boxWater.material as ShaderMaterial;
@@ -348,7 +344,7 @@ export function SubsurfaceInspector(p: Props) {
   return (
     <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-2 backdrop-blur-sm sm:p-6" onClick={p.onClose}>
       <div
-        className="relative flex h-full max-h-[760px] w-full max-w-[1100px] flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-2xl shadow-black/40"
+        className="hud-card relative flex h-full max-h-[760px] w-full max-w-[1100px] flex-col overflow-hidden rounded-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -362,7 +358,7 @@ export function SubsurfaceInspector(p: Props) {
           <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ color: statusColor, background: `${statusColor}1F`, boxShadow: `inset 0 0 0 1px ${statusColor}66` }}>
             <span className="h-2 w-2 rounded-full" style={{ background: statusColor }} /> {status.label}
           </span>
-          <button onClick={p.onClose} className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-label="Close inspector">
+          <button onClick={p.onClose} className="btn-idle ml-auto rounded-lg p-1.5" aria-label="Close inspector">
             <X size={16} />
           </button>
         </header>

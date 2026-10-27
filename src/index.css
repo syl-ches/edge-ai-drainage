@@ -33,25 +33,25 @@ html[data-theme="daylight"] {
   --color-slate-50: #0b1220;
   --color-slate-100: #0f172a;
   --color-slate-200: #1e293b;
-  --color-slate-300: #334155;
-  --color-slate-400: #475569;
-  --color-slate-500: #64748b;
-  --color-slate-600: #94a3b8;
+  --color-slate-300: #1e293b;
+  --color-slate-400: #334155;
+  --color-slate-500: #475569;
+  --color-slate-600: #64748b;
   --color-slate-700: #cbd5e1;
-  --color-slate-800: #e2e8f0;
+  --color-slate-800: #cbd5e1;
   --color-slate-900: #f1f5f3;
   --color-slate-950: #ffffff;
   --color-white: #0f172a;
   --color-black: #94a3b8;
-  --color-sky-100: #064e3b;
-  --color-sky-200: #065f46;
-  --color-sky-300: #047857;
-  --color-sky-400: #059669;
+  --color-sky-100: #022c22;
+  --color-sky-200: #064e3b;
+  --color-sky-300: #065f46;
+  --color-sky-400: #047857;
   --color-sky-500: #10b981;
   --color-sky-600: #059669;
-  --color-emerald-200: #065f46;
-  --color-emerald-300: #047857;
-  --color-emerald-400: #059669;
+  --color-emerald-200: #064e3b;
+  --color-emerald-300: #065f46;
+  --color-emerald-400: #047857;
   --color-teal-200: #115e59;
   --color-teal-300: #0f766e;
   --color-rose-200: #9f1239;
@@ -121,4 +121,186 @@ html[data-theme="daylight"] .hud-range::-moz-range-thumb {
 }
 .hud-range:active::-webkit-slider-thumb {
   cursor: grabbing;
+}
+
+/*
+ * Phase 7A solid, high-contrast controls. These use literal colours (not the remapped
+ * Tailwind variables) so a solid button means the same thing in both themes:
+ *   .btn-active  selected / primary   daylight: slate-900 + white   X-ray: sky-600 + white
+ *   .btn-idle    inactive toggle      daylight: slate-200 + ink     X-ray: slate-800 + white
+ *   .btn-accent  emerald primary,  .btn-sky  hydro-blue,  .btn-danger  crimson,  .btn-amber
+ *   .hud-card    near-opaque panel surface
+ * Layout utilities (padding, radius, text size) still come from Tailwind on the element.
+ */
+@layer components {
+  .btn-active,
+  .btn-idle,
+  .btn-accent,
+  .btn-sky,
+  .btn-danger,
+  .btn-amber {
+    font-weight: 600;
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      box-shadow 0.15s;
+  }
+  .btn-active {
+    background: #0284c7;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(2, 6, 23, 0.4);
+  }
+  .btn-active:hover {
+    background: #0369a1;
+  }
+  .btn-idle {
+    background: #1e293b;
+    color: #ffffff;
+  }
+  .btn-idle:hover {
+    background: #334155;
+  }
+  .btn-accent {
+    background: #059669;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(2, 6, 23, 0.25);
+  }
+  .btn-accent:hover {
+    background: #047857;
+  }
+  .btn-sky {
+    background: #0284c7;
+    color: #ffffff;
+  }
+  .btn-sky:hover {
+    background: #0369a1;
+  }
+  .btn-danger {
+    background: #dc2626;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(127, 29, 29, 0.35);
+  }
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+  .btn-amber {
+    background: #f59e0b;
+    color: #020617;
+    font-weight: 700;
+  }
+  .btn-amber:hover {
+    background: #d97706;
+  }
+  .hud-card {
+    background: rgba(2, 6, 23, 0.92);
+    border: 1px solid #1e293b;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+  }
+  html[data-theme="daylight"] .btn-active {
+    background: #0f172a;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.3);
+  }
+  html[data-theme="daylight"] .btn-active:hover {
+    background: #1e293b;
+  }
+  html[data-theme="daylight"] .btn-idle {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  html[data-theme="daylight"] .btn-idle:hover {
+    background: #cbd5e1;
+  }
+  html[data-theme="daylight"] .hud-card {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: #cbd5e1;
+    box-shadow:
+      0 20px 25px -5px rgba(15, 23, 42, 0.14),
+      0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  }
+  /* Children of a solid button inherit its ink, whatever their own (remapped) text colour. */
+  .btn-active *,
+  .btn-accent *,
+  .btn-sky *,
+  .btn-danger * {
+    color: inherit;
+  }
+}
+
+/* Compact clickable sensor pills (map badges). 3 Hz alarm blink = 0.1667 s alternate. */
+.sensor-pill {
+  background: #0f172a;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: scale 0.12s ease-out;
+}
+.sensor-pill:hover {
+  scale: 1.06;
+}
+.sensor-pill-alarm {
+  color: #fee2e2;
+  animation: sensor-alarm 0.1667s ease-in-out infinite alternate;
+}
+.sensor-dot-blink {
+  animation: sensor-dot 0.1667s ease-in-out infinite alternate;
+}
+@keyframes sensor-alarm {
+  from {
+    background: #dc2626;
+    box-shadow: 0 0 0 2px #fee2e2, 0 6px 16px rgba(220, 38, 38, 0.45);
+  }
+  to {
+    background: #f87171;
+    box-shadow: 0 0 0 4px #fca5a5, 0 6px 20px rgba(220, 38, 38, 0.6);
+  }
+}
+@keyframes sensor-dot {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sensor-pill-alarm,
+  .sensor-dot-blink {
+    animation-duration: 1s;
+  }
+}
+
+/* Phase 7B: live hardware alarm banner (3 Hz red / light-red). */
+.hw-banner-alarm {
+  animation: hw-banner 0.1667s ease-in-out infinite alternate;
+}
+@keyframes hw-banner {
+  from {
+    background: #dc2626;
+    box-shadow: 0 0 0 3px #fca5a5, 0 12px 30px rgba(220, 38, 38, 0.45);
+  }
+  to {
+    background: #ef4444;
+    box-shadow: 0 0 0 5px #fecaca, 0 12px 30px rgba(220, 38, 38, 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hw-banner-alarm {
+    animation-duration: 1s;
+  }
+}
+
+/* Phase 7B: TX LED pulse on every packet (re-keyed per packet). */
+.led-flash {
+  animation: led-flash 0.18s ease-out 1 both;
+}
+@keyframes led-flash {
+  from {
+    filter: brightness(1.8);
+    transform: scale(1.25);
+  }
+  to {
+    filter: brightness(0.55);
+    transform: scale(1);
+  }
 }

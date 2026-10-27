@@ -40,6 +40,8 @@ export interface ConduitsLayer {
   axes: ConduitAxis[];
   indexOf: Map<string, number>;
   applyState(st: TwinState): void;
+  /** Conduit indices that blink red (sensor alarm); every other conduit is cleared. */
+  setAlarm(indices: Iterable<number>): void;
   setPipeScale(k: number): void;
   setTime(t: number): void;
   setHover(index: number): void;
@@ -140,9 +142,15 @@ export function buildConduits(conduits: Conduit[], frame: LocalFrame, cameraPos:
   stateTex.minFilter = NearestFilter;
   stateTex.magFilter = NearestFilter;
   stateTex.needsUpdate = true;
+  const alarmData = new Float32Array(n * 4);
+  const alarmTex = new DataTexture(alarmData, n, 1, RGBAFormat, FloatType);
+  alarmTex.minFilter = NearestFilter;
+  alarmTex.magFilter = NearestFilter;
+  alarmTex.needsUpdate = true;
 
   const uniforms = {
     uState: { value: stateTex },
+    uAlarm: { value: alarmTex },
     uPipeScale: { value: 1 },
     uTime: { value: 0 },
     uHover: { value: -1 },
@@ -236,6 +244,11 @@ export function buildConduits(conduits: Conduit[], frame: LocalFrame, cameraPos:
         stateData[i * 4 + 3] = C.status[i];
       }
       stateTex.needsUpdate = true;
+    },
+    setAlarm(indices) {
+      alarmData.fill(0);
+      for (const i of indices) if (i >= 0 && i < n) alarmData[i * 4] = 1;
+      alarmTex.needsUpdate = true;
     },
     setPipeScale(k) {
       uniforms.uPipeScale.value = k;

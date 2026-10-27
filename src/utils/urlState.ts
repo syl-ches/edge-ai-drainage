@@ -52,7 +52,7 @@ export const DEFAULT_URL_STATE: UrlState = {
   sim: null,
   simNode: 'EN-08',
   sel: null,
-  mode: 'SIM',
+  mode: 'LIVE', // Live Weather & Telemetry is the startup mode (Phase 7A)
   api: null,
 };
 
@@ -90,7 +90,7 @@ export function parseUrlState(search: string = window.location.search): UrlState
     sim: q.get('sim') === 'node' || q.get('sim') === 'profile' ? (q.get('sim') as SimView) : null,
     simNode: /^EN-\d{2}$/.test(q.get('simnode') ?? '') ? (q.get('simnode') as string) : DEFAULT_URL_STATE.simNode,
     sel: sel && /^(conduit|node|sensor|rack):[\w.-]+$/.test(sel) ? sel : null,
-    mode: q.get('mode') === 'live' ? 'LIVE' : 'SIM',
+    mode: q.get('mode') === 'sim' ? 'SIM' : 'LIVE',
     api: q.get('api'),
   };
 }
@@ -118,7 +118,7 @@ export function serializeUrlState(s: UrlState): string {
     q.set('simnode', s.simNode);
   }
   if (s.sel) q.set('sel', s.sel);
-  if (s.mode === 'LIVE') q.set('mode', 'live');
+  if (s.mode === 'SIM') q.set('mode', 'sim');
   if (s.api) q.set('api', s.api);
   return q.toString();
 }

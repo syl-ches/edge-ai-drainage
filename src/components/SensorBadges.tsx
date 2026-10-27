@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { AlertTriangle, Camera } from 'lucide-react';
+import { Camera, ChevronRight } from 'lucide-react';
 import type { TwinEngine } from '../three/TwinEngine';
-import { ANOMALY_COLORS, capacityColor } from '../three/palette';
 import type { Theme } from '../three/theme';
 import type { TwinState } from '../utils/lutInterpolator';
-import { nodeDepthM, nodeFullnessPct, visualBlockagePct } from '../utils/fullness';
+import { badgeContent, MARKER_COLORS } from '../utils/fullness';
 
 interface Props {
   engine: TwinEngine;
@@ -16,10 +15,12 @@ interface Props {
 }
 
 /**
- * Floating per-node fullness badges ("EN-08 • 72% Full • 1.94m" + mini vertical bar) pinned
- * above each 3D gauge; repositioned every frame with CSS transforms only (no React re-render).
+ * Compact clickable map pills pinned above each surface marker: status dot + `EN-XX` + one
+ * number + chevron (`● EN-08  88% ▸`, `📷 EN-09  15% blk ▸`). Alarmed nodes (>= 80 % full)
+ * turn into a pulsing red pill. Clicking opens the node inspector + cross-section cutaway.
+ * Positions are updated every frame with CSS transforms only (no React re-render).
  */
-export function SensorBadges({ engine, state, theme, visible, onSelect }: Props) {
+export function SensorBadges({ engine, state, visible, onSelect }: Props) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const beacons = engine.sensors.beacons;
 
@@ -31,7 +32,7 @@ export function SensorBadges({ engine, state, theme, visible, onSelect }: Props)
           if (!el) return;
           const p = engine.project(b.top);
           el.style.display = p.visible ? 'flex' : 'none';
-          el.style.transform = `translate(-50%, -100%) translate(${p.x.toFixed(1)}px, ${(p.y - 8).toFixed(1)}px)`;
+          el.style.transform = `translate(-50%, -100%) translate(${p.x.toFixed(1)}px, ${(p.y - 4).toFixed(1)}px)`;
         });
       }),
     [engine, beacons],
@@ -43,10 +44,8 @@ export function SensorBadges({ engine, state, theme, visible, onSelect }: Props)
       {beacons.map((b, i) => {
         const t = state.sensors[i];
         if (!t) return null;
-        const pct = nodeFullnessPct(t);
-        const fill = capacityColor(pct / 100, theme);
-        const anomaly = ANOMALY_COLORS[t.anomaly];
-        const blocked = visualBlockagePct(t);
+        const c = badgeContent(t);
+        const alarm = c.tone === 'alarm';
         return (
           <button
             key={b.id}
@@ -54,27 +53,22 @@ export function SensorBadges({ engine, state, theme, visible, onSelect }: Props)
               refs.current[i] = el;
             }}
             onClick={() => onSelect(b.id)}
-            title={`${b.sensor.name} — ${t.anomaly}`}
-            className="pointer-events-auto absolute left-0 top-0 items-center gap-1.5 rounded-lg border border-slate-800/90 bg-slate-950/90 py-1 pl-1 pr-2 font-mono text-[10px] font-semibold text-slate-100 shadow-lg shadow-black/25 backdrop-blur will-change-transform"
-            style={{ display: 'none', boxShadow: `inset 3px 0 0 ${anomaly}` }}
+            title={`${b.sensor.name}: open node inspector`}
+            aria-label={`${c.id} ${c.value}${alarm ? ' alarm' : ''}: open node inspector`}
+            data-tone={c.tone}
+            className={`sensor-pill pointer-events-auto absolute left-0 top-0 cursor-pointer items-center gap-1.5 rounded-full py-1 pl-2 pr-1.5 font-mono text-[11px] font-bold shadow-lg will-change-transform ${
+              alarm ? 'sensor-pill-alarm' : ''
+            }`}
+            style={{ display: 'none' }}
           >
-            <span className="relative ml-1 h-6 w-1.5 overflow-hidden rounded-full bg-slate-800">
-              <span className="absolute inset-x-0 bottom-0 rounded-full" style={{ height: `${Math.min(pct, 100)}%`, background: fill }} />
-            </span>
-            <span className="whitespace-nowrap">
-              <span className="text-sky-300">{b.id}</span>
-              <span className="text-slate-500"> • </span>
-              <span style={{ color: pct > 94 ? '#E11D48' : undefined }}>{pct.toFixed(0)}% Full</span>
-              <span className="text-slate-500"> • </span>
-              {nodeDepthM(t).toFixed(2)}m
-            </span>
-            {blocked !== null && (
-              <span className="flex items-center gap-0.5 text-sky-300" title="YOLOv8 visual rack blockage">
-                <Camera size={11} />
-                {blocked.toFixed(0)}% blk
-              </span>
+            {c.vision ? (
+              <Camera size={12} strokeWidth={2.5} />
+            ) : (
+              <span className={`h-2 w-2 shrink-0 rounded-full ${alarm ? 'sensor-dot-blink' : ''}`} style={{ background: alarm ? '#FEE2E2' : MARKER_COLORS[c.tone] }} />
             )}
-            {t.saturated.length > 0 && <AlertTriangle size={11} className="text-amber-400" />}
+            <span className="whitespace-nowrap">{c.id}</span>
+            <span className="whitespace-nowrap tabular-nums">{c.value}</span>
+            <ChevronRight size={13} strokeWidth={3} className="-ml-0.5 opacity-80" />
           </button>
         );
       })}

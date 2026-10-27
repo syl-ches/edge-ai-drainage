@@ -1,9 +1,15 @@
-import { memo, type ReactNode } from 'react';
-import { Boxes, Building2, Gauge, Layers3, Moon, Sun, TreePine, Waves } from 'lucide-react';
+import { memo, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { Boxes, Building2, Cpu, Cloud, CloudRain, CloudSun, Gauge, Layers3, Moon, Radio, SlidersHorizontal, Sun, TreePine, Waves } from 'lucide-react';
 import type { Theme } from '../three/theme';
-import type { LayerFlags } from '../utils/urlState';
+import type { HudMode, LayerFlags } from '../utils/urlState';
+import type { WeatherNow } from '../live/weather';
+import type { LiveTarget } from '../live/liveDriver';
 
 interface Props {
+  mode: HudMode;
+  onMode(m: HudMode): void;
+  weather: WeatherNow;
+  liveTarget: LiveTarget;
   theme: Theme;
   onTheme(t: Theme): void;
   layers: LayerFlags;
@@ -12,9 +18,10 @@ interface Props {
   onSimulator(): void;
   inspectorOpen: boolean;
   onInspector(): void;
+  onHardwareSim(): void;
 }
 
-/** Short label below 2xl (1536 px), the full label above, so the bar never scrolls on laptops. */
+/** Short label below 2xl (1536 px), the full label above. */
 function Label({ short, full }: { short: string; full: string }) {
   return (
     <>
@@ -24,85 +31,146 @@ function Label({ short, full }: { short: string; full: string }) {
   );
 }
 
-function Pill({ on, onClick, icon, children, title }: { on: boolean; onClick(): void; icon: ReactNode; children: ReactNode; title: string }) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      aria-pressed={on}
-      className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition ${
-        on
-          ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/50'
-          : 'bg-slate-900/60 text-slate-500 ring-1 ring-white/10 hover:text-slate-300'
-      }`}
-    >
-      {icon}
-      {children}
-      <span className={`ml-0.5 rounded px-1 font-mono text-[9px] ${on ? 'bg-sky-500/20' : 'bg-slate-800'}`}>{on ? 'ON' : 'OFF'}</span>
-    </button>
-  );
-}
-
 const LAYER_DEFS: { key: keyof LayerFlags; label: string; short: string; icon: ReactNode }[] = [
   { key: 'buildings', label: 'Surface Buildings', short: 'Buildings', icon: <Building2 size={13} /> },
   { key: 'vegetation', label: '3D Vegetation & Parks', short: 'Vegetation', icon: <TreePine size={13} /> },
   { key: 'network', label: 'Subsurface Drainage Network', short: 'Drainage', icon: <Waves size={13} /> },
-  { key: 'badges', label: 'Node Fullness Badges', short: 'Badges', icon: <Gauge size={13} /> },
+  { key: 'badges', label: 'Node Fullness Badges', short: 'Sensors', icon: <Gauge size={13} /> },
 ];
 
-/** Theme switch, layer toggles and the two tool launchers (top of the viewport). */
-function TopBarImpl(p: Props) {
+const pill = 'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px]';
+
+/** Status line of the weather pill: what is driving the twin right now. */
+export function weatherStatus(mode: HudMode, weather: WeatherNow, target: LiveTarget): string {
+  if (mode === 'SIM') return 'Simulation mode · live weather paused';
+  if (target.source !== 'WEATHER') return target.label;
+  if (weather.source === 'OPEN_METEO') return 'Live Weather Synced • Click "Simulation Mode" to stress-test';
+  return weather.source === 'CACHED' ? 'Offline · last synced reading' : 'Offline · baseline weather';
+}
+
+function WeatherPill({ mode, weather, target }: { mode: HudMode; weather: WeatherNow; target: LiveTarget }) {
+  const Icon = weather.rainMmHr > 0.05 ? CloudRain : weather.code !== null && weather.code >= 2 ? Cloud : weather.code === null ? CloudSun : Sun;
+  const synced = weather.source === 'OPEN_METEO';
+  const status = weatherStatus(mode, weather, target);
   return (
-    <div className="pointer-events-auto absolute inset-x-2 top-2 z-30 sm:left-[404px] sm:right-3 sm:top-3">
-      <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-950/75 p-1.5 shadow-xl shadow-black/30 backdrop-blur-md [scrollbar-width:none]">
-        <div className="flex shrink-0 rounded-xl bg-slate-900/80 p-0.5 ring-1 ring-white/5" role="radiogroup" aria-label="Theme">
+    <div
+      className="btn-idle flex shrink-0 items-center gap-2 rounded-xl px-2.5 py-1"
+      title={`Baguio City live weather (Open-Meteo, 16.4093° N, 120.5863° E)${weather.observedAt ? ` · observed ${weather.observedAt}` : ''}\n${status}`}
+      aria-label="Baguio City Live Weather"
+    >
+      <Icon size={16} className="shrink-0" />
+      <div className="min-w-0 leading-tight">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold">
+          <span className="hidden xl:inline">Baguio City Live Weather</span>
+          <span className="xl:hidden">Baguio</span>
+          <span className="font-mono">{weather.rainMmHr.toFixed(1)} mm/hr</span>
+          <span className="font-mono">{weather.temperatureC !== null ? `${weather.temperatureC.toFixed(0)}°C` : '—°C'}</span>
+          <span>{weather.label}</span>
+        </div>
+        <div className="flex items-center gap-1 whitespace-nowrap text-[10px] font-medium opacity-80">
+          <span className={`h-1.5 w-1.5 rounded-full ${synced && mode === 'LIVE' ? 'animate-pulse bg-[#10b981]' : 'bg-[#f59e0b]'}`} />
+          <span className="max-w-[300px] truncate">{status}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Mode switcher (Live Weather / Simulation), live Baguio weather, theme, layer toggles and the
+ * two tool launchers. Publishes its height as --topbar-h so panels below it can clear it.
+ */
+function TopBarImpl(p: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const publish = () => document.documentElement.style.setProperty('--topbar-h', `${Math.round(el.getBoundingClientRect().height)}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="pointer-events-auto absolute inset-x-2 top-2 z-30 sm:left-[404px] sm:right-3 sm:top-3">
+      <div className="hud-card flex items-center gap-1.5 overflow-x-auto rounded-2xl p-1.5 [scrollbar-width:none] sm:flex-wrap sm:overflow-x-visible">
+        <div className="flex shrink-0 gap-1" role="radiogroup" aria-label="Twin mode">
+          <button
+            role="radio"
+            aria-checked={p.mode === 'LIVE'}
+            onClick={() => p.onMode('LIVE')}
+            className={`${pill} ${p.mode === 'LIVE' ? 'btn-accent' : 'btn-idle'}`}
+            title="Live Weather & Telemetry Mode"
+          >
+            {p.mode === 'LIVE' ? <span className="h-2 w-2 animate-pulse rounded-full bg-[#fecaca]" /> : <Radio size={13} />}
+            <Label short="Live Weather" full="Live Weather & Telemetry" />
+          </button>
+          <button
+            role="radio"
+            aria-checked={p.mode === 'SIM'}
+            onClick={() => p.onMode('SIM')}
+            className={`${pill} ${p.mode === 'SIM' ? 'btn-active' : 'btn-idle'}`}
+            title="Scenario Simulation Mode (manual rainfall & blockage sliders)"
+          >
+            <SlidersHorizontal size={13} />
+            <Label short="Simulation Mode" full="Scenario Simulation Mode" />
+          </button>
+        </div>
+        <WeatherPill mode={p.mode} weather={p.weather} target={p.liveTarget} />
+        <span className="mx-0.5 h-6 w-px shrink-0 bg-[#94a3b8]/50" />
+        <div className="flex shrink-0 gap-1" role="radiogroup" aria-label="Theme">
           {(
             [
-              ['daylight', 'Daylight', 'Daylight Diorama', <Sun key="s" size={13} />],
-              ['xray', 'X-Ray', 'Dark X-Ray', <Moon key="m" size={13} />],
+              ['daylight', 'Daylight Diorama', <Sun key="s" size={13} />],
+              ['xray', 'Dark X-Ray', <Moon key="m" size={13} />],
             ] as const
-          ).map(([t, short, label, icon]) => (
+          ).map(([t, label, icon]) => (
             <button
               key={t}
               role="radio"
               aria-checked={p.theme === t}
+              aria-label={label}
               onClick={() => p.onTheme(t)}
               title={label}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
-                p.theme === t ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/40' : 'text-slate-500 hover:text-slate-300'
-              }`}
+              className={`flex shrink-0 items-center rounded-full p-2 ${p.theme === t ? 'btn-active' : 'btn-idle'}`}
             >
               {icon}
-              <Label short={short} full={label} />
+              <span className="sr-only">{label}</span>
             </button>
           ))}
         </div>
-        <span className="mx-0.5 h-5 w-px shrink-0 bg-slate-700" />
-        {LAYER_DEFS.map((d) => (
-          <Pill key={d.key} on={p.layers[d.key]} icon={d.icon} title={`Toggle ${d.label}`} onClick={() => p.onToggleLayer(d.key)}>
-            <Label short={d.short} full={d.label} />
-          </Pill>
-        ))}
-        <span className="mx-0.5 h-5 w-px shrink-0 bg-slate-700" />
-        <button
-          onClick={p.onSimulator}
-          title="Cross-Section Simulator"
-          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
-            p.simOpen ? 'bg-sky-500 text-slate-950' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/50 hover:bg-sky-500/25'
-          }`}
-        >
+        {LAYER_DEFS.map((d) => {
+          const on = p.layers[d.key];
+          return (
+            <button
+              key={d.key}
+              onClick={() => p.onToggleLayer(d.key)}
+              title={`${d.label}: ${on ? 'on (click to hide)' : 'off (click to show)'}`}
+              aria-pressed={on}
+              className={`${pill} ${on ? 'btn-active' : 'btn-idle'}`}
+            >
+              {d.icon}
+              <Label short={d.short} full={d.label} />
+            </button>
+          );
+        })}
+        <span className="mx-0.5 h-6 w-px shrink-0 bg-[#94a3b8]/50" />
+        <button onClick={p.onSimulator} title="Cross-Section Simulator" className={`${pill} ${p.simOpen ? 'btn-active' : 'btn-accent'}`}>
           <Layers3 size={13} />
           <Label short="Simulator" full="Cross-Section Simulator" />
         </button>
-        <button
-          onClick={p.onInspector}
-          title="Subsurface Utility Inspector"
-          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
-            p.inspectorOpen ? 'bg-sky-500 text-slate-950' : 'bg-slate-900/70 text-slate-300 ring-1 ring-white/10 hover:text-slate-200'
-          }`}
-        >
+        <button onClick={p.onInspector} title="Subsurface Utility Inspector" className={`${pill} ${p.inspectorOpen ? 'btn-active' : 'btn-sky'}`}>
           <Boxes size={13} />
           <Label short="Inspector" full="Utility Inspector" />
+        </button>
+        <button
+          onClick={p.onHardwareSim}
+          title="Open the Arduino / ESP32 & aquarium drainage simulator in a new tab (syncs live with this map)"
+          className={`${pill} btn-amber`}
+        >
+          <Cpu size={13} />
+          <span className="whitespace-nowrap">Open Arduino &amp; Aquarium Sim ↗</span>
         </button>
       </div>
     </div>

@@ -168,6 +168,8 @@ def main() -> int:
     ap.add_argument("--mode", choices=("fill", "surge", "blockage"), default="fill", help="virtual: pouring style")
     ap.add_argument("--hz", type=float, default=1.0, help="virtual: frames per second")
     ap.add_argument("--count", type=int, default=0, help="stop after N frames (0 = run until Ctrl+C)")
+    ap.add_argument("--scope", choices=("single_node", "full_catchment"), default="full_catchment",
+                    help="single_node: only this sensor follows the board; full_catchment: the board drives the whole twin")
     args = ap.parse_args()
 
     fwd = Forwarder(args.url)
@@ -178,7 +180,7 @@ def main() -> int:
             sim = VirtualStandpipe(args.node or "EN-08", args.water_cm, args.mode, hz=args.hz)
             while True:
                 frame = parse_edge_tx(sim.next_line())
-                status, ms, reply = fwd.post(frame)
+                status, ms, reply = fwd.post(dict(frame, scope=args.scope))
                 print(dashboard_row(frame, status, ms, reply), flush=True)
                 sent += 1
                 if args.count and sent >= args.count:
@@ -209,7 +211,7 @@ def main() -> int:
                 if frame is None:
                     print(f"  {line}")
                     continue
-                status, ms, reply = fwd.post(frame)
+                status, ms, reply = fwd.post(dict(frame, scope=args.scope))
                 print(dashboard_row(frame, status, ms, reply), flush=True)
                 sent += 1
                 if args.count and sent >= args.count:

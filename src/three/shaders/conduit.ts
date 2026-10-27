@@ -6,10 +6,13 @@
 //   EDGE  — crisp structural outlines (box haunches, arch springing lines).
 // Shared by swept (RECT_CLOSED / ARCH, define SWEPT) and instanced (CIRCULAR) geometry.
 // Per-conduit state texel: r = capacity_ratio, g = velocity_ms, b = depth/rise, a = status code.
+// uAlarm texel r = 1 when a sensor on this conduit is in alarm (>= 80 % full): the conduit then
+// blinks #EF4444 <-> #FCA5A5 at 3 Hz so the flooded node jumps out (Phase 7A).
 import { RAMP_GLSL } from './ramp';
 
 const header = /* glsl */ `
 uniform sampler2D uState;
+uniform sampler2D uAlarm;
 uniform float uPipeScale;
 uniform float uTime;
 uniform float uHover;
@@ -25,6 +28,7 @@ varying float vT;
 varying float vS;
 varying float vIndex;
 varying vec4 vState;
+varying float vAlarm;
 varying vec3 vNormal;
 varying vec3 vWorld;
 `;
@@ -61,12 +65,16 @@ void main() {
   vIndex = aConduit;
   vWorld = p;
   vState = texelFetch(uState, ivec2(int(aConduit + 0.5), 0), 0);
+  vAlarm = texelFetch(uAlarm, ivec2(int(aConduit + 0.5), 0), 0).r;
   gl_Position = projectionMatrix * vec4(p, 1.0);
 }`;
 
 const highlight = /* glsl */ `
 float highlightOf(float idx) {
   return max(1.0 - step(0.5, abs(idx - uHover)), 1.0 - step(0.5, abs(idx - uSelected)));
+}
+vec3 alarmColor() {
+  return mix(vec3(0.937, 0.267, 0.267), vec3(0.988, 0.647, 0.647), 0.5 + 0.5 * sin(uTime * 18.8496)); // #EF4444 <-> #FCA5A5, 3 Hz
 }`;
 
 export const conduitCoreFragment = /* glsl */ `
@@ -91,6 +99,7 @@ void main() {
   float chevron = smoothstep(0.0, 0.05, phase) * (1.0 - smoothstep(0.12, 0.24, phase)) * step(0.03, vel);
   float depthShade = mix(0.72, 1.06, clamp(vT / max(level, 0.001), 0.0, 1.0));
   vec3 col = base * depthShade * pulse + chevron * mix(base, vec3(1.0), 0.55) * 0.6;
+  if (vAlarm > 0.5) col = alarmColor() * mix(0.85, 1.0, depthShade) + chevron * 0.3;
   col = mix(col, vec3(1.0), highlightOf(vIndex) * 0.35);
   gl_FragColor = vec4(col, 1.0);
 }`;
@@ -111,6 +120,10 @@ void main() {
   vec3 col = mix(core, rim, fresnel * 0.85);
   float alpha = mix(0.08, 0.16, uDay) + fresnel * mix(0.38, 0.42, uDay);
   if (surge) alpha += 0.12 * (0.5 + 0.5 * sin(uTime * 6.0));
+  if (vAlarm > 0.5) {
+    col = mix(alarmColor(), vec3(1.0), (1.0 - fresnel) * 0.35);
+    alpha = 0.32 + fresnel * 0.3;
+  }
   float hl = highlightOf(vIndex);
   col = mix(col, vec3(1.0), hl * 0.5);
   gl_FragColor = vec4(col, clamp(max(alpha, hl * 0.55), 0.06, 0.62));
@@ -125,6 +138,7 @@ void main() {
   bool surge = vState.r > 0.94 || vState.a > 2.5;
   vec3 status = capacityRamp(surge ? 1.0 : vState.r, uDay);
   vec3 col = mix(mix(status, vec3(1.0), 0.45), mix(vec3(0.39, 0.45, 0.55), status, 0.35), uDay);
+  if (vAlarm > 0.5) col = alarmColor();
   float hl = highlightOf(vIndex);
   gl_FragColor = vec4(mix(col, uDay > 0.5 ? vec3(0.02, 0.47, 0.34) : vec3(1.0), hl * 0.6), mix(0.55, 0.7, uDay) + 0.3 * hl);
 }`;

@@ -109,6 +109,54 @@ class LagoonSummary(BaseModel):
 class HardwareOverride(BaseModel):
     sensor_id: str
     age_s: float
+    scope: Literal["single_node", "full_catchment"] = "full_catchment"
+
+
+class ForecastSensor(BaseModel):
+    capacity_pct: float
+    p05: float
+    p95: float
+    surcharge_probability_pct: float
+
+
+class NextBottleneck(BaseModel):
+    sensor_id: str
+    capacity_pct: float
+    minutes_to_critical: int | None
+
+
+class ForecastHorizon(BaseModel):
+    minutes: int
+    rainfall_mm_hr: float
+    lagoon_depth_m: float
+    lagoon_depth_p05_m: float
+    lagoon_depth_p95_m: float
+    surface_elev_m: float
+    surface_elev_p05_m: float
+    surface_elev_p95_m: float
+    time_to_overflow_min: float | None
+    surcharge_probability_pct: float
+    conduits_over_capacity: int
+    next_bottleneck: NextBottleneck
+    sensors: dict[str, ForecastSensor]
+
+
+class ForecastSource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    kind: Literal["LIVE_FEED", "HISTORICAL", "TWIN", "HARDWARE"]
+    label: str
+
+
+class Forecast(BaseModel):
+    model: str
+    step_min: int
+    members: int
+    graph: dict[str, int]
+    source: ForecastSource
+    rain_trajectory_mm_hr: list[float]
+    time_to_overflow_min: float | None
+    horizons: list[ForecastHorizon]
+    generated_at: str
 
 
 class TwinFrame(BaseModel):
@@ -124,11 +172,21 @@ class TwinFrame(BaseModel):
     fusion: FusionVerdict
     nowcast: Nowcast
     hardware_override: HardwareOverride | None
+    precip_source: Literal["LIVE_FEED", "HISTORICAL", "TWIN"]
+    storm_id: str
+    forecast: Forecast
 
 
 # ------------------------------------------------------------------ requests
 class ScenarioRequest(BaseModel):
     mode: Literal["PLAYBACK", "SCENARIO"] = "SCENARIO"
+    rainfall_mm_hr: float | None = Field(default=None, ge=0, le=250)
+    trash_rack_blockage_pct: float | None = Field(default=None, ge=0, le=95)
+
+
+class LiveControlRequest(BaseModel):
+    precip_source: Literal["LIVE_FEED", "HISTORICAL", "TWIN"]
+    storm_id: str | None = None
     rainfall_mm_hr: float | None = Field(default=None, ge=0, le=250)
     trash_rack_blockage_pct: float | None = Field(default=None, ge=0, le=95)
 
@@ -155,3 +213,6 @@ class IngestRequest(BaseModel):
     payload_b64: str | None = None
     end_device_ids: dict[str, Any] | None = None
     uplink_message: dict[str, Any] | None = None
+    # single_node: only this sensor (and the forecast's assimilation) follows the uplink;
+    # full_catchment: the whole twin is driven by inverting its capacity through the LUT.
+    scope: Literal["single_node", "full_catchment"] = "full_catchment"

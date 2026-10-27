@@ -75,7 +75,7 @@ export function QrShareModal({ open, onClose }: { open: boolean; onClose(): void
   return (
     <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-2xl border border-slate-800/80 bg-slate-950/90 p-5 text-slate-200 shadow-2xl"
+        className="hud-card w-full max-w-sm rounded-2xl p-5 text-slate-200"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -90,7 +90,7 @@ export function QrShareModal({ open, onClose }: { open: boolean; onClose(): void
               Scan to open the 3D twin
             </h2>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-label="Close">
+          <button onClick={onClose} className="btn-idle rounded-lg p-1.5" aria-label="Close">
             <X size={16} />
           </button>
         </div>
@@ -117,7 +117,7 @@ export function QrShareModal({ open, onClose }: { open: boolean; onClose(): void
         )}
         <button
           onClick={copy}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500/20 py-2.5 text-sm font-medium text-sky-200 ring-1 ring-sky-400/40 transition hover:bg-sky-500/30"
+          className="btn-active mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm"
         >
           {copied ? <Check size={15} /> : <Copy size={15} />}
           {copied ? 'Copied' : 'Copy Prototype Link'}

@@ -1,8 +1,11 @@
 import type { LutFile, NetworkFile, Scenario } from '../types/twin';
+import type { PrecipLibrary } from '../forecast/stgnn';
 
 export interface TwinData {
   network: NetworkFile;
   lut: LutFile;
+  /** FEWS gauges + historical storm hyetographs (shared with backend/stgnn.py) */
+  library: PrecipLibrary;
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -12,9 +15,10 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 export async function loadTwin(): Promise<TwinData> {
-  const [network, lut] = await Promise.all([
+  const [network, lut, library] = await Promise.all([
     getJson<NetworkFile>('data/city_camp_network.json'),
     getJson<LutFile>('data/simulation_lut.json'),
+    getJson<PrecipLibrary>('data/precip_library.json'),
   ]);
   return {
     network: { ...network, nodes: network.nodes.filter((n) => n.is_active),
@@ -22,6 +26,7 @@ export async function loadTwin(): Promise<TwinData> {
       buildings: network.buildings.filter((b) => b.is_active),
       sensors: network.sensors.filter((s) => s.is_active) },
     lut,
+    library,
   };
 }
 

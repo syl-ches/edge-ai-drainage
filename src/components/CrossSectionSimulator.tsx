@@ -4,7 +4,7 @@ import type { TwinData } from '../data/loadTwin';
 import { ANOMALY_COLORS, capacityColor } from '../three/palette';
 import type { Theme } from '../three/theme';
 import type { LutInterpolator, TwinState } from '../utils/lutInterpolator';
-import { nodeDepthM, nodeFullnessPct, sensorConduitIndex, sensorGeometry, ultrasonicDistanceMm, visualBlockagePct } from '../utils/fullness';
+import { ALARM_PCT, nodeDepthM, nodeFullnessPct, sensorConduitIndex, sensorGeometry, ultrasonicDistanceMm, visualBlockagePct } from '../utils/fullness';
 import type { SimView } from '../utils/urlState';
 import { drawCatchmentProfile, drawNodeCutaway, PALETTES, type NodeModel, type ProfileModel } from './crossSection/draw';
 
@@ -37,9 +37,9 @@ export const SIM_DOCK_MIN_PX = 440;
 
 function Chip({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="shrink-0 rounded-lg border border-slate-800/80 bg-slate-900/60 px-2.5 py-1">
-      <div className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-slate-500">{label}</div>
-      <div className="whitespace-nowrap font-mono text-[14px] font-semibold leading-tight text-slate-100" style={tone ? { color: tone } : undefined}>
+    <div className="shrink-0 rounded-lg border border-slate-700 bg-slate-900/60 px-2.5 py-1">
+      <div className="whitespace-nowrap text-[9px] font-bold uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="whitespace-nowrap font-mono text-[14px] font-bold leading-tight text-slate-100" style={tone ? { color: tone } : undefined}>
         {value}
       </div>
     </div>
@@ -231,7 +231,7 @@ export function CrossSectionSimulator(p: Props) {
 
   return (
     <section
-      className={`pointer-events-auto flex flex-col overflow-hidden rounded-t-2xl border border-slate-800/80 bg-slate-950/90 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl ${shell}`}
+      className={`hud-card pointer-events-auto flex flex-col overflow-hidden rounded-t-2xl sm:rounded-2xl ${shell}`}
       style={!p.expanded && typeof window !== 'undefined' && window.innerWidth >= 640 ? { right: p.rightInset } : undefined}
       aria-label="Cross-Section Simulator"
     >
@@ -242,7 +242,7 @@ export function CrossSectionSimulator(p: Props) {
             {p.view === 'node' ? `${S.sensor.sensor_id} · ${S.sensor.name}` : 'Hillside → Lagoon → Crystal Cave catchment profile'}
           </div>
         </div>
-        <div className="flex shrink-0 rounded-full bg-slate-900/80 p-0.5 ring-1 ring-white/10">
+        <div className="flex shrink-0 gap-1">
           {(
             [
               ['node', 'Node', 'Node Cutaway', <ScanLine key="a" size={12} />],
@@ -253,7 +253,7 @@ export function CrossSectionSimulator(p: Props) {
               key={v}
               onClick={() => p.onView(v)}
               title={label}
-              className={`flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold ${p.view === v ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`flex items-center gap-1 rounded-full px-3 py-1 text-[11px] ${p.view === v ? 'btn-active' : 'btn-idle'}`}
             >
               {icon}
               <span className="sm:hidden">{short}</span>
@@ -262,10 +262,10 @@ export function CrossSectionSimulator(p: Props) {
           ))}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button onClick={() => p.onExpanded(!p.expanded)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-label={p.expanded ? 'Dock simulator' : 'Expand simulator'}>
+          <button onClick={() => p.onExpanded(!p.expanded)} className="btn-idle rounded-lg p-1.5" aria-label={p.expanded ? 'Dock simulator' : 'Expand simulator'}>
             {p.expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>
-          <button onClick={p.onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-label="Close simulator">
+          <button onClick={p.onClose} className="btn-idle rounded-lg p-1.5" aria-label="Close simulator">
             <X size={15} />
           </button>
         </div>
@@ -312,7 +312,7 @@ export function CrossSectionSimulator(p: Props) {
           <button
             onClick={drain}
             disabled={draining}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-sky-500 px-4 text-[12px] font-bold text-slate-950 shadow transition hover:brightness-110 disabled:opacity-60"
+            className="btn-danger flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-bold disabled:opacity-60"
           >
             <Droplets size={15} className={draining ? 'animate-bounce' : ''} />
             {draining ? 'Draining…' : 'Drain Pipe'}
@@ -332,16 +332,14 @@ export function CrossSectionSimulator(p: Props) {
                   p.onView('node');
                 }}
                 title={`${s.sensor.name}: ${pct.toFixed(1)}% full`}
-                className={`flex min-w-[58px] flex-1 items-center gap-1.5 rounded-lg px-1.5 py-1 text-left transition ${
-                  sel ? 'bg-sky-500/15 ring-1 ring-sky-400/60' : 'bg-slate-900/70 ring-1 ring-white/5 hover:bg-slate-800/70'
-                }`}
+                className={`flex min-w-[58px] flex-1 items-center gap-1.5 rounded-lg px-1.5 py-1 text-left ${sel ? 'btn-active' : 'btn-idle'}`}
               >
                 <span className="relative h-8 w-2.5 shrink-0 overflow-hidden rounded-sm bg-slate-800 ring-1 ring-slate-700">
                   <span className="absolute inset-x-0 bottom-0 transition-[height] duration-300" style={{ height: `${Math.min(pct, 100)}%`, background: capacityColor(pct / 100, p.theme) }} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-mono text-[10px] font-bold text-slate-100">{s.id}</span>
-                  <span className="block font-mono text-[10px]" style={{ color: pct > 94 ? '#E11D48' : undefined }}>
+                  <span className="block font-mono text-[10px] font-bold">{s.id}</span>
+                  <span className="block font-mono text-[10px] font-semibold" style={{ color: pct >= ALARM_PCT && !sel ? '#DC2626' : undefined }}>
                     {pct.toFixed(0)}%
                   </span>
                 </span>

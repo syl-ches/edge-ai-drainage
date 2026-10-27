@@ -12,18 +12,17 @@ export interface BuildingsLayer {
 
 /**
  * 84 footprints merged into one solid geometry + one edge set, drawn with one of three
- * shading modes (Solid Concrete / Holo Wireframe / Fresnel Glass). Every 6th larger
- * footprint is a civic block with a green roof.
+ * shading modes (Solid Concrete / Holo Wireframe / Fresnel Glass). Edge lines are drawn in
+ * Holo Wireframe only.
  */
 export function buildBuildings(buildings: Building[], frame: LocalFrame, cameraPos: Vector3): BuildingsLayer {
-  const footprints: Footprint[] = buildings.map((b, i) => ({
+  const footprints: Footprint[] = buildings.map((b) => ({
     ring: b.coordinates[0].slice(0, -1).map(([lng, lat]) => {
       const p = frame.toLocal(lng, lat);
       return new Vector2(p.x, p.y);
     }),
     baseZ: b.ground_elev_m - Z_REF_M,
     height: b.height_m,
-    greenRoof: b.footprint_area_m2 > 120 && i % 6 === 2,
   }));
   const geo = buildingGeometries(footprints);
   const mats = createBuildingMaterials(cameraPos);
@@ -46,10 +45,7 @@ export function buildBuildings(buildings: Building[], frame: LocalFrame, cameraP
     group,
     footprints,
     setMode(mode) {
-      solid.visible = mode === 'solid';
-      glass.visible = mode === 'glass';
-      wireFill.visible = mode === 'wire';
-      mats.setMode(mode);
+      mats.apply(mode, { solid, glass, wireFill, edges });
     },
     setVisible(on) {
       group.visible = on;

@@ -27,6 +27,7 @@ import { applyBasemapTheme, setBasemapParks } from '../map/basemap';
 import type { ShadingMode } from './materials/buildingMaterials';
 import { LIGHTING, setThemeUniforms, type Theme } from './theme';
 import { buildVegetation, type VegetationLayer } from './vegetationLayer';
+import { alarmConduitId, markerTone } from '../utils/fullness';
 
 // Raw hex in = raw hex out: the custom GLSL and the basic materials stay consistent.
 ColorManagement.enabled = false;
@@ -243,6 +244,13 @@ export class TwinEngine implements CustomLayerInterface {
     this.lagoon.applyState(st.lagoon);
     this.rack.applyBlockage(st.blockagePct);
     this.sensors.applyState(st.sensors);
+    // Alarmed sensors (>= 80 % full / surcharged / live hardware surge) blink their conduit red.
+    const alarm: number[] = [];
+    for (const S of st.sensors) {
+      const id = markerTone(S) === 'alarm' ? alarmConduitId(S.sensor) : null;
+      if (id) alarm.push(this.conduits.indexOf.get(id) ?? -1);
+    }
+    this.conduits.setAlarm(alarm);
     this.weather.setRain(st.rain);
     this.terrain.setRain(st.rain);
     this.lagoon.setRain(st.rain);
@@ -323,6 +331,11 @@ export class TwinEngine implements CustomLayerInterface {
     const p = this.presets.find((x) => x.id === id);
     if (!p || !this.map) return;
     this.map.flyTo({ center: p.center, zoom: p.zoom, pitch: p.pitch, bearing: p.bearing, duration: 2200, essential: true });
+  }
+
+  /** Fly to a street-level view of one point (e.g. a live hardware sensor). */
+  flyToLngLat(lng: number, lat: number, zoom = 18.6): void {
+    this.map?.flyTo({ center: [lng, lat], zoom, pitch: 60, bearing: this.map.getBearing(), duration: 1800, essential: true });
   }
 
   // ---------------------------------------------------------------- picking (screen space)

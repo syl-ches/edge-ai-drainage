@@ -1,6 +1,6 @@
 """Backend twin of src/utils/lutInterpolator.ts (bilinear over rainfall x blockage).
 
-Vectorised with numpy so the nowcaster can evaluate whole rainfall ensembles at once.
+Vectorised with numpy; also supplies the ST-GNN forecaster's initial conduit state.
 Same rules as the frontend: physical outflow structure Q_out = min(Q_rack, Q_choke) with rack
 capacity interpolated per unit open area, Kirschmer loss rebuilt from that Q, and the
 time-to-overflow interpolated as a rate.
@@ -52,6 +52,10 @@ class TwinLut:
                 grid[i, j] = self.lut["scenarios"][self.lut["index"][f"R{int(r)}_B{int(b)}"]]
         self._cap = np.array([[[grid[i, j]["conduits"][c]["capacity_ratio"] for c in self.conduit_ids]
                                for j in range(nb)] for i in range(nr)])
+        self._flow = np.array([[[grid[i, j]["conduits"][c]["flow_cms"] for c in self.conduit_ids]
+                                for j in range(nb)] for i in range(nr)])
+        self._vel = np.array([[[grid[i, j]["conduits"][c]["velocity_ms"] for c in self.conduit_ids]
+                               for j in range(nb)] for i in range(nr)])
         self._press = np.array([[[1.0 if grid[i, j]["conduits"][c]["flow_regime"] == "PRESSURIZED" else 0.0
                                   for c in self.conduit_ids] for j in range(nb)] for i in range(nr)])
         self._s_depth = np.array([[[grid[i, j]["sensors"][s]["depth_mm"] for s in self.sensor_ids]
@@ -89,6 +93,14 @@ class TwinLut:
     def conduit_capacity(self, rain, block) -> np.ndarray:
         ri, bi, rt, bt, _ = self._weights(rain, block)
         return self._bilinear(self._cap, ri, bi, rt, bt)
+
+    def conduit_state(self, rain: float, block: float) -> tuple[list[float], list[float], list[float]]:
+        """(flow_cms, velocity_ms, capacity_ratio) per active conduit: the forecaster's initial state."""
+        ri, bi, rt, bt, _ = self._weights(rain, block)
+        f = self._bilinear(self._flow, ri, bi, rt, bt)
+        v = self._bilinear(self._vel, ri, bi, rt, bt)
+        c = self._bilinear(self._cap, ri, bi, rt, bt)
+        return [float(x) for x in f], [float(x) for x in v], [float(x) for x in c]
 
     def conduit_pressurized(self, rain, block) -> np.ndarray:
         """Corner-weighted pressurized fraction (>= 0.5 == SURCHARGED, the LUT status rule)."""
