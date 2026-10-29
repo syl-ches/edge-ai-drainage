@@ -5,6 +5,7 @@ import type { PickHit, TwinEngine } from './three/TwinEngine';
 import { MapView, type PointerHit } from './components/MapView';
 import { TwinControlHUD } from './components/TwinControlHUD';
 import { AssetInspectorDrawer } from './components/AssetInspectorDrawer';
+import type { SearchPick } from './components/SearchBox';
 import { QrShareModal } from './components/QrShareModal';
 import { Tooltip } from './components/Tooltip';
 import { SensorBadges } from './components/SensorBadges';
@@ -445,6 +446,14 @@ export default function App() {
     },
     [openSensor],
   );
+  const onSearchPick = useCallback(
+    (p: SearchPick) => {
+      if (p.kind === 'sensor') openSensor(p.id);
+      else setSel({ kind: p.kind, id: p.id });
+      engine?.flyToLngLat(p.lng, p.lat);
+    },
+    [engine, openSensor],
+  );
   const toSimMode = useCallback(() => setMode('SIM'), []);
   const onDriver = useCallback((d: LiveDriver) => {
     setDriver(d);
@@ -521,6 +530,9 @@ export default function App() {
           onHardwareSim={openHardwareSim}
           onReport={openReport}
           onStudio={openStudio}
+          network={data.network}
+          state={state}
+          onSearchPick={onSearchPick}
         />
       )}
       {engine && hw && (

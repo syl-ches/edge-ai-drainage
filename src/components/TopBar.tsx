@@ -4,6 +4,9 @@ import type { Theme } from '../three/theme';
 import type { HudMode, LayerFlags } from '../utils/urlState';
 import type { WeatherNow } from '../live/weather';
 import type { LiveTarget } from '../live/liveDriver';
+import type { NetworkFile } from '../types/twin';
+import type { TwinState } from '../utils/lutInterpolator';
+import { SearchBox, type SearchPick } from './SearchBox';
 
 interface Props {
   mode: HudMode;
@@ -21,6 +24,9 @@ interface Props {
   onHardwareSim(): void;
   onReport(): void;
   onStudio(): void;
+  network: NetworkFile;
+  state: TwinState;
+  onSearchPick(p: SearchPick): void;
 }
 
 /** Short label below 2xl (1536 px), the full label above. */
@@ -120,6 +126,7 @@ function TopBarImpl(p: Props) {
           </button>
         </div>
         <WeatherPill mode={p.mode} weather={p.weather} target={p.liveTarget} />
+        <SearchBox network={p.network} state={p.state} onPick={p.onSearchPick} />
         <span className="mx-0.5 h-6 w-px shrink-0 bg-[#94a3b8]/50" />
         <div className="flex shrink-0 gap-1" role="radiogroup" aria-label="Theme">
           {(
