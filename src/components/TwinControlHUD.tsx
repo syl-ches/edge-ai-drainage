@@ -471,7 +471,7 @@ function TwinControlHUDImpl(p: Props) {
                     title={p.usb.status === 'unsupported' ? 'Web Serial needs Chrome or Edge on desktop (or use scripts/serial_bridge.py)' : 'Pick the board in the browser port dialog (115200 baud)'}
                     className="btn-active flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] disabled:opacity-50"
                   >
-                    <Usb size={12} /> {p.usb.status === 'connecting' ? 'Connecting…' : 'Connect Physical USB Arduino / ESP32'}
+                    <Usb size={12} /> {p.usb.status === 'connecting' ? 'Connecting…' : 'Connect USB Arduino / ESP32'}
                   </button>
                 )}
                 <button onClick={p.onHardwareSim} className="btn-amber flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px]">

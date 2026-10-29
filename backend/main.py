@@ -16,6 +16,8 @@ Endpoints
     GET  /api/v1/forecast            ST-GNN +15/+30/+60 min forecast (also in every WS frame)
     POST /api/v1/ingest/lorawan      physical uplink (direct JSON, base64 or TTS v3 webhook;
                                      "scope": "single_node" | "full_catchment")
+    POST /api/v1/ingest/distance     bench / aquarium rig: {"device_eui", "dist_mm" | "fill_pct",
+                                     "tank_height_mm", "scope" (default single_node)} or payload_hex
     POST /api/v1/decode              decode a 4-byte payload
 """
 from __future__ import annotations
@@ -32,7 +34,7 @@ from fastapi.responses import FileResponse
 
 from . import edge_dsp as dsp
 from .lut import DATA_DIR, TwinLut
-from .schemas import DecodeRequest, IngestRequest, LiveControlRequest, ScenarioRequest
+from .schemas import DecodeRequest, DistanceIngestRequest, IngestRequest, LiveControlRequest, ScenarioRequest
 from .twin import TwinRuntime
 
 FRAME_HZ = float(os.environ.get("CITYCAMP_FRAME_HZ", "2"))   # 0 disables the background ticker
@@ -184,6 +186,36 @@ def ingest(req: IngestRequest) -> dict:
     return dict(status="ok", sensor_id=sid, scope=req.scope, decoded=dsp.unpack_payload(word),
                 payload_hex=sensor_rec["payload_hex"], twin=runtime.drive_preview(),
                 fusion=(last.get("fusion") or {}).get("root_cause"))
+
+
+@app.post("/api/v1/ingest/distance")
+def ingest_distance(req: DistanceIngestRequest) -> dict:
+    ident = req.sensor_id or req.device_eui
+    sid = runtime.resolve_sensor(ident)
+    if sid is None:
+        raise HTTPException(404, f"unknown device {ident!r}")
+    extras = dict(req.model_extra or {})
+    for k in ("dist_mm", "fill_pct", "tank_height_mm"):
+        if getattr(req, k) is not None:
+            extras[k] = getattr(req, k)
+    raw = req.payload_hex or req.payload_b64
+    if raw:                                                   # the board already ran the edge pipeline
+        try:
+            word = dsp.parse_payload(raw)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        rec = runtime.ingest(sid, word, dict(extras, temperature_c=req.temperature_c), None, None, scope=req.scope)
+        out = dict(fill_pct=req.fill_pct, dist_mm=req.dist_mm, anomaly_class=rec["anomaly_class"], sensor=rec)
+    else:
+        try:
+            out = runtime.ingest_distance(sid, req.dist_mm, req.fill_pct, req.tank_height_mm, req.temperature_c,
+                                          extras, scope=req.scope)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+    rec = out["sensor"]
+    return dict(status="ok", sensor_id=sid, scope=req.scope, payload_hex=rec["payload_hex"],
+                decoded=dsp.unpack_payload(rec["payload_uint32"]), fill_pct=out["fill_pct"], dist_mm=out["dist_mm"],
+                anomaly_class=out["anomaly_class"], capacity_pct=rec["capacity_pct"], twin=runtime.drive_preview())
 
 
 @app.websocket("/ws/live")

@@ -38,6 +38,18 @@ JETSON_BLOCKAGE_THRESHOLD = 50.0
 
 
 @dataclass
+class DistanceRig:
+    """Server-side edge pipeline for boards that only send raw distance / fill readings."""
+    kalman: dsp.KalmanState
+    window: list
+    last: float
+
+
+DISTANCE_RIG_RESET_S = 10.0          # a gap longer than this restarts the rig's Kalman filter
+BENCH_FULL_PCT_FRACTION = dsp.STANDPIPE_FULL_BORE_FRACTION
+
+
+@dataclass
 class HardwareUplink:
     sensor: dict
     received: float
@@ -59,6 +71,7 @@ class TwinRuntime:
         self.clock_s = 0.0
         self.seq = 0
         self.hardware: dict[str, HardwareUplink] = {}
+        self.distance_rigs: dict[str, DistanceRig] = {}
         self.fews = FewsFusion(self.lut)
         self.forecaster = STGNNForecaster(self.lut.network, self.library, self.lut.tunnel_limit)
         self._fc: dict | None = None
@@ -191,6 +204,43 @@ class TwinRuntime:
         self.hardware[sensor_id] = HardwareUplink(sensor, time.monotonic(), scope)
         self.dirty = True
         return sensor
+
+    def ingest_distance(self, sensor_id: str, dist_mm: float | None, fill_pct: float | None, tank_height_mm: float,
+                        temperature_c: float, extras: dict, scope: str = "single_node") -> dict:
+        """Raw HC-SR04 / A02YYUW reading (or a fill %) from a bench / aquarium rig over Wi-Fi or USB.
+
+        The same bench-standpipe edge pipeline as the firmware runs here (100 % = 74 % of the
+        sensor-to-floor height, x60 time compression), then the packed word is ingested like any
+        uplink. Boards that already ran the pipeline should send `payload_hex` instead.
+        """
+        if dist_mm is None and fill_pct is None:
+            raise ValueError("dist_mm, fill_pct or payload_hex required")
+        tank = float(np.clip(tank_height_mm, 50.0, 3000.0))
+        if dist_mm is None:
+            dist_mm = tank - float(fill_pct) / 100.0 * BENCH_FULL_PCT_FRACTION * tank
+        d = float(np.clip(dist_mm, 20.0, tank))
+        now = time.monotonic()
+        rig = self.distance_rigs.get(sensor_id)
+        if rig is None or now - rig.last > DISTANCE_RIG_RESET_S:
+            rig = DistanceRig(dsp.KalmanState(), [], now - 1.0)
+            self.distance_rigs[sensor_id] = rig
+        dt_min = max(now - rig.last, 1e-3) / 60.0
+        rig.last = now
+        rig.window = (rig.window + [d])[-dsp.BURST_LEN:]
+        burst = [rig.window[0]] * (dsp.BURST_LEN - len(rig.window)) + rig.window
+        node = self.nodes[sensor_id]
+        cfg = dsp.EdgeNodeConfig(sensor_id, node.cfg.device_eui, node.cfg.hardware, node.cfg.full_scale_m, 0.0, None,
+                                 node.cfg.gateway_distance_m, node.cfg.obstruction_db, node.cfg.vbat_v)
+        res = dsp.run_cycle(cfg, rig.kalman, burst, temperature_c, dt_min, bench_demo=True, standpipe=True,
+                            pipe_height_mm=tank)
+        extras = dict(extras, temperature_c=temperature_c, raw_burst_mm=burst, h_over_d=res["h_over_d"],
+                      raw_unfiltered_depth_mm=res["raw_depth_mm"], median_depth_mm=res["measured_depth_mm"],
+                      kalman_filtered_depth_mm=res["depth_mm"], dh_dt_mm_min=res["dh_dt_mm_min"],
+                      sigma_d2_mm2=res["sigma_d2"], turbulence_index=res["turbulence"],
+                      saturated_fields=list(res["saturated"]))
+        rec = self.ingest(sensor_id, res["payload"], extras, None, None, scope=scope)
+        return dict(sensor=rec, fill_pct=round(res["cap_pct"], 1), dist_mm=round(res["d_med_mm"], 1),
+                    anomaly_class=dsp.ANOMALY_NAMES[res["anomaly_code"]])
 
     # ------------------------------------------------------------------ drivers
     def _playback_period_s(self) -> float:

@@ -1,0 +1,460 @@
+// =============================================================================
+// City Camp Lagoon Edge-AI twin: UNIVERSAL HC-SR04 NODE (Phase 8)
+// One Arduino IDE sketch for BOTH boards, no external libraries:
+//   * ESP32-S3 (any ESP32 core board)  USB serial + Wi-Fi HTTP uplink to the FastAPI backend
+//   * Arduino Uno (AVR)                 USB serial only
+//
+// Pipeline (mirrors backend/edge_dsp.py::run_cycle, bench-standpipe branch; checked bit-for-bit
+// on the host by scripts/test_phase5_firmware.py):
+//   HC-SR04 echo at 10 Hz -> distance at the 343.2 m/s reference -> thermal compensation ->
+//   10-sample window, median of 5-point sliding medians + variance sigma_d2 -> fill on the bench
+//   scale (100 % = 74 % of TANK_HEIGHT_MM) scaled to the map node's depth -> 1D Kalman
+//   (dt x60: 1 bench-second = 1 storm-minute) -> INT8 classifier -> 32-bit uplink word (CLAUDE.md §10).
+//
+// LEDs:  < 45 % green  |  45-79 % yellow  |  >= 80 % red blinking at 3 Hz (the 3D map's alarm)
+// USB:   115200 baud, every 200 ms
+//          [EDGE_TX] {"device_eui":"EN-08","dist_mm":..,"fill_pct":..,"payload_hex":"0x..",...}
+//          DIST_MM:<mm>        (plain line for any generic parser; the web rig prefers EDGE_TX)
+// Wi-Fi: ESP32 only, when WIFI_SSID is set: a background task POSTs every 500 ms to
+//          http://SERVER_IP:8000/api/v1/ingest/distance  and  /api/v1/ingest/lorawan
+//        so a battery-powered ESP32-S3 drives the 3D map with no cable.
+//
+// WIRING (no resistors, hackathon style). Read these two notes first:
+//   1. ESP32-S3 GPIOs are NOT 5 V tolerant. Use a 3.3 V-capable HC-SR04 (HC-SR04P, RCWL-1601)
+//      powered from 3V3 so ECHO is a 3.3 V signal, or add a 1 k / 2 k divider on ECHO.
+//   2. A bare LED straight on a GPIO has no current limit. Use LED modules with built-in
+//      resistors (common in sensor kits), or put a 220-330 ohm resistor in series.
+//            ESP32-S3   Arduino Uno
+//   TRIG       GPIO5        D9
+//   ECHO       GPIO6        D10
+//   LED green  GPIO7        D4
+//   LED yellow GPIO8        D5
+//   LED red    GPIO9        D6
+// Mount the sensor face-down above the tank, TANK_HEIGHT_MM from its face to the tank floor.
+// =============================================================================
+#include <Arduino.h>
+#include <math.h>
+#if defined(ESP32)
+#include <WiFi.h>
+#include <HTTPClient.h>
+#endif
+
+// ---------------------------------------------------------------- user configuration
+#define DEVICE_EUI "EN-08"        // map sensor this rig represents (EN-01 .. EN-10)
+#define TANK_HEIGHT_MM 300.0      // sensor face -> tank floor
+#define NODE_FULL_SCALE_M 2.0     // full-scale depth D of that map node (EN-08 rack opening 2.0 m)
+#define AIR_TEMP_C 24.0           // no DS18B20 on this build: room temperature
+#define VBAT_V 4.05               // USB / LiPo nominal (no battery ADC on this build)
+#define SAMPLE_PERIOD_MS 100UL    // 10 Hz ultrasonic reads
+#define REPORT_EVERY 2            // print / uplink every 2nd sample (5 Hz)
+#ifndef WIFI_SSID
+#define WIFI_SSID ""              // set to enable the ESP32 Wi-Fi uplink
+#endif
+#ifndef WIFI_PASSWORD
+#define WIFI_PASSWORD ""
+#endif
+#define SERVER_IP "192.168.1.100" // PC running `npm start` (FastAPI on port 8000)
+#define SERVER_PORT 8000
+#define UPLINK_SCOPE "single_node" // or "full_catchment"
+#define POST_PERIOD_MS 500
+
+// ---------------------------------------------------------------- pins
+#if defined(ESP32)
+#define TRIG_PIN 5
+#define ECHO_PIN 6
+#define LED_GREEN 7
+#define LED_YELLOW 8
+#define LED_RED 9
+#else
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+#define LED_GREEN 4
+#define LED_YELLOW 5
+#define LED_RED 6
+#endif
+
+#ifdef UNIVERSAL_USE_DOUBLE
+typedef double real_t;
+#else
+typedef float real_t;
+#endif
+
+// ---------------------------------------------------------------- edge pipeline (edge_dsp.py)
+namespace edge {
+const real_t SPEED_OF_SOUND_REF = 343.2;
+const real_t MIN_DIST_MM = 20.0;
+const real_t MAX_RANGE_MM = 4500.0;
+const int BURST_LEN = 10;
+const int MEDIAN_WIN = 5;
+const real_t KF_Q = 9.0;
+const real_t KF_R_BASE = 25.0;
+const real_t KF_ALPHA = 0.5;
+const real_t KF_P0_H = 400.0;
+const real_t KF_P0_V = 100.0;
+const real_t KF_MIN_DT_MIN = 1e-3;
+const real_t FULL_BORE_FRACTION = 0.74;
+const real_t BENCH_TIME_COMPRESSION = 60.0;
+const int H_SURCHARGE_Q = 100;
+const int H_BLOCKAGE_Q = 60;
+const int V_FLASH_Q = 15;
+const int S_CALM_Q = 58;
+const int S_CHOP_Q = 74;
+const real_t VBAT_LOW = 3.30;
+const real_t ALARM_PCT = 80.0;
+const real_t ELEVATED_PCT = 45.0;
+
+static const char *const ANOMALY_NAMES[8] = {"NORMAL", "FLASH_SURGE", "TRASH_BLOCKAGE", "SUPERCRITICAL",
+                                             "SURCHARGED", "SENSOR_FAULT", "LOW_BATTERY", "RESERVED"};
+
+#if defined(__AVR__)
+#define EDGE_LOG1P(x) log((real_t)1.0 + (x))  // avr-libc has no log1p
+#else
+#define EDGE_LOG1P(x) log1p(x)
+#endif
+
+inline long round_half_up(real_t x) { return (long)floor(x + (real_t)0.5); }
+inline long clampl(long v, long lo, long hi) { return v < lo ? lo : (v > hi ? hi : v); }
+inline real_t clampr(real_t v, real_t lo, real_t hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+inline real_t thermal_compensate(real_t d_raw_mm, real_t temp_c) {
+  return d_raw_mm * ((real_t)331.3 + (real_t)0.606 * temp_c) / SPEED_OF_SOUND_REF;
+}
+
+inline void sort_small(real_t *v, int n) {
+  for (int i = 1; i < n; ++i) {
+    real_t x = v[i];
+    int j = i - 1;
+    while (j >= 0 && v[j] > x) {
+      v[j + 1] = v[j];
+      --j;
+    }
+    v[j + 1] = x;
+  }
+}
+
+inline real_t median_of(const real_t *s, int n) {
+  real_t t[BURST_LEN];
+  for (int i = 0; i < n; ++i) t[i] = s[i];
+  sort_small(t, n);
+  return (n % 2) ? t[n / 2] : (real_t)0.5 * (t[n / 2 - 1] + t[n / 2]);
+}
+
+/** median of the 5-point sliding medians, population variance, ln(1 + variance) */
+inline void median_and_variance(const real_t *s, int n, real_t *med, real_t *var, real_t *turb) {
+  if (n < MEDIAN_WIN) {
+    *med = median_of(s, n);
+  } else {
+    real_t meds[BURST_LEN];
+    int m = 0;
+    for (int i = 0; i + MEDIAN_WIN <= n; ++i) meds[m++] = median_of(s + i, MEDIAN_WIN);
+    *med = median_of(meds, m);
+  }
+  real_t mean = 0;
+  for (int i = 0; i < n; ++i) mean += s[i];
+  mean /= n;
+  real_t v = 0;
+  for (int i = 0; i < n; ++i) v += (s[i] - mean) * (s[i] - mean);
+  *var = v / n;
+  *turb = EDGE_LOG1P(*var);
+}
+
+struct Kalman {
+  real_t h, v, p00, p01, p11;
+  bool initialized;
+};
+
+inline void kalman_reset(Kalman *k) {
+  k->h = 0;
+  k->v = 0;
+  k->p00 = KF_P0_H;
+  k->p01 = 0;
+  k->p11 = KF_P0_V;
+  k->initialized = false;
+}
+
+inline void kalman_step(Kalman *k, real_t z, real_t sigma2, real_t dt_min) {
+  if (!k->initialized) {
+    k->h = z;
+    k->v = 0;
+    k->p00 = KF_P0_H;
+    k->p01 = 0;
+    k->p11 = KF_P0_V;
+    k->initialized = true;
+    return;
+  }
+  real_t dt = dt_min > KF_MIN_DT_MIN ? dt_min : KF_MIN_DT_MIN;
+  real_t h_p = k->h + k->v * dt;
+  real_t v_p = k->v;
+  real_t p00 = k->p00 + dt * ((real_t)2.0 * k->p01 + dt * k->p11) + KF_Q * dt * dt * dt / (real_t)3.0;
+  real_t p01 = k->p01 + dt * k->p11 + KF_Q * dt * dt / (real_t)2.0;
+  real_t p11 = k->p11 + KF_Q * dt;
+  real_t r = KF_R_BASE + KF_ALPHA * sigma2;
+  real_t s = p00 + r;
+  real_t k0 = p00 / s;
+  real_t k1 = p01 / s;
+  real_t innov = z - h_p;
+  k->h = h_p + k0 * innov;
+  k->v = v_p + k1 * innov;
+  k->p00 = ((real_t)1.0 - k0) * p00;
+  k->p01 = ((real_t)1.0 - k0) * p01;
+  k->p11 = p11 - k1 * p01;
+}
+
+/** 32-bit uplink word, saturating, round-half-up (CLAUDE.md §10) */
+inline uint32_t pack_payload(real_t depth_mm, real_t dh_dt, real_t cap_pct, int anom, real_t vbat) {
+  uint32_t depth = (uint32_t)clampl(round_half_up(depth_mm / (real_t)5.0), 0, 1023);
+  uint32_t dh = (uint32_t)(clampl(round_half_up(dh_dt), -128, 127) & 0xFF);
+  uint32_t cap = (uint32_t)clampl(round_half_up(cap_pct), 0, 127);
+  uint32_t vb = (uint32_t)clampl(round_half_up((vbat - (real_t)3.0) / (real_t)0.08), 0, 15);
+  return (depth << 22) | (dh << 14) | (cap << 7) | ((uint32_t)(anom & 7) << 4) | vb;
+}
+
+/** INT8 decision surface: SURCHARGED > TRASH_BLOCKAGE > FLASH_SURGE > LOW_BATTERY > NORMAL */
+inline int classify(real_t h_over_d, real_t dh_dt, real_t turbulence, real_t vbat) {
+  long q_h = clampl(round_half_up(h_over_d * (real_t)100.0), 0, 127);
+  long q_v = clampl(round_half_up(dh_dt), -128, 127);
+  long q_s = clampl(round_half_up(turbulence * (real_t)16.0), 0, 127);
+  if (q_h >= H_SURCHARGE_Q) return 4;
+  if (q_h > H_BLOCKAGE_Q && (q_v < 0 ? -q_v : q_v) < V_FLASH_Q && q_s < S_CALM_Q) return 2;
+  if (q_v >= V_FLASH_Q && q_s >= S_CHOP_Q) return 1;
+  if (vbat < VBAT_LOW) return 6;
+  return 0;
+}
+
+struct Result {
+  real_t dist_mm, sigma_d2, turbulence, raw_depth_mm, depth_mm, dh_dt_mm_min, h_over_d, cap_pct;
+  int anomaly_code;
+  uint32_t payload;
+};
+
+/** Rolling 10-sample window; until full, the oldest sample pads the front (TS HardwareRig). */
+struct Window {
+  real_t s[BURST_LEN];
+  int n;
+};
+
+inline void window_push(Window *w, real_t d) {
+  if (w->n < BURST_LEN) {
+    w->s[w->n++] = d;
+  } else {
+    for (int i = 1; i < BURST_LEN; ++i) w->s[i - 1] = w->s[i];
+    w->s[BURST_LEN - 1] = d;
+  }
+}
+
+inline void window_burst(const Window *w, real_t *out) {
+  int pad = BURST_LEN - w->n;
+  for (int i = 0; i < BURST_LEN; ++i) out[i] = i < pad ? w->s[0] : w->s[i - pad];
+}
+
+/** One cycle: run_cycle(geom=None, standpipe=True, pipe_height=tank). Mutates the Kalman state. */
+inline Result cycle(Kalman *k, const real_t *burst_raw_mm, real_t temp_c, real_t dt_min, real_t tank_mm, real_t full_scale_m,
+                    real_t vbat) {
+  Result r;
+  real_t comp[BURST_LEN];
+  for (int i = 0; i < BURST_LEN; ++i) comp[i] = thermal_compensate(burst_raw_mm[i], temp_c);
+  real_t d_med, var, turb;
+  median_and_variance(comp, BURST_LEN, &d_med, &var, &turb);
+  if (d_med > MAX_RANGE_MM) d_med = MAX_RANGE_MM;
+  real_t full_bore = tank_mm * FULL_BORE_FRACTION;
+  real_t water = clampr(tank_mm - d_med, 0, tank_mm);
+  real_t z = water / full_bore * full_scale_m * (real_t)1000.0;
+  real_t raw_water = clampr(tank_mm - comp[BURST_LEN - 1], 0, tank_mm);
+  r.raw_depth_mm = raw_water / full_bore * full_scale_m * (real_t)1000.0;
+  kalman_step(k, z, var, dt_min * BENCH_TIME_COMPRESSION);
+  r.depth_mm = k->h > 0 ? k->h : 0;
+  r.dh_dt_mm_min = k->v;
+  r.h_over_d = r.depth_mm / (real_t)1000.0 / full_scale_m;
+  r.cap_pct = (r.h_over_d < (real_t)1.27 ? r.h_over_d : (real_t)1.27) * (real_t)100.0;
+  r.anomaly_code = classify(r.h_over_d, r.dh_dt_mm_min, turb, vbat);
+  r.payload = pack_payload(r.depth_mm, r.dh_dt_mm_min, r.cap_pct, r.anomaly_code, vbat);
+  r.dist_mm = d_med;
+  r.sigma_d2 = var;
+  r.turbulence = turb;
+  return r;
+}
+
+inline void hex32(uint32_t w, char *out) {  // "0x" + 8 upper-case hex digits
+  static const char H[] = "0123456789ABCDEF";
+  out[0] = '0';
+  out[1] = 'x';
+  for (int i = 0; i < 8; ++i) out[2 + i] = H[(w >> (28 - 4 * i)) & 0xF];
+  out[10] = 0;
+}
+}  // namespace edge
+
+// ---------------------------------------------------------------- state
+static edge::Kalman g_kal;
+static edge::Window g_win;
+static edge::Result g_last;
+static bool g_have = false;
+static unsigned long g_last_sample = 0;
+static unsigned long g_last_cycle = 0;
+static unsigned long g_seq = 0;
+static int g_since_report = 0;
+
+/** HC-SR04 round trip -> one-way mm at the 343.2 m/s reference (thermal comp happens later). */
+static real_t read_hcsr04_mm() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  unsigned long us = pulseIn(ECHO_PIN, HIGH, 30000UL);
+  if (us == 0) return -1;
+  return (real_t)us * edge::SPEED_OF_SOUND_REF / (real_t)2000.0;  // (m/s -> mm/us) / 2 ways
+}
+
+static void update_leds(unsigned long now) {
+  real_t pct = g_have ? g_last.cap_pct : 0;
+  bool red = pct >= edge::ALARM_PCT;
+  bool yellow = !red && pct >= edge::ELEVATED_PCT;
+  bool blink_on = ((now / 167UL) % 2UL) == 0UL;  // 3 Hz: 1/6 s on, 1/6 s off
+  digitalWrite(LED_GREEN, (!red && !yellow) ? HIGH : LOW);
+  digitalWrite(LED_YELLOW, yellow ? HIGH : LOW);
+  digitalWrite(LED_RED, (red && blink_on) ? HIGH : LOW);
+}
+
+static void print_kv(const char *key, real_t v, int decimals, bool comma = true) {
+  Serial.print("\"");
+  Serial.print(key);
+  Serial.print("\":");
+  Serial.print(v, decimals);
+  if (comma) Serial.print(",");
+}
+
+static void print_edge_tx(const edge::Result &r) {
+  char hex[11];
+  edge::hex32(r.payload, hex);
+  Serial.print("[EDGE_TX] {\"device_eui\":\"" DEVICE_EUI "\",");
+  print_kv("dist_mm", r.dist_mm, 1);
+  print_kv("fill_pct", r.cap_pct, 1);
+  Serial.print("\"payload_hex\":\"");
+  Serial.print(hex);
+  Serial.print("\",");
+  print_kv("kalman_filtered_depth_mm", r.depth_mm, 1);
+  print_kv("raw_unfiltered_depth_mm", r.raw_depth_mm, 1);
+  print_kv("dh_dt_mm_min", r.dh_dt_mm_min, 2);
+  print_kv("sigma_d2_mm2", r.sigma_d2, 2);
+  print_kv("turbulence_index", r.turbulence, 4);
+  print_kv("h_over_d", r.h_over_d, 4);
+  print_kv("tank_height_mm", (real_t)TANK_HEIGHT_MM, 0);
+  Serial.print("\"anomaly_class\":\"");
+  Serial.print(edge::ANOMALY_NAMES[r.anomaly_code & 7]);
+  Serial.print("\",\"seq\":");
+  Serial.print(g_seq);
+  Serial.println(",\"fw\":\"universal-hcsr04-1.0\"}");
+  Serial.print("DIST_MM:");
+  Serial.println(r.dist_mm, 0);
+}
+
+// ---------------------------------------------------------------- ESP32 Wi-Fi uplink task
+#if defined(ESP32)
+static portMUX_TYPE g_mux = portMUX_INITIALIZER_UNLOCKED;
+static edge::Result g_snap;
+static unsigned long g_snap_seq = 0;
+
+static void http_post(const char *path, const char *body, size_t len) {
+  char url[96];
+  snprintf(url, sizeof(url), "http://%s:%d%s", SERVER_IP, SERVER_PORT, path);
+  HTTPClient http;
+  http.setTimeout(400);
+  if (!http.begin(url)) return;
+  http.addHeader("Content-Type", "application/json");
+  http.POST((uint8_t *)body, len);
+  http.end();
+}
+
+static void uplink_task(void *) {
+  unsigned long sent = 0;
+  unsigned long last_try = 0;
+  for (;;) {
+    if (WiFi.status() != WL_CONNECTED) {
+      if (millis() - last_try > 5000UL) {
+        last_try = millis();
+        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+      }
+      vTaskDelay(pdMS_TO_TICKS(250));
+      continue;
+    }
+    edge::Result r;
+    unsigned long seq;
+    portENTER_CRITICAL(&g_mux);
+    r = g_snap;
+    seq = g_snap_seq;
+    portEXIT_CRITICAL(&g_mux);
+    if (seq != sent) {
+      sent = seq;
+      char hex[11];
+      edge::hex32(r.payload, hex);
+      char body[420];
+      int n = snprintf(body, sizeof(body),
+                       "{\"device_eui\":\"%s\",\"payload_hex\":\"%s\",\"dist_mm\":%.1f,\"tank_height_mm\":%.0f,"
+                       "\"fill_pct\":%.1f,\"scope\":\"%s\",\"kalman_filtered_depth_mm\":%.1f,"
+                       "\"raw_unfiltered_depth_mm\":%.1f,\"dh_dt_mm_min\":%.2f,\"sigma_d2_mm2\":%.2f,"
+                       "\"turbulence_index\":%.4f,\"h_over_d\":%.4f,\"temperature_c\":%.1f,\"bench_demo\":true}",
+                       DEVICE_EUI, hex, (double)r.dist_mm, (double)TANK_HEIGHT_MM, (double)r.cap_pct, UPLINK_SCOPE,
+                       (double)r.depth_mm, (double)r.raw_depth_mm, (double)r.dh_dt_mm_min, (double)r.sigma_d2,
+                       (double)r.turbulence, (double)r.h_over_d, (double)AIR_TEMP_C);
+      if (n > 0 && n < (int)sizeof(body)) {
+        http_post("/api/v1/ingest/distance", body, (size_t)n);
+        http_post("/api/v1/ingest/lorawan", body, (size_t)n);
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(POST_PERIOD_MS));
+  }
+}
+#endif
+
+// ---------------------------------------------------------------- Arduino entry points
+void setup() {
+  Serial.begin(115200);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_YELLOW, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  edge::kalman_reset(&g_kal);
+  g_win.n = 0;
+  Serial.println("# City Camp twin universal HC-SR04 node, [EDGE_TX] + DIST_MM @ 115200");
+#if defined(ESP32)
+  if (WIFI_SSID[0] != '\0') {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    xTaskCreatePinnedToCore(uplink_task, "uplink", 6144, nullptr, 1, nullptr, 0);
+    Serial.println("# Wi-Fi uplink enabled -> http://" SERVER_IP ":8000/api/v1/ingest/distance");
+  }
+#endif
+}
+
+void loop() {
+  unsigned long now = millis();
+  update_leds(now);
+  if (now - g_last_sample < SAMPLE_PERIOD_MS) return;
+  g_last_sample = now;
+
+  real_t d = read_hcsr04_mm();
+  if (d < 0) {
+    if (g_win.n == 0) return;  // no echo yet: nothing to repeat
+    d = g_win.s[g_win.n - 1];  // missed echo: repeat the last good sample
+  }
+  d = edge::clampr(d, edge::MIN_DIST_MM, (real_t)TANK_HEIGHT_MM);
+  edge::window_push(&g_win, d);
+  real_t burst[edge::BURST_LEN];
+  edge::window_burst(&g_win, burst);
+  real_t dt_min = g_last_cycle == 0 ? (real_t)(1.0 / 60.0) : (real_t)(now - g_last_cycle) / (real_t)60000.0;
+  g_last_cycle = now;
+  g_last = edge::cycle(&g_kal, burst, (real_t)AIR_TEMP_C, dt_min, (real_t)TANK_HEIGHT_MM, (real_t)NODE_FULL_SCALE_M, (real_t)VBAT_V);
+  g_have = true;
+
+  if (++g_since_report < REPORT_EVERY) return;
+  g_since_report = 0;
+  ++g_seq;
+  print_edge_tx(g_last);
+#if defined(ESP32)
+  portENTER_CRITICAL(&g_mux);
+  g_snap = g_last;
+  g_snap_seq = g_seq;
+  portEXIT_CRITICAL(&g_mux);
+#endif
+}

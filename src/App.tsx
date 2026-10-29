@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { loadTwin, type TwinData } from './data/loadTwin';
 import type { PickHit, TwinEngine } from './three/TwinEngine';
@@ -38,6 +38,15 @@ import {
 import { HardwareAlertBanner } from './components/HardwareAlertBanner';
 import { useUsbRig } from './live/useUsbRig';
 import { sensorGeometry } from './utils/fullness';
+import { TelemetryRecorder, type EdgeSample } from './utils/telemetryRecorder';
+import { buildReportData, type ReportData } from './utils/pdfReportGenerator';
+import { AnalyticsReportModal } from './components/AnalyticsReportModal';
+
+// The Ultra-HD Pitch Studio has its own renderer and textures; load it only when opened.
+const UltraHdPitchStudio = lazy(() => import('./components/UltraHdPitchStudio'));
+
+/** Session telemetry snapshot period (ms) for the analytics report. */
+const RECORD_MS = 2000;
 
 /** Recompute the in-browser ST-GNN at most this often (ms) unless its inputs change. */
 const LOCAL_FORECAST_MS = 2000;
@@ -320,11 +329,77 @@ export default function App() {
   }, [needLocal, forecaster, data, fcKey]);
   const forecast = frame?.forecast ?? (needLocal ? localForecast : null);
   const forecastOrigin: 'BACKEND' | 'BROWSER' = frame?.forecast ? 'BACKEND' : 'BROWSER';
+
+  // ---------------------------------------------------------------- Phase 8: recorder + report
+  const recorder = useRef(new TelemetryRecorder());
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const reportInputs = useRef({ state, frame, hwPacket, dspSensor, forecast, weather, mode, liveTarget });
+  reportInputs.current = { state, frame, hwPacket, dspSensor, forecast, weather, mode, liveTarget };
+  useEffect(() => {
+    if (!data) return;
+    const tick = () => {
+      const { state: st, frame: fr, hwPacket: hp, dspSensor: ds, forecast: fc, weather: w, mode: md, liveTarget: lt } = reportInputs.current;
+      if (!st) return;
+      let edge: EdgeSample | null = null;
+      if (hp) edge = { sensor: hp.sensorId, source: 'HARDWARE_RIG', rawDepthMm: hp.rawDepthMm, kalmanDepthMm: hp.depthMm };
+      else if (fr?.sensors[ds]) edge = { sensor: ds, source: 'BACKEND_EDGE', rawDepthMm: fr.sensors[ds].raw_unfiltered_depth_mm, kalmanDepthMm: fr.sensors[ds].kalman_filtered_depth_mm };
+      recorder.current.record(st, data.network, ds, edge);
+      if (reportOpenRef.current) {
+        setReportData(
+          buildReportData({
+            state: st,
+            network: data.network,
+            forecast: fc,
+            fusion: fr?.fusion ?? arbitrate(st),
+            weather: w,
+            modeLabel: md === 'LIVE' ? 'Live Weather and Telemetry' : 'Scenario Simulation',
+            driverLabel: md === 'LIVE' ? lt.label : 'manual rainfall and blockage sliders',
+            history: recorder.current.snapshots(),
+            peaks: recorder.current.peaks(),
+            hardware: hp,
+          }),
+        );
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, RECORD_MS);
+    return () => window.clearInterval(id);
+  }, [data]);
+  const reportOpenRef = useRef(reportOpen);
+  reportOpenRef.current = reportOpen;
+  const openReport = useCallback(() => {
+    const { state: st, frame: fr, hwPacket: hp, forecast: fc, weather: w, mode: md, liveTarget: lt } = reportInputs.current;
+    if (!data || !st) return;
+    setReportData(
+      buildReportData({
+        state: st,
+        network: data.network,
+        forecast: fc,
+        fusion: fr?.fusion ?? arbitrate(st),
+        weather: w,
+        modeLabel: md === 'LIVE' ? 'Live Weather and Telemetry' : 'Scenario Simulation',
+        driverLabel: md === 'LIVE' ? lt.label : 'manual rainfall and blockage sliders',
+        history: recorder.current.snapshots(),
+        peaks: recorder.current.peaks(),
+        hardware: hp,
+      }),
+    );
+    setReportOpen(true);
+  }, [data]);
   const openHardwareSim = useCallback(() => {
     const target = sel?.kind === 'sensor' ? sel.id : 'EN-08';
     const api = initial.api ? `&api=${encodeURIComponent(initial.api)}` : '';
     window.open(`${import.meta.env.BASE_URL}?view=hardware-sim&sensor=${target}${api}`, '_blank', 'noopener');
   }, [sel, initial.api]);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const openStudio = useCallback(() => setStudioOpen(true), []);
+  const closeStudio = useCallback(() => setStudioOpen(false), []);
+  const studioPacket = useCallback((p: HardwarePacket) => ingestPacket(p, true), [ingestPacket]);
+  // The studio's rainfall slider drives the map only in Simulation Mode (LIVE follows the weather).
+  const studioRain = useCallback((v: number) => {
+    if (mode === 'SIM') setRain(v);
+  }, [mode]);
   const focusSensor = useCallback(
     (id: string) => {
       const s = data?.network.sensors.find((x) => x.sensor_id === id);
@@ -444,6 +519,8 @@ export default function App() {
           inspectorOpen={inspectorOpen}
           onInspector={toggleInspector}
           onHardwareSim={openHardwareSim}
+          onReport={openReport}
+          onStudio={openStudio}
         />
       )}
       {engine && hw && (
@@ -541,6 +618,21 @@ export default function App() {
         />
       )}
       {!sel && !simView && <Legend theme={theme} />}
+      {reportOpen && reportData && <AnalyticsReportModal data={reportData} onClose={() => setReportOpen(false)} />}
+      {studioOpen && (
+        <Suspense fallback={null}>
+          <UltraHdPitchStudio
+            embed={{
+              network: data.network,
+              initialSensor: sel?.kind === 'sensor' ? sel.id : 'EN-08',
+              onPacket: studioPacket,
+              onClose: closeStudio,
+              onRain: studioRain,
+              popOutUrl: `${import.meta.env.BASE_URL}?view=pitch-studio${initial.api ? `&api=${encodeURIComponent(initial.api)}` : ''}`,
+            }}
+          />
+        </Suspense>
+      )}
       <QrShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );

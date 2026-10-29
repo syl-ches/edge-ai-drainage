@@ -408,6 +408,42 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(r.json()["twin"]["mode"], "HARDWARE")
         self.client.post("/api/v1/scenario", json={"mode": "PLAYBACK"})
 
+    def test_ingest_distance_rig(self):
+        from backend.main import runtime
+        runtime.hardware.clear()
+        runtime.distance_rigs.clear()
+        self.client.post("/api/v1/scenario", json={"mode": "SCENARIO", "rainfall_mm_hr": 25, "trash_rack_blockage_pct": 0})
+        # an ESP32 / Uno aquarium rig 85 % full: single-node by default, the twin keeps its weather
+        for _ in range(12):
+            r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08", "fill_pct": 85, "tank_height_mm": 300})
+            self.assertEqual(r.status_code, 200, r.text)
+        body = r.json()
+        self.assertEqual((body["scope"], body["twin"]["mode"]), ("single_node", "SCENARIO"))
+        self.assertAlmostEqual(body["capacity_pct"], 85.0, delta=2.0)
+        self.assertEqual(body["anomaly_class"], "TRASH_BLOCKAGE")          # flat pool above h/D 0.60
+        frame = runtime.tick(0.5)
+        self.assertEqual(frame["mode"], "SCENARIO")
+        self.assertEqual(frame["sensors"]["EN-08"]["origin"], "HARDWARE")
+        self.assertEqual(frame["hardware_override"]["scope"], "single_node")
+        # raw distance from a 300 mm tank (50 mm air gap -> 250 mm water -> 113 %)
+        for _ in range(12):
+            r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "02BA6C1000000003", "dist_mm": 50})
+        self.assertEqual(r.json()["sensor_id"], "EN-03")
+        self.assertGreater(r.json()["capacity_pct"], 100)
+        self.assertEqual(r.json()["anomaly_class"], "SURCHARGED")
+        # a board that already packed its word (universal sketch Wi-Fi body)
+        word = dsp.pack_payload(1800.0, 4.0, 90.0, 2, 4.05)
+        r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08", "payload_hex": dsp.payload_hex(word),
+                                                               "dist_mm": 70.0, "fill_pct": 90.0, "tank_height_mm": 300})
+        self.assertEqual((r.json()["payload_hex"], r.json()["capacity_pct"]), (dsp.payload_hex(word), 90.0))
+        # full-catchment coupling drives the whole twin
+        r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08", "fill_pct": 85, "scope": "full_catchment"})
+        self.assertEqual(r.json()["twin"]["mode"], "HARDWARE")
+        self.assertEqual(self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08"}).status_code, 422)
+        self.assertEqual(self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-77", "fill_pct": 5}).status_code, 404)
+        runtime.hardware.clear()
+        self.client.post("/api/v1/scenario", json={"mode": "PLAYBACK"})
+
     def test_decode(self):
         r = self.client.post("/api/v1/decode", json={"payload_hex": "0xFFC036CF"}).json()
         self.assertEqual((r["depth_mm"], r["anomaly_class"], r["vbat_v"]), (5115, "SURCHARGED", 4.2))

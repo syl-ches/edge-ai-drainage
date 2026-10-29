@@ -1,5 +1,5 @@
 import { memo, useLayoutEffect, useRef, type ReactNode } from 'react';
-import { Boxes, Building2, Cpu, Cloud, CloudRain, CloudSun, Gauge, Layers3, Moon, Radio, SlidersHorizontal, Sun, TreePine, Waves } from 'lucide-react';
+import { Boxes, Building2, Clapperboard, Cpu, Cloud, FileText, CloudRain, CloudSun, Gauge, Layers3, Moon, Radio, SlidersHorizontal, Sun, TreePine, Waves } from 'lucide-react';
 import type { Theme } from '../three/theme';
 import type { HudMode, LayerFlags } from '../utils/urlState';
 import type { WeatherNow } from '../live/weather';
@@ -19,6 +19,8 @@ interface Props {
   inspectorOpen: boolean;
   onInspector(): void;
   onHardwareSim(): void;
+  onReport(): void;
+  onStudio(): void;
 }
 
 /** Short label below 2xl (1536 px), the full label above. */
@@ -170,7 +172,15 @@ function TopBarImpl(p: Props) {
           className={`${pill} btn-amber`}
         >
           <Cpu size={13} />
-          <span className="whitespace-nowrap">Open Arduino &amp; Aquarium Sim ↗</span>
+          <span className="whitespace-nowrap">Arduino &amp; Aquarium Sim ↗</span>
+        </button>
+        <button onClick={p.onStudio} title="Ultra-HD 3D subsurface cutaway and aquarium bench for the initial pitch" className={`${pill} btn-accent`}>
+          <Clapperboard size={13} />
+          <span className="whitespace-nowrap">Ultra-HD Pitch Studio</span>
+        </button>
+        <button onClick={p.onReport} title="Data analytics and the official LGU PDF report" className={`${pill} btn-active`}>
+          <FileText size={13} />
+          <span className="whitespace-nowrap">Analytics &amp; PDF Report</span>
         </button>
       </div>
     </div>

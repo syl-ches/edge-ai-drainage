@@ -273,6 +273,59 @@ def python_edge_tx_line() -> str:
     return serial_bridge.VirtualStandpipe("EN-08", water_cm=82.0, mode="surge", seed=1).next_line()
 
 
+
+def universal_differential(cxx: list[str], uni: Path, tmp: Path) -> tuple[str, bool, str]:
+    """Universal sketch edge pipeline (host, double) == backend/edge_dsp.run_cycle on a distance stream."""
+    name = "universal_hcsr04_node edge pipeline == edge_dsp.run_cycle (bench standpipe, payload bit-exact)"
+    exe = tmp / ("uni_harness" + (".exe" if os.name == "nt" else ""))
+    proc = subprocess.run(cxx + ["-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror", f"-I{uni / 'test' / 'host_stubs'}",
+                                 str(uni / "test" / "host_harness.cpp"), "-o", str(exe)], capture_output=True, text=True)
+    if proc.returncode != 0:
+        return name, False, proc.stderr[:600]
+    tank, fs, temp, vbat = 300.0, 2.0, 24.0, 4.05
+    rng = random.Random(8)
+    stream: list[tuple[float, float]] = []
+
+    def seg(f0, f1, n, noise, splash=0.0):
+        for k in range(n):
+            f = f0 + (f1 - f0) * (k + 1) / n
+            d = tank - f / 100.0 * dsp.STANDPIPE_FULL_BORE_FRACTION * tank + rng.gauss(0.0, noise)
+            if splash and rng.random() < splash:
+                d -= rng.uniform(30.0, 80.0)
+            stream.append((round(min(max(d, 20.0), tank), 2), 0.1))
+
+    seg(0, 0, 10, 1.0)
+    seg(0, 60, 60, 1.5)
+    seg(60, 98, 20, 16.0, 0.12)
+    seg(98, 98, 40, 0.6)
+    seg(98, 110, 15, 2.0)
+    seg(110, 82, 30, 2.0)
+    seg(82, 82, 50, 0.5)
+    seg(82, 10, 40, 3.0)
+    feed = f"{tank} {fs} {temp} {vbat}\n" + "\n".join(f"{d} {dt}" for d, dt in stream) + "\n"
+    out = subprocess.run([str(exe)], input=feed, capture_output=True, text=True, timeout=120).stdout.split("\n")
+    cfg = dsp.EdgeNodeConfig("EN-08", "02BA6C1000000008", "XIAO_ESP32S3_A02YYUW", fs, 0.0, None, 500.0, 0.0, vbat)
+    kal = dsp.KalmanState()
+    window: list[float] = []
+    codes: set[int] = set()
+    mismatches = 0
+    first = ""
+    for i, (d, dt) in enumerate(stream):
+        window.append(d)
+        window = window[-dsp.BURST_LEN:]
+        burst = [window[0]] * (dsp.BURST_LEN - len(window)) + window
+        res = dsp.run_cycle(cfg, kal, burst, temp, dt / 60.0, bench_demo=True, standpipe=True, pipe_height_mm=tank, vbat_v=vbat)
+        parts = out[i].split()
+        codes.add(res["anomaly_code"])
+        ok = (parts[0] == dsp.payload_hex(res["payload"]) and int(parts[4]) == res["anomaly_code"]
+              and abs(float(parts[1]) - res["depth_mm"]) < 1e-6 and abs(float(parts[2]) - res["dh_dt_mm_min"]) < 1e-6)
+        if not ok:
+            mismatches += 1
+            first = first or f"sample {i}: C++ {out[i]!r} vs Python {dsp.payload_hex(res['payload'])} {res['depth_mm']:.6f}"
+    covered = {0, 1, 2, 4} <= codes
+    detail = f"{len(stream)} samples, classes {sorted(codes)}" + (f", {mismatches} mismatches, first {first}" if mismatches else "")
+    return name, mismatches == 0 and covered, detail
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--cxx", help='C++ compiler command, e.g. "g++" or "zig c++"')
@@ -334,6 +387,18 @@ def main() -> int:
                     errs = " | ".join(ln for ln in proc.stderr.splitlines() if "error" in ln)[:600]
             record("arduino_aquarium_demo.ino compiles for HC-SR04 / A02YYUW on AVR + ESP32 stubs (4 variants, -Werror)",
                    ok_demo, "" if ok_demo else errs)
+            uni = ROOT / "firmware" / "universal_hcsr04_node"
+            ok_uni, errs = True, ""
+            for variant in ([], ["-DESP32"], ["-DESP32", '-DWIFI_SSID="lab"', '-DWIFI_PASSWORD="pw"']):
+                proc = subprocess.run(cxx + ["-std=c++17", "-c", "-x", "c++", "-Wall", "-Wextra", "-Werror",
+                                             f"-I{uni / 'test' / 'host_stubs'}", *variant, str(uni / "universal_hcsr04_node.ino"),
+                                             "-o", str(tmp / "uni.o")], capture_output=True, text=True)
+                if proc.returncode != 0:
+                    ok_uni = False
+                    errs = " | ".join(ln for ln in proc.stderr.splitlines() if "error" in ln)[:600]
+            record("universal_hcsr04_node.ino compiles for Arduino Uno + ESP32-S3 (+ Wi-Fi) stubs (3 variants, -Werror)",
+                   ok_uni, "" if ok_uni else errs)
+            record(*universal_differential(cxx, uni, tmp))
     else:
         print("No C++ compiler found (g++/clang++/c++/zig/$CXX). Running fallback verifier only.")
         record("fallback: Python reference golden vectors", dsp.pack_payload(5115, -1, 127, 7, 4.2) == 0xFFFFFFFF)

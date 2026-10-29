@@ -31,6 +31,8 @@ export interface HardwarePacket {
   /** aquarium / bench fill = h/D x 100 (100 % at 74 % of the sensor height) */
   fillPct: number;
   depthMm: number;
+  /** unfiltered (last raw sample) depth on the same scale as depthMm */
+  rawDepthMm: number;
   dhDtMmMin: number;
   sigmaD2: number;
   turbulence: number;

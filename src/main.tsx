@@ -2,15 +2,17 @@ import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './index.css';
-import { isHardwareSimRoute } from './main.route';
+import { isHardwareSimRoute, isPitchStudioRoute } from './main.route';
 
-// Two pages from one bundle: the 3D map, and the Phase 7B Arduino / aquarium companion site
-// (/?view=hardware-sim or /hardware-sim). Each is code-split so the companion never loads
-// MapLibre / Three.js.
+// Three pages from one bundle: the 3D map, the Phase 7B Arduino / aquarium companion site
+// (/?view=hardware-sim or /hardware-sim) and the Ultra-HD Pitch Studio (/?view=pitch-studio).
+// Each is code-split so the companion never loads MapLibre / Three.js and the studio never
+// loads MapLibre.
 const App = lazy(() => import('./App'));
 const HardwareAquariumSimulator = lazy(() => import('./components/HardwareAquariumSimulator'));
+const UltraHdPitchStudio = lazy(() => import('./components/UltraHdPitchStudio'));
 
-const Page = isHardwareSimRoute(window.location) ? HardwareAquariumSimulator : App;
+const Page = isPitchStudioRoute(window.location) ? UltraHdPitchStudio : isHardwareSimRoute(window.location) ? HardwareAquariumSimulator : App;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

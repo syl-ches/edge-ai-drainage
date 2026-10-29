@@ -1,6 +1,6 @@
 // Phase 7B companion site: /?view=hardware-sim (or /hardware-sim).
 // An interactive aquarium / demo drainage tank with an ESP32-S3 / Arduino ultrasonic rig. Every
-// 200 ms the virtual A02YYUW takes a 10-sample burst of the water surface (plus wave chop), runs
+// 200 ms the virtual HC-SR04 / A02YYUW takes a 10-sample burst of the water surface (plus chop), runs
 // it through the same edge pipeline as the firmware (Kalman + INT8 classifier + 32-bit packer,
 // bench-standpipe scaling: 100 % = 74 % of the sensor height, 1 s = 1 storm-min) and broadcasts
 // the packet to the 3D map tab (BroadcastChannel, < 2 ms, no backend) and to the FastAPI backend
@@ -27,6 +27,16 @@ const SURGE_CHOP_MM = 16;
 const BASE_CHOP_MM = 1.5;
 const FLAT_CHOP_MM = 0.6;
 const MAX_FILL = 120;
+
+export type BoardKind = 'ESP32_S3' | 'UNO';
+export type UltrasonicKind = 'HC-SR04' | 'A02YYUW';
+/** Pinout of firmware/universal_hcsr04_node (resistor-free hackathon wiring). */
+export const BOARDS: Record<BoardKind, { name: string; pins: string; link: string }> = {
+  ESP32_S3: { name: 'ESP32-S3 · universal edge node', pins: 'TRIG 5 · ECHO 6 · LED G 7 · Y 8 · R 9', link: 'USB serial + Wi-Fi POST every 500 ms' },
+  UNO: { name: 'Arduino Uno · universal edge node', pins: 'TRIG 9 · ECHO 10 · LED G 4 · Y 5 · R 6', link: 'USB serial 115200 baud' },
+};
+/** Near-field blind zone drawn under the transducer, mm. */
+const BLIND_MM: Record<UltrasonicKind, number> = { 'HC-SR04': 20, A02YYUW: BLIND_ZONE_MM };
 
 export const AQUARIUM_PRESETS = [
   { id: 'empty', label: 'Empty (0%)', fill: 0, flat: false },
@@ -70,7 +80,9 @@ export default function HardwareAquariumSimulator() {
   const [scope, setScope] = useState<SyncScope>('single_node');
   const [syncOn, setSyncOn] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tankMm, setTankMm] = useState(400);
+  const [tankMm, setTankMm] = useState(300);
+  const [board, setBoard] = useState<BoardKind>(() => (params().get('board') === 'uno' ? 'UNO' : 'ESP32_S3'));
+  const [ultrasonic, setUltrasonic] = useState<UltrasonicKind>('HC-SR04');
   const [unit, setUnit] = useState<DistanceUnit>('auto');
   const [level, setLevel] = useState(0);
   const [packet, setPacket] = useState<HardwarePacket | null>(null);
@@ -224,6 +236,8 @@ export default function HardwareAquariumSimulator() {
 
   // ------------------------------------------------------------------ canvas
   const latestPacket = useRef<HardwarePacket | null>(null);
+  const ultrasonicRef = useRef(ultrasonic);
+  ultrasonicRef.current = ultrasonic;
   latestPacket.current = packet;
   const draw = (t: number) => {
     const canvas = canvasRef.current;
@@ -241,7 +255,7 @@ export default function HardwareAquariumSimulator() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawAquarium(ctx, W, H, t, sim.current, latestPacket.current, tankMm);
+    drawAquarium(ctx, W, H, t, sim.current, latestPacket.current, tankMm, ultrasonicRef.current);
   };
 
   // ------------------------------------------------------------------ controls
@@ -333,7 +347,7 @@ export default function HardwareAquariumSimulator() {
             <span className="font-mono">dh/dt {(packet?.dhDtMmMin ?? 0).toFixed(1)} mm/min</span>
             <span className="font-mono">σ²_d {(packet?.sigmaD2 ?? 0).toFixed(1)} mm²</span>
             <span className="rounded-full bg-[#0f172a] px-2 py-0.5 font-mono text-[11px] font-bold text-[#ffffff]">{packet?.anomaly ?? 'NORMAL'}</span>
-            <span className="ml-auto text-[#475569]">{usbLive ? `USB board: ${usb.label}` : 'Virtual A02YYUW · 5 Hz'}</span>
+            <span className="ml-auto text-[#475569]">{usbLive ? `USB board ${usb.label}` : `Virtual ${ultrasonic} · 5 Hz`}</span>
           </div>
           <div ref={wrapRef} className="relative min-h-[380px] flex-1">
             <canvas ref={canvasRef} className="absolute inset-0 block" aria-label="Aquarium drainage tank visualisation" />
@@ -400,15 +414,32 @@ export default function HardwareAquariumSimulator() {
               <div className="flex items-center gap-2">
                 <Cpu size={18} />
                 <div>
-                  <div className="text-[13px] font-extrabold">Seeed XIAO ESP32-S3 · edge node</div>
-                  <div className="font-mono text-[10px] text-[#a7f3d0]">{rigCfg.deviceEui} → {sensorId} · LoRaWAN AS923-3 · FPort 10</div>
+                  <div className="text-[13px] font-extrabold">{BOARDS[board].name}</div>
+                  <div className="font-mono text-[10px] text-[#a7f3d0]">
+                    {rigCfg.deviceEui} → {sensorId} · {ultrasonic} · {BOARDS[board].link}
+                  </div>
                 </div>
               </div>
+              <div className="flex gap-1" role="radiogroup" aria-label="Board">
+                {(
+                  [
+                    ['ESP32_S3', 'ESP32-S3'],
+                    ['UNO', 'Uno'],
+                  ] as const
+                ).map(([k, label]) => (
+                  <button key={k} role="radio" aria-checked={board === k} onClick={() => setBoard(k)} className={`rounded-full px-2 py-0.5 text-[10px] ${board === k ? 'btn-accent' : 'btn-idle'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
+            <div className="mt-2 font-mono text-[10px] text-[#a7f3d0]">{BOARDS[board].pins}</div>
+            <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px] font-bold">
               <Led on color="#22c55e" label="PWR" />
               <Led key={txFlash} on flash color="#22d3ee" label="TX" />
-              <Led on={alarm} blink color="#ef4444" label="HIGH WATER ALARM" />
+              <Led on={pct < ELEVATED_PCT} color="#22c55e" label="GREEN <45%" />
+              <Led on={pct >= ELEVATED_PCT && !alarm} color="#facc15" label="YELLOW 45-79%" />
+              <Led on={alarm} blink color="#ef4444" label="RED ≥80% 3 Hz" />
             </div>
             <div className="mt-3 rounded-lg bg-black/30 p-2 font-mono">
               <div className="text-[10px] text-[#a7f3d0]">32-bit uplink (big-endian)</div>
@@ -458,9 +489,13 @@ export default function HardwareAquariumSimulator() {
                   disabled={usb.status === 'unsupported' || usb.status === 'connecting'}
                   className="btn-active flex items-center gap-1 rounded-full px-3 py-1.5 disabled:opacity-50"
                 >
-                  <Usb size={13} /> {usb.status === 'connecting' ? 'Connecting…' : 'Connect Physical USB Arduino / ESP32'}
+                  <Usb size={13} /> {usb.status === 'connecting' ? 'Connecting…' : 'Connect USB Arduino / ESP32'}
                 </button>
               )}
+              <select aria-label="Ultrasonic sensor" value={ultrasonic} onChange={(e) => setUltrasonic(e.target.value as UltrasonicKind)} className="btn-idle rounded-lg px-2 py-1">
+                <option value="HC-SR04">HC-SR04 / JSN-SR04T</option>
+                <option value="A02YYUW">DFRobot A02YYUW</option>
+              </select>
               <select aria-label="Distance unit for plain numbers" value={unit} onChange={(e) => setUnit(e.target.value as DistanceUnit)} className="btn-idle rounded-lg px-2 py-1">
                 <option value="auto">plain numbers: auto mm/cm</option>
                 <option value="mm">plain numbers: mm</option>
@@ -483,7 +518,7 @@ export default function HardwareAquariumSimulator() {
             <p className="font-medium text-[#334155]">
               {usb.status === 'unsupported'
                 ? 'Web Serial needs Chrome or Edge on desktop. Otherwise run scripts/serial_bridge.py.'
-                : `100 % full = ${(tankMm * STANDPIPE_FULL_BORE_FRACTION).toFixed(0)} mm of water (74 % of the ${tankMm} mm sensor height). Flash firmware/arduino_aquarium_demo for an Uno / Nano / Mega / ESP32 with an HC-SR04, JSN-SR04T or A02YYUW.`}
+                : `100 % full = ${(tankMm * STANDPIPE_FULL_BORE_FRACTION).toFixed(0)} mm of water (74 % of the ${tankMm} mm sensor height). Flash firmware/universal_hcsr04_node (ESP32-S3 or Uno + HC-SR04, USB or Wi-Fi) or firmware/arduino_aquarium_demo (Uno / Nano / Mega / ESP32, HC-SR04 / JSN-SR04T / A02YYUW).`}
             </p>
             {usb.error && <p className="font-semibold text-[#b91c1c]">{usb.error}</p>}
             <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
@@ -516,7 +551,7 @@ function Led({ on, color, label, blink = false, flash = false }: { on: boolean; 
 }
 
 // ------------------------------------------------------------------ 2.5D tank renderer
-function drawAquarium(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, s: Sim, p: HardwarePacket | null, tankMm: number) {
+function drawAquarium(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, s: Sim, p: HardwarePacket | null, tankMm: number, sensor: UltrasonicKind) {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(0, 0, W, H);
@@ -633,17 +668,36 @@ function drawAquarium(ctx: CanvasRenderingContext2D, W: number, H: number, t: nu
     ctx.fillText(m.label, x1 + dx + 18, y);
   }
 
-  // sensor rig: bracket, A02YYUW transducer, DS18B20 probe
+  // sensor rig: bracket, ultrasonic module (HC-SR04: twin transducers; A02YYUW: sealed probe), DS18B20
   const cx = (x0 + x1) / 2 + dx / 2;
   const sy = top - 10;
   ctx.fillStyle = '#475569';
   ctx.fillRect(x0 - 10, sy - 26, x1 - x0 + dx + 20, 7);
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(cx - 24, sy - 19, 48, 19);
-  ctx.fillStyle = '#e2e8f0';
-  ctx.font = '700 9px ui-monospace, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('A02YYUW', cx, sy - 9);
+  if (sensor === 'HC-SR04') {
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(cx - 32, sy - 19, 64, 17);
+    for (const ox of [-17, 17]) {
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.arc(cx + ox, sy - 2, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.arc(cx + ox, sy - 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 8px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('HC-SR04', cx, sy - 12);
+  } else {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(cx - 24, sy - 19, 48, 19);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 9px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('A02YYUW', cx, sy - 9);
+  }
   ctx.textAlign = 'left';
   ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 2;
@@ -658,16 +712,16 @@ function drawAquarium(ctx: CanvasRenderingContext2D, W: number, H: number, t: nu
   ctx.fillStyle = '#334155';
   ctx.font = '600 10px ui-sans-serif, system-ui';
   ctx.fillText(`DS18B20 ${p ? p.tempC.toFixed(1) : '24.0'} °C`, cx + 48, sy + 30);
-  ctx.fillText('A02YYUW ultrasonic transducer', cx + 32, sy - 33);
+  ctx.fillText(sensor === 'HC-SR04' ? 'HC-SR04 ultrasonic (TRIG / ECHO)' : 'A02YYUW ultrasonic transducer', cx + 32, sy - 33);
 
   // blind zone (3 cm under the face) + acoustic arcs
   const pxPerMm = (bottom - top) / tankMm;
   const face = top;
   ctx.fillStyle = 'rgba(220,38,38,0.14)';
-  ctx.fillRect(cx - 30, face, 60, BLIND_ZONE_MM * pxPerMm);
+  ctx.fillRect(cx - 30, face, 60, BLIND_MM[sensor] * pxPerMm);
   ctx.fillStyle = '#b91c1c';
   ctx.font = '700 10px ui-sans-serif, system-ui';
-  ctx.fillText('3 cm Blind Zone', x0 - 92, face + (BLIND_ZONE_MM * pxPerMm) / 2);
+  ctx.fillText(`${BLIND_MM[sensor] / 10} cm Blind Zone`, x0 - 92, face + (BLIND_MM[sensor] * pxPerMm) / 2);
   const target = s.level > 0.2 ? wy : bottom;
   for (let k = 0; k < 4; k++) {
     const f = (t * 0.9 + k / 4) % 1;

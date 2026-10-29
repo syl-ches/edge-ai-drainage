@@ -47,7 +47,7 @@ packages. It takes about 1–2 minutes. After that it starts both servers and pr
 [start]   Live backend API:  http://localhost:8000/docs
 ```
 
-Open **http://localhost:5173**. Press **Ctrl+C** in the terminal to stop.
+Open ** **. Press **Ctrl+C** in the terminal to stop.
 
 The launcher also handles these cases for you:
 - **No Python?** The web app still runs. LIVE mode falls back to a built-in typhoon playback.
@@ -80,7 +80,8 @@ The launcher also handles these cases for you:
 - **Top bar:**
   - switch between the Daylight Diorama and Dark X-Ray themes;
   - toggle buildings, vegetation, the drainage network and node badges;
-  - open the Cross-Section Simulator and the Subsurface Utility Inspector.
+  - open the Cross-Section Simulator, the Subsurface Utility Inspector and the
+    **Ultra-HD Pitch Studio**.
 - **Bottom bar:** shade buildings as Solid Concrete, Holo Wireframe or Fresnel Glass to see
   the pipes underneath.
 - **Sensor markers:** a pin over each manhole turns amber at 45 % full. At 80 % it **blinks
@@ -98,6 +99,25 @@ The launcher also handles these cases for you:
   the forecast.
 - **Share:** the QR button opens the exact view on a phone on the same Wi-Fi.
 
+## Ultra-HD Pitch Studio
+
+Click **Ultra-HD Pitch Studio** in the top bar (or open `http://localhost:5173/?view=pitch-studio`).
+It is a high-definition 3D presentation scene for pitches and demos:
+- **3D Subsurface Terrain Cutaway:** a sliced street block showing the road, grates, buildings
+  and rain above, soil and limestone layers on the cut faces, and the manhole shaft, box culvert
+  and outflow pipe below. The water rises and changes colour (cyan → amber → blinking red at
+  80 %), and you can watch the ultrasonic pings bounce off the surface.
+- **3D Aquarium & Arduino Bench:** the same water level in a glass tank, with an HC-SR04, an
+  Arduino Uno or ESP32-S3, jumper wires and green / yellow / red LEDs.
+- **Split Dual-View** shows both side by side.
+- **Controls:** pick the map sensor (default EN-08), drag the water level, **Hold / Click to
+  Pour (+15% Surge)**, **Drain**, set the rainfall, or use the presets (**Critical 85% [Trigger
+  Red Blink]** turns the map sensor red). Five camera presets and **Ultra-HD 2x
+  Supersampling** sharpen the view for screenshots.
+- The studio feeds the map live: the targeted sensor blinks red and a **LIVE SENSOR ALERT**
+  banner offers **Jump to Sensor**. **Connect Physical USB Arduino / ESP32** lets a real board
+  drive the 3D tank instead.
+
 ## Arduino / ESP32 & aquarium demo
 
 1. Run `npm start` and open the map.
@@ -113,19 +133,49 @@ The launcher also handles these cases for you:
    - **Open Drain Valve**: empties the tank.
 4. The map tab reacts instantly, with no backend needed:
    - that sensor's pill, pin, street ring and pipe follow the tank and **blink red at ≥ 80 %**;
-   - a **LIVE HARDWARE SENSOR ALERT** banner appears with **Focus Camera** and
+   - a **LIVE SENSOR ALERT** banner appears with **Jump to Sensor** and
      **Disconnect Sim**.
 5. **Full Catchment Coupling Mode** scales the whole catchment to the tank instead of a single
    sensor.
 
-**Real hardware:** flash
+**Analytics & PDF report:** click **Analytics & PDF Report** in the top bar.
+- It previews a 3-page official report and downloads it as
+  `Baguio_City_Camp_Drainage_Analytics_Report.pdf`, built in the browser.
+- **Contents:**
+  - a four-agency header;
+  - a plain-language summary;
+  - charts of sensor fullness, raw vs Kalman readings, the lagoon forecast and conduit
+    capacity;
+  - a 10-sensor payload audit table.
+- **Typography:** one font at one size throughout, with no colons or em dashes.
+
+**Universal ESP32-S3 / Arduino Uno node:** flash
+[firmware/universal_hcsr04_node/universal_hcsr04_node.ino](firmware/universal_hcsr04_node/universal_hcsr04_node.ino).
+It needs no libraries.
+- **Wiring:**
+
+  | | TRIG | ECHO | LED green | LED yellow | LED red |
+  |---|---|---|---|---|---|
+  | ESP32-S3 | 5 | 6 | 7 | 8 | 9 |
+  | Uno | 9 | 10 | 4 | 5 | 6 |
+- **What it does:** it runs the full edge pipeline on the board and lights green/yellow, with
+  red blinking at 3 Hz from 80 % full.
+- **Output:** `[EDGE_TX]` frames over USB. On the ESP32-S3, set `WIFI_SSID`, `WIFI_PASSWORD`
+  and `SERVER_IP` (your PC) and it posts to the backend over Wi-Fi every 500 ms, so it can run
+  on a battery.
+- **Safety:**
+  - Use a 3.3 V HC-SR04 (HC-SR04P) or a voltage divider on ECHO with the ESP32-S3; its pins are
+    not 5 V tolerant.
+  - Use LED modules with built-in resistors, or add 220–330 Ω resistors.
+
+**Other boards / sensors:** flash
 [firmware/arduino_aquarium_demo/arduino_aquarium_demo.ino](firmware/arduino_aquarium_demo/arduino_aquarium_demo.ino)
 (Arduino IDE, any Uno / Nano / Mega / ESP32).
 - **Sensor:** set `SENSOR_TYPE` for an HC-SR04 / JSN-SR04T or an A02YYUW.
 - **Tank:** set `TANK_HEIGHT_MM` to the sensor-to-floor distance; the tank is 100 % full at 74 %
   of that height.
 - **Connect:** plug the board in by USB, open the simulator (or the map's HUD) in **Chrome or
-  Edge**, and click **Connect Physical USB Arduino / ESP32**. Any sketch that prints distances
+  Edge**, and click **Connect USB Arduino / ESP32**. Any sketch that prints distances
   (`DIST_MM:240`, `24 cm`, `FILL_PCT:85`) or our `[EDGE_TX]` frames works.
 - **Other browsers:** run `.venv/Scripts/python scripts/serial_bridge.py` instead.
 
@@ -175,7 +225,7 @@ On macOS/Linux, use `.venv/bin/python` instead of `.venv/Scripts/python`.
 | Weather pill says "Offline" | Open-Meteo is unreachable. The twin uses the last synced reading, or dry weather. Click "Simulation Mode" to drive it by hand. |
 | Phone can't open the LAN link | Same Wi-Fi network only. Allow Node.js through the Windows Firewall when prompted. |
 | Python packages changed | Nothing to do: `npm start` re-installs when `requirements.txt` changes. |
-| "Connect Physical USB" is greyed out | Web Serial needs desktop Chrome or Edge. Use the aquarium simulator, or `scripts/serial_bridge.py`. |
+| "Connect USB Arduino / ESP32" is greyed out | Web Serial needs desktop Chrome or Edge. Use the aquarium simulator, or `scripts/serial_bridge.py`. |
 | The map doesn't react to the aquarium tab | Both tabs must be the same address (e.g. both `localhost:5173`), and "Map sync" must be ON in the simulator. |
 
 ## Data note

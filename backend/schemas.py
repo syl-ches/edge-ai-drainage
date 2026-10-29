@@ -191,6 +191,23 @@ class LiveControlRequest(BaseModel):
     trash_rack_blockage_pct: float | None = Field(default=None, ge=0, le=95)
 
 
+class DistanceIngestRequest(BaseModel):
+    """Bench / aquarium rig reading (ESP32-S3 Wi-Fi, USB bridge, scripts): a raw distance, a fill %,
+    or an already-packed `payload_hex` / `payload_b64` from a board running the edge pipeline."""
+    model_config = ConfigDict(extra="allow")
+
+    device_eui: str | None = None
+    sensor_id: str | None = None
+    dist_mm: float | None = Field(default=None, ge=0, le=10000)
+    fill_pct: float | None = Field(default=None, ge=0, le=200)
+    tank_height_mm: float = Field(default=300.0, gt=0, le=10000)
+    temperature_c: float = 24.0
+    payload_hex: str | None = None
+    payload_b64: str | None = None
+    # hardware demos drive only the targeted sensor by default
+    scope: Literal["single_node", "full_catchment"] = "single_node"
+
+
 class DecodeRequest(BaseModel):
     payload_hex: str | None = None
     payload_b64: str | None = None

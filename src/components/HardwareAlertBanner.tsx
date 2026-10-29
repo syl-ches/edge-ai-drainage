@@ -5,16 +5,16 @@ import { ALARM_PCT } from '../utils/fullness';
 
 /** Short human label of where a rig packet came from. */
 export function rigLabel(p: HardwarePacket): string {
-  return p.origin === 'WEB_SERIAL' ? 'USB Arduino / ESP32' : 'Aquarium simulator';
+  return p.origin === 'WEB_SERIAL' ? 'USB Arduino / ESP32' : 'Aquarium / Pitch Studio simulator';
 }
 
-/** Banner text for a live hardware packet (alarm at >= 80 % full). */
+/** Banner text for a live sensor packet (alarm at >= 80 % full). */
 export function hardwareBannerText(p: HardwarePacket): { alarm: boolean; text: string } {
   const pct = Math.round(Math.min(p.capacityPct, 127));
   const alarm = pct >= ALARM_PCT || p.anomaly === 'SURCHARGED';
   return alarm
-    ? { alarm, text: `🔴 LIVE HARDWARE SENSOR ALERT: ${p.sensorId} IS ${pct}% FULL` }
-    : { alarm, text: `🟢 Live hardware sensor: ${p.sensorId} · ${pct}% full` };
+    ? { alarm, text: `🔴 LIVE SENSOR ALERT — ${p.sensorId} AT ${pct}% CAPACITY` }
+    : { alarm, text: `🟢 Live sensor: ${p.sensorId} · ${pct}% capacity` };
 }
 
 function HardwareAlertBannerImpl({
@@ -44,7 +44,7 @@ function HardwareAlertBannerImpl({
           </div>
         </div>
         <button onClick={onFocus} className="flex items-center gap-1 rounded-full bg-[#ffffff] px-3 py-1 text-[11px] font-bold text-[#0f172a] hover:bg-[#f1f5f9]">
-          <Crosshair size={12} /> Focus Camera
+          <Crosshair size={12} /> Jump to Sensor
         </button>
         <button onClick={onDisconnect} className="flex items-center gap-1 rounded-full bg-[#0f172a] px-3 py-1 text-[11px] font-bold text-[#ffffff] ring-1 ring-white/40 hover:bg-[#1e293b]">
           <Unplug size={12} /> Disconnect Sim

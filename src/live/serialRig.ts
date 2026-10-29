@@ -17,6 +17,8 @@ export type SerialReading =
   | { kind: 'temp'; c: number };
 
 const NUM = String.raw`(-?\d+(?:\.\d+)?)`;
+/** How long a board's own [EDGE_TX] frames take precedence over its plain distance lines. */
+export const EDGE_TX_PRIORITY_MS = 2000;
 /** Bare numbers above this are millimetres, at or below it centimetres (aquarium ranges). */
 export const AUTO_UNIT_SPLIT = 120;
 
@@ -73,6 +75,8 @@ export class HardwareRig {
   private window: number[] = [];
   private lastMs: number | null = null;
   private seq = 0;
+  /** last time the board sent its own [EDGE_TX] frame (its pipeline output wins over plain lines) */
+  private lastEdgeTxMs: number | null = null;
   tempC = 24;
 
   constructor(public cfg: RigConfig) {}
@@ -106,6 +110,7 @@ export class HardwareRig {
     return this.packet({
       fillPct: r.h_over_d * 100,
       depthMm: r.depth_mm,
+      rawDepthMm: r.raw_depth_mm,
       dhDtMmMin: r.dh_dt_mm_min,
       sigmaD2: r.sigma_d2,
       turbulence: r.turbulence,
@@ -127,6 +132,10 @@ export class HardwareRig {
   }
 
   ingestReading(r: SerialReading, nowMs: number): HardwarePacket | null {
+    // Boards running the universal sketch print [EDGE_TX] AND a plain DIST_MM line each cycle:
+    // while frames keep arriving, the plain duplicates are ignored (no double Kalman).
+    const framesLive = this.lastEdgeTxMs !== null && nowMs - this.lastEdgeTxMs < EDGE_TX_PRIORITY_MS;
+    if ((r.kind === 'distance' || r.kind === 'fill') && framesLive) return null;
     switch (r.kind) {
       case 'temp':
         this.tempC = r.c;
@@ -137,21 +146,29 @@ export class HardwareRig {
         if (r.tempC !== undefined) this.tempC = r.tempC;
         return this.ingestDistance(r.mm, nowMs);
       case 'edge_tx': {
+        this.lastEdgeTxMs = nowMs;
         // The board already ran the edge pipeline: decode the 32-bit word as-is.
         const d = unpackTelemetryPayload(parseInt(r.payloadHex, 16) >>> 0);
         const j = r.json;
-        const hOverD = typeof j.h_over_d === 'number' ? j.h_over_d : d.depthMm / 1000 / this.cfg.fullScaleM;
+        const hOverD =
+          typeof j.h_over_d === 'number' ? j.h_over_d : typeof j.fill_pct === 'number' ? j.fill_pct / 100 : d.depthMm / 1000 / this.cfg.fullScaleM;
         return this.packet({
           fillPct: hOverD * 100,
           depthMm: typeof j.kalman_filtered_depth_mm === 'number' ? j.kalman_filtered_depth_mm : d.depthMm,
+          rawDepthMm:
+            typeof j.raw_unfiltered_depth_mm === 'number'
+              ? j.raw_unfiltered_depth_mm
+              : typeof j.kalman_filtered_depth_mm === 'number'
+                ? j.kalman_filtered_depth_mm
+                : d.depthMm,
           dhDtMmMin: typeof j.dh_dt_mm_min === 'number' ? j.dh_dt_mm_min : d.dhDtMmMin,
           sigmaD2: typeof j.sigma_d2_mm2 === 'number' ? j.sigma_d2_mm2 : 0,
           turbulence: typeof j.turbulence_index === 'number' ? j.turbulence_index : 0,
           capacityPct: d.capPct,
           anomalyCode: d.anomCode,
           payloadHex: r.payloadHex,
-          distanceMm: null,
-          rawBurstMm: Array.isArray(j.raw_burst_mm) ? (j.raw_burst_mm as number[]) : [],
+          distanceMm: typeof j.dist_mm === 'number' ? j.dist_mm : null,
+          rawBurstMm: Array.isArray(j.raw_burst_mm) ? (j.raw_burst_mm as number[]) : typeof j.dist_mm === 'number' ? [j.dist_mm] : [],
           vbatV: d.vbatV,
         });
       }
@@ -161,6 +178,7 @@ export class HardwareRig {
   private packet(x: {
     fillPct: number;
     depthMm: number;
+    rawDepthMm: number;
     dhDtMmMin: number;
     sigmaD2: number;
     turbulence: number;
@@ -183,6 +201,7 @@ export class HardwareRig {
       scope: this.cfg.scope,
       fillPct: x.fillPct,
       depthMm: x.depthMm,
+      rawDepthMm: x.rawDepthMm,
       dhDtMmMin: x.dhDtMmMin,
       sigmaD2: x.sigmaD2,
       turbulence: x.turbulence,
