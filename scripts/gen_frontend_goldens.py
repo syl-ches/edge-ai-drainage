@@ -8,6 +8,9 @@
   edge_golden.json    backend/edge_dsp.py run_cycle (no-geometry + bench/aquarium standpipe
                       branches) for raw ultrasonic bursts             <-> src/edge/edgePipeline.ts
   weather_golden.json backend/weather_feed.py Open-Meteo trajectory    <-> src/live/weather.ts
+  cctv_golden.json    backend/cctv.py nearest Command Center feeds     <-> src/utils/cctvStreams.ts
+  crypto_golden.json  backend/crypto.py sealed frames (Speck32/64)     <-> src/utils/edgeCrypto.ts
+  alerts_golden.json  backend/notifications.py SMS / e-mail / PDU      <-> src/utils/alertFormat.ts
 Deterministic: no RNG state leaks between cases, no network, no timestamps.
 """
 from __future__ import annotations
@@ -22,6 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend import edge_dsp as dsp  # noqa: E402
+from backend.cctv import nearest_for_all  # noqa: E402
+from backend import notifications as notif  # noqa: E402
+from backend.crypto import DEV_PSK, EdgeCipher  # noqa: E402
 from backend.stgnn import ForecastInput, STGNNForecaster  # noqa: E402
 from backend.weather_feed import hyetograph_trajectory, load_library, parse_open_meteo  # noqa: E402
 
@@ -119,6 +125,37 @@ def weather_cases() -> dict:
                        dict(name="hourly_only", payload=no_m15, output=parse_open_meteo(no_m15))])
 
 
+def cctv_cases() -> dict:
+    net = json.loads((DATA / "city_camp_network.json").read_text(encoding="utf-8"))
+    return dict(k=2, nearest=nearest_for_all(net["sensors"], 2))
+
+
+def crypto_cases() -> dict:
+    out = []
+    for bits in (32, 16, 8):
+        c = EdgeCipher(DEV_PSK, tag_bits=bits)
+        for frame, nonce, node in ((0x34A89F12, 1, "EN-08"), (0x54C1672A, 4242, "EN-07"), (0xFFFFFFFF, 0xFFFFFFFE, "EN-10"), (0, 0, "EN-01")):
+            out.append(dict(tag_bits=bits, frame=f"0x{frame:08X}", node=node, **c.encrypt(frame, nonce, node)))
+    return dict(psk=DEV_PSK, cases=out)
+
+
+def alerts_cases() -> dict:
+    cases = []
+    for node, sev, cap, dh, vis, verdict, eta in (
+        ("EN-08", "CRITICAL", 84.0, 14.2, 12.0, "DOWNSTREAM_ROCK_CHOKE_BACKWATER", 28.0),
+        ("EN-08", "CRITICAL", 91.0, 3.0, 78.0, "CONFIRMED_TRASH_RACK_OCCLUSION", None),
+        ("EN-03", "WARNING", 52.4, -0.6, None, "NOMINAL", None),
+        ("EN-07", "CRITICAL", 127.0, 12.8, 95.0, "INTAKE_SURCHARGE_OVERFLOW", 0.0),
+    ):
+        for group in ("MAYOR", "CDRRMO", "CEPMO", "DPWH"):
+            cases.append(dict(node=node, severity=sev, cap=cap, dh=dh, vision=vis, verdict=verdict, eta=eta, group=group,
+                              sms=notif.format_sms(node, sev, cap, dh, vis, verdict, eta),
+                              subject=notif.email_subject(node, sev, verdict),
+                              text=notif.email_text(group, node, sev, cap, dh, vis, verdict, eta, group == "MAYOR")))
+    pdus = [dict(number=n, text=t, pdu=notif.sms_submit_pdu(n, t)) for n, t in (("+639171234567", "Hello"), ("+639171234567", cases[0]["sms"]))]
+    return dict(cases=cases, pdus=pdus)
+
+
 def _dump(obj) -> str:
     def clean(x):
         if isinstance(x, float):
@@ -131,7 +168,8 @@ def _dump(obj) -> str:
     return json.dumps(clean(obj), indent=1) + "\n"
 
 
-FILES = {"stgnn_golden.json": stgnn_cases, "edge_golden.json": edge_cases, "weather_golden.json": weather_cases}
+FILES = {"stgnn_golden.json": stgnn_cases, "edge_golden.json": edge_cases, "weather_golden.json": weather_cases,
+         "cctv_golden.json": cctv_cases, "crypto_golden.json": crypto_cases, "alerts_golden.json": alerts_cases}
 
 
 def main() -> int:

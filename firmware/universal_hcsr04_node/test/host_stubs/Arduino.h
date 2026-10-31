@@ -26,6 +26,8 @@ struct HostSerial {
   void print(unsigned long v) { std::printf("%lu", v); }
   void println(const char *s) { std::puts(s); }
   void println(double v, int d) { std::printf("%.*f\n", d, v); }
+  int available() { return 0; }
+  int read() { return -1; }
 };
 static HostSerial Serial;
 

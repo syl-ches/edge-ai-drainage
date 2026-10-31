@@ -15,6 +15,7 @@ export interface LayerFlags {
   vegetation: boolean;
   network: boolean;
   badges: boolean;
+  waterways: boolean;
 }
 
 export interface CameraState {
@@ -47,8 +48,9 @@ export const DEFAULT_URL_STATE: UrlState = {
   clog: 0,
   scale: 1,
   theme: 'daylight',
-  shader: 'glass',
-  layers: { buildings: true, vegetation: true, network: true, badges: true },
+  shader: 'solid', // Phase 9B: ArchiMap-style matte massing by default; glass is one click away
+  // Phase 9A: boots on the surface (Solid Concrete); X-RAY reveals the subsurface network.
+  layers: { buildings: true, vegetation: true, network: false, badges: true, waterways: true },
   sim: null,
   simNode: 'EN-08',
   sel: null,
@@ -84,8 +86,9 @@ export function parseUrlState(search: string = window.location.search): UrlState
     layers: {
       buildings: flag(q.get('bld'), q.get('xray') !== '0'),
       vegetation: flag(q.get('veg'), true),
-      network: flag(q.get('net'), true),
+      network: flag(q.get('net'), DEFAULT_URL_STATE.layers.network),
       badges: flag(q.get('badges'), true),
+      waterways: flag(q.get('wwy'), true),
     },
     sim: q.get('sim') === 'node' || q.get('sim') === 'profile' ? (q.get('sim') as SimView) : null,
     simNode: /^EN-\d{2}$/.test(q.get('simnode') ?? '') ? (q.get('simnode') as string) : DEFAULT_URL_STATE.simNode,
@@ -113,6 +116,7 @@ export function serializeUrlState(s: UrlState): string {
   q.set('veg', s.layers.vegetation ? '1' : '0');
   q.set('net', s.layers.network ? '1' : '0');
   q.set('badges', s.layers.badges ? '1' : '0');
+  q.set('wwy', s.layers.waterways ? '1' : '0');
   if (s.sim) {
     q.set('sim', s.sim);
     q.set('simnode', s.simNode);

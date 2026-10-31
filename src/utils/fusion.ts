@@ -15,7 +15,9 @@ export function arbitrate(st: TwinState): FusionVerdict {
   const en09 = by('EN-09');
   const en10 = by('EN-10');
   const visionPct = en09?.capacityPct ?? st.blockagePct;
-  const ponding = en08?.anomaly === 'TRASH_BLOCKAGE';
+  // Backwater at the intake: the flat-pool signature, or a pool already deeper than full scale
+  // (the edge classifier ranks SURCHARGED above TRASH_BLOCKAGE, so deep ponding reads SURCHARGED).
+  const ponding = en08?.anomaly === 'TRASH_BLOCKAGE' || en08?.anomaly === 'SURCHARGED';
   const evidence = [
     `EN-08 ultrasonic: ${en08?.anomaly ?? '—'} (h/D ${(en08?.hRatio ?? 0).toFixed(2)}, σ̃² ${(en08?.turbulence ?? 0).toFixed(3)})`,
     `EN-09 YOLOv8 vision: ${visionPct.toFixed(0)} % occluded`,

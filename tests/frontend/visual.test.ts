@@ -25,7 +25,7 @@ import { GLASS, SHADING_SHOWS_EDGES, createBuildingMaterials } from '../../src/t
 import { BASELINE_WEATHER, OPEN_METEO_URL, parseOpenMeteo, precipRateMmHr, weatherLabel } from '../../src/live/weather';
 import { backendCommand, frameMatchesDriver, resolveLiveTarget } from '../../src/live/liveDriver';
 import type { LiveSnapshot } from '../../src/live/telemetry';
-import { weatherStatus } from '../../src/components/TopBar';
+import { weatherStatus } from '../../src/ui/shell';
 
 const network = JSON.parse(readFileSync('public/data/city_camp_network.json', 'utf8')) as NetworkFile;
 const lut = JSON.parse(readFileSync('public/data/simulation_lut.json', 'utf8')) as LutFile;
@@ -42,17 +42,18 @@ describe('urlState (theme / shader / layers / simulator deep links)', () => {
     expect(serializeUrlState(sim)).toContain('mode=sim');
     expect(serializeUrlState(parseUrlState(''))).not.toContain('mode=');
   });
-  it('defaults to the daylight diorama with every layer on', () => {
+  it('defaults to the daylight diorama, surface first: Solid Concrete with the subsurface hidden (Phase 9A)', () => {
     const s = parseUrlState('');
     expect(s.theme).toBe('daylight');
+    expect(s.shader).toBe('solid');
     expect(s.shader).toBe(DEFAULT_URL_STATE.shader);
-    expect(s.layers).toEqual({ buildings: true, vegetation: true, network: true, badges: true });
+    expect(s.layers).toEqual({ buildings: true, vegetation: true, network: false, badges: true, waterways: true });
     expect(s.sim).toBeNull();
   });
   it('round-trips every visual field', () => {
-    const s = parseUrlState('?theme=xray&shader=wire&bld=0&veg=0&net=1&badges=0&sim=profile&simnode=EN-03&rain=150&clog=90&mode=sim');
+    const s = parseUrlState('?theme=xray&shader=wire&bld=0&veg=0&net=1&badges=0&wwy=0&sim=profile&simnode=EN-03&rain=150&clog=90&mode=sim');
     expect(s).toMatchObject({ theme: 'xray', shader: 'wire', sim: 'profile', simNode: 'EN-03', rain: 150, clog: 90, mode: 'SIM' });
-    expect(s.layers).toEqual({ buildings: false, vegetation: false, network: true, badges: false });
+    expect(s.layers).toEqual({ buildings: false, vegetation: false, network: true, badges: false, waterways: false });
     expect(parseUrlState(`?${serializeUrlState(s)}`)).toEqual(s);
   });
   it('maps the legacy xray=0 link to buildings off and rejects junk', () => {
@@ -159,7 +160,7 @@ describe('building shading modes (Phase 7A)', () => {
     mats.apply('wire', m);
     expect(meshes.wireFill.visible && meshes.edges.visible).toBe(true);
   });
-  it('uses the specified outline-free Fresnel glass and a pure white solid', () => {
+  it('uses the specified outline-free Fresnel glass and a matte #EFEFEF solid (Phase 9B)', () => {
     const mats = createBuildingMaterials(new Vector3());
     expect(GLASS).toMatchObject({ baseOpacity: 0.08, rimPower: 2.8, rimGain: 0.48, alphaMin: 0.06, alphaMax: 0.62 });
     expect(mats.glass.transparent && !mats.glass.depthWrite && mats.glass.depthTest).toBe(true);
@@ -167,7 +168,7 @@ describe('building shading modes (Phase 7A)', () => {
     expect(mats.glass.uniforms.uRimColor.value.toArray()).toEqual([0.06, 0.72, 0.58]);
     expect(mats.glass.fragmentShader).toContain('clamp(uBaseOpacity + fresnel * 0.48, 0.06, 0.62)');
     expect(mats.solid.fragmentShader).not.toMatch(/storey|glazing/);
-    expect(mats.solid.fragmentShader).toContain('mix(dark, vec3(1.0), uDay)');
+    expect(mats.solid.fragmentShader).toContain('mix(dark, vec3(0.9373), uDay)');
   });
 });
 

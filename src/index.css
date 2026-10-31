@@ -6,7 +6,8 @@
   --color-amber-flow: #fcc934;
   --color-tangerine: #fa903e;
   --color-surge: #f538a0;
-  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-sans: "Inter Variable", Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html,
@@ -17,7 +18,7 @@ body,
   overflow: hidden;
   background: var(--app-bg, var(--color-obsidian));
   color: var(--app-ink, #e2e8f0);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /*
@@ -304,3 +305,70 @@ html[data-theme="daylight"] .hud-range::-moz-range-thumb {
     transform: scale(1);
   }
 }
+
+/*
+ * Phase 9A "Baguio Flood Intelligence" workspace shell (archiMap-style CAD/GIS chrome):
+ * matte white surfaces, off-white panels, 1px #E2E8F0 hairlines, charcoal active states.
+ * Literal per-theme variables (outside the daylight slate remap) with a dark X-ray variant.
+ */
+:root {
+  --sh-bg: #ffffff;
+  --sh-panel: #f8fafc;
+  --sh-line: #e2e8f0;
+  --sh-line-strong: #cbd5e1;
+  --sh-ink: #0f172a;
+  --sh-text: #334155;
+  --sh-muted: #64748b;
+  --sh-label: #475569;
+  --sh-active: #0f172a;
+  --sh-active-ink: #ffffff;
+  --sh-hover: #f1f5f9;
+}
+html[data-theme="xray"] {
+  --sh-bg: #0b1220;
+  --sh-panel: #0f172a;
+  --sh-line: #1e293b;
+  --sh-line-strong: #334155;
+  --sh-ink: #f8fafc;
+  --sh-text: #cbd5e1;
+  --sh-muted: #94a3b8;
+  --sh-label: #94a3b8;
+  --sh-active: #f8fafc;
+  --sh-active-ink: #0f172a;
+  --sh-hover: #1e293b;
+}
+.sh-surface { background: var(--sh-bg); color: var(--sh-text); font-family: var(--font-sans); }
+.sh-panel { background: var(--sh-panel); color: var(--sh-text); }
+.sh-card { background: var(--sh-bg); border: 1px solid var(--sh-line); }
+.sh-hair-b { border-bottom: 1px solid var(--sh-line); }
+.sh-hair-t { border-top: 1px solid var(--sh-line); }
+.sh-hair-l { border-left: 1px solid var(--sh-line); }
+.sh-hair-r { border-right: 1px solid var(--sh-line); }
+.sh-ink { color: var(--sh-ink); }
+.sh-muted { color: var(--sh-muted); }
+.sh-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sh-label); }
+.sh-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sh-ink); }
+.sh-nav { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sh-label); }
+.sh-nav:hover, .sh-nav[aria-expanded="true"] { color: var(--sh-ink); }
+.sh-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.sh-btn { border: 1px solid var(--sh-line-strong); background: var(--sh-bg); color: var(--sh-ink); }
+.sh-btn:hover { background: var(--sh-hover); }
+.sh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sh-on { background: var(--sh-active); color: var(--sh-active-ink); border-color: var(--sh-active); }
+.sh-on:hover { background: var(--sh-active); }
+.sh-seg { display: flex; gap: 2px; border: 1px solid var(--sh-line-strong); border-radius: 9999px; padding: 2px; background: var(--sh-panel); }
+.sh-seg > button { white-space: nowrap; border-radius: 9999px; padding: 3px 11px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--sh-muted); }
+.sh-seg > button:hover { color: var(--sh-ink); }
+.sh-seg > button[aria-checked="true"] { background: var(--sh-active); color: var(--sh-active-ink); }
+.sh-tile { border: 1px solid var(--sh-line); background: var(--sh-bg); color: var(--sh-label); }
+.sh-tile:hover { background: var(--sh-hover); color: var(--sh-ink); }
+.sh-tile[aria-pressed="true"] { background: var(--sh-hover); border-color: var(--sh-active); color: var(--sh-ink); }
+.sh-scope[aria-pressed="true"] { border: 2px solid var(--sh-active); color: var(--sh-ink); }
+.sh-menu { background: var(--sh-bg); border: 1px solid var(--sh-line-strong); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14); }
+.sh-menu-item { color: var(--sh-text); }
+.sh-menu-item:hover { background: var(--sh-hover); color: var(--sh-ink); }
+.sh-input { background: var(--sh-panel); border: 1px solid var(--sh-line); color: var(--sh-ink); }
+.sh-range { accent-color: var(--sh-active); }
+.sh-sheet { background: var(--sh-bg); border-top: 1px solid var(--sh-line); border-radius: 16px 16px 0 0; box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.16); }
+@keyframes sh-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.25; } }
+.sh-blink { animation: sh-blink 0.333s steps(1) infinite; }

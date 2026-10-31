@@ -105,7 +105,12 @@ export function MapView({ data, onReady, onHover, onClick, onBasemapOffline, onC
       handlers.current.onClick(hit ? { ...hit, x: e.point.x, y: e.point.y } : null);
     });
 
+    // The workspace side panels collapse / expand: keep the canvas matched to its container.
+    const ro = new ResizeObserver(() => map.resize());
+    if (container.current) ro.observe(container.current);
+
     return () => {
+      ro.disconnect();
       cancelAnimationFrame(raf);
       map.remove();
     };

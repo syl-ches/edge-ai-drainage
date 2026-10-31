@@ -1,6 +1,10 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// Bundled fonts (offline-first: no font CDN at runtime).
+import '@fontsource-variable/inter';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/700.css';
 import './index.css';
 import { isHardwareSimRoute, isPitchStudioRoute } from './main.route';
 

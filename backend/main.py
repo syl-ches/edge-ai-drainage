@@ -19,6 +19,16 @@ Endpoints
     POST /api/v1/ingest/distance     bench / aquarium rig: {"device_eui", "dist_mm" | "fill_pct",
                                      "tank_height_mm", "scope" (default single_node)} or payload_hex
     POST /api/v1/decode              decode a 4-byte payload
+    GET  /api/v1/cctv/cameras        Command Center CCTV registry (placeholder inventory + stream config)
+    GET  /api/v1/cctv/nearest/{id}   nearest camera pair for an Edge-AI node (EN-xx or device EUI)
+    GET  /api/telemetry/history      persisted 32-bit frames (?node_id=EN-08&limit=500)
+    POST /api/telemetry/ingest       persist live frames (decoded server-side, deduplicated)
+    POST /api/telemetry/sd-backfill  bulk black-box recovery with CRC-32 check + batch log
+    GET  /api/database/stats         rows, size, last sync, active engine (SQLite / PostgreSQL)
+    GET/POST /api/incidents          dispatch ledger
+    POST /api/alerts/dispatch        SMS + e-mail to MAYOR / CDRRMO / CEPMO / DPWH / custom (sandbox loopback without keys)
+    GET  /api/alerts/audit-log       signed delivery ledger
+    POST /api/v1/ingest/secure       sealed frame (Speck32/64 CTR + 32-bit tag); bad tag or replay -> 401, dropped
 """
 from __future__ import annotations
 
@@ -32,15 +42,23 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from . import cctv
+from . import notifications
+from .crypto import EdgeCipher
+from .database import TelemetryDB, frame_row, utc_now
 from . import edge_dsp as dsp
 from .lut import DATA_DIR, TwinLut
-from .schemas import DecodeRequest, DistanceIngestRequest, IngestRequest, LiveControlRequest, ScenarioRequest
+from .schemas import (AlertDispatchRequest, DecodeRequest, SecureIngestRequest, DistanceIngestRequest, IncidentRequest, IngestRequest, LiveControlRequest, ScenarioRequest,
+                      SdBackfillRequest, TelemetryIngestRequest)
 from .twin import TwinRuntime
 
 FRAME_HZ = float(os.environ.get("CITYCAMP_FRAME_HZ", "2"))   # 0 disables the background ticker
 FRAME_PERIOD_S = 1.0 / FRAME_HZ if FRAME_HZ > 0 else 0.5
 
 runtime = TwinRuntime(TwinLut())
+# Phase 9C: telemetry persistence (SQLite file by default; CITYCAMP_DB_PATH overrides, DATABASE_URL for PostgreSQL).
+db = TelemetryDB(os.environ.get("CITYCAMP_DB_PATH") or None)
+edge_cipher = EdgeCipher()   # CITYCAMP_EDGE_PSK, else the public demo key
 clients: set[WebSocket] = set()
 
 
@@ -107,6 +125,22 @@ def network() -> FileResponse:
 @app.get("/api/v1/lut/meta")
 def lut_meta() -> dict:
     return dict(meta=runtime.lut.lut["meta"], axes=runtime.lut.lut["axes"])
+
+
+@app.get("/api/v1/cctv/cameras")
+def cctv_cameras() -> dict:
+    reg = cctv.load_registry()
+    cams = cctv.cameras()
+    return dict(meta=reg["meta"], cameras=cams, streams_configured=sum(1 for c in cams if c.get("stream")))
+
+
+@app.get("/api/v1/cctv/nearest/{sensor_id}")
+def cctv_nearest(sensor_id: str, k: int = 2) -> dict:
+    sid = runtime.resolve_sensor(sensor_id)
+    sensor_rec = runtime.sensors_meta.get(sid) if sid else None
+    if sensor_rec is None:
+        raise HTTPException(404, f"unknown sensor {sensor_id}")
+    return dict(sensor_id=sid, feeds=cctv.nearest_cameras(sensor_rec, max(1, min(k, 6))))
 
 
 @app.get("/api/v1/sensors/{sensor_id}")
@@ -180,6 +214,8 @@ def ingest(req: IngestRequest) -> dict:
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     sensor_rec = runtime.ingest(sid, word, extras, rssi, snr, scope=req.scope)
+    with contextlib.suppress(Exception):           # persistence never blocks the live path
+        db.insert_frames([frame_row(sid, utc_now(), sensor_rec["payload_hex"], "LORAWAN", False)])
     # Fast path (< 10 ms bridge budget): the background ticker broadcasts the full frame; here we
     # only report how the uplink drives the twin and the last fusion verdict.
     last = runtime.latest or {}
@@ -239,3 +275,112 @@ async def live(ws: WebSocket) -> None:
         pass
     finally:
         clients.discard(ws)
+
+
+# ---------------------------------------------------------------- Phase 9C telemetry database
+@app.get("/api/telemetry/history")
+def telemetry_history(node_id: str | None = None, limit: int = 500) -> dict:
+    sid = runtime.resolve_sensor(node_id) if node_id else None
+    if node_id and sid is None:
+        raise HTTPException(404, f"unknown node {node_id}")
+    return dict(node_id=sid, frames=db.history(sid, limit), engine=db.engine)
+
+
+@app.post("/api/telemetry/ingest")
+def telemetry_ingest(req: TelemetryIngestRequest) -> dict:
+    rows = []
+    for f in req.frames:
+        sid = runtime.resolve_sensor(f.node_id)
+        if sid is None:
+            raise HTTPException(404, f"unknown node {f.node_id}")
+        try:
+            rows.append(frame_row(sid, f.timestamp_utc or utc_now(), f.payload_hex, f.source_mode, False))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+    inserted = db.insert_frames(rows)
+    return dict(status="ok", received=len(rows), inserted=inserted, duplicates=len(rows) - inserted)
+
+
+@app.post("/api/telemetry/sd-backfill")
+def telemetry_sd_backfill(req: SdBackfillRequest) -> dict:
+    sid = runtime.resolve_sensor(req.node_id)
+    if sid is None:
+        raise HTTPException(404, f"unknown node {req.node_id}")
+    batch = req.batch_id or f"SD-{sid}-{utc_now()}"
+    try:
+        res = db.sd_backfill(batch, sid, [f.model_dump() for f in req.frames], req.crc32)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return dict(status="ok" if res["integrity_crc_status"] != "FAIL" else "rejected", **res)
+
+
+@app.get("/api/database/stats")
+def database_stats() -> dict:
+    return db.stats()
+
+
+@app.get("/api/incidents")
+def incidents(limit: int = 200) -> dict:
+    return dict(incidents=db.incidents(limit))
+
+
+@app.post("/api/incidents")
+def incident_record(req: IncidentRequest) -> dict:
+    db.record_incident(req.node_id, req.fusion_verdict, req.trash_rack_occlusion_pct, req.target_agency, req.action_summary)
+    return dict(status="ok")
+
+
+# ---------------------------------------------------------------- Phase 9D alerts + edge security
+def _alert_context(req: AlertDispatchRequest) -> dict:
+    sid = runtime.resolve_sensor(req.node_id)
+    if sid is None:
+        raise HTTPException(404, f"unknown node {req.node_id}")
+    frame = runtime.latest or runtime.tick(FRAME_PERIOD_S)
+    sen = frame["sensors"].get(sid, {})
+    vision = frame["sensors"].get("EN-09", {}).get("capacity_pct")
+    fc = frame.get("forecast") or {}
+    eta = fc.get("time_to_overflow_min")
+    if frame.get("lagoon", {}).get("is_overflowing"):
+        eta = 0
+    return dict(node_id=sid, severity=req.severity, cap_pct=float(sen.get("capacity_pct", 0.0)),
+                dh_dt_cm_min=float(sen.get("dh_dt_mm_min", 0.0)) / 10.0, vision_pct=None if vision is None else float(vision),
+                verdict=req.fusion_verdict or (frame.get("fusion") or {}).get("root_cause", "NOMINAL"), evac_lead_min=eta)
+
+
+@app.post("/api/alerts/dispatch")
+def alerts_dispatch(req: AlertDispatchRequest) -> dict:
+    ctx = _alert_context(req)
+    groups = ["MAYOR", "CDRRMO", "CEPMO", "DPWH"] if req.recipient_group == "ALL" else [req.recipient_group]
+    results = []
+    for g in groups:
+        try:
+            r = notifications.dispatch_alert(ctx, g, req.custom_phone if g in ("CUSTOM", req.recipient_group) else None,
+                                             req.custom_email if g in ("CUSTOM", req.recipient_group) else None,
+                                             req.attach_pdf_summary, utc_now(), auto=req.auto)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        db.record_alerts(r["ledger"])
+        results.append(r)
+    return dict(status="ok", delivery_mode="LIVE_GATEWAY" if any(r["delivery_mode"] == "LIVE_GATEWAY" for r in results) else "SANDBOX_VERIFIED_LOOPBACK",
+                context=ctx, dispatches=results,
+                gateways=dict(sms=notifications.sms_gateways(), email=notifications.email_gateways()))
+
+
+@app.get("/api/alerts/audit-log")
+def alerts_audit_log(limit: int = 200) -> dict:
+    return dict(ledger=db.alerts(limit))
+
+
+@app.post("/api/v1/ingest/secure")
+def ingest_secure(req: SecureIngestRequest) -> dict:
+    sid = runtime.resolve_sensor(req.device_eui)
+    if sid is None:
+        raise HTTPException(404, f"unknown device {req.device_eui}")
+    v = edge_cipher.decrypt_and_verify(req.cipher_hex, req.tag_hex, req.nonce, sid)
+    if not v["verified"]:
+        raise HTTPException(401, dict(security_alert="INVALID EDGE SIGNATURE — PACKET DROPPED", reason=v["reason"], device=sid, nonce=req.nonce))
+    word = int(v["plain_hex"], 16)
+    sensor_rec = runtime.ingest(sid, word, {}, None, None, scope=req.scope)
+    with contextlib.suppress(Exception):
+        db.insert_frames([frame_row(sid, utc_now(), sensor_rec["payload_hex"], "LORAWAN", False)])
+    return dict(status="ok", sensor_id=sid, verified=True, plain_hex=v["plain_hex"], latency_us=v["latency_us"], decoded=dsp.unpack_payload(word))

@@ -222,6 +222,7 @@ interface WebSerialPort {
   open(o: { baudRate: number }): Promise<void>;
   close(): Promise<void>;
   readable: ReadableStream<Uint8Array> | null;
+  writable?: WritableStream<Uint8Array> | null;
   getInfo?(): { usbVendorId?: number; usbProductId?: number };
 }
 interface WebSerial {
@@ -237,6 +238,8 @@ export function webSerialSupported(): boolean {
 export interface SerialSession {
   label: string;
   close(): Promise<void>;
+  /** Writes one console command line to the board (e.g. DUMP_SD_LOG); false if not writable. */
+  send(line: string): Promise<boolean>;
 }
 
 /** Splits a text stream into lines (handles \r\n and partial chunks). */
@@ -283,6 +286,18 @@ export async function connectWebSerial(onLine: (line: string) => void, onClose: 
   })();
   return {
     label,
+    async send(line: string) {
+      if (closed || !port.writable) return false;
+      const w = port.writable.getWriter();
+      try {
+        await w.write(new TextEncoder().encode(line.endsWith('\n') ? line : `${line}\n`));
+        return true;
+      } catch {
+        return false;
+      } finally {
+        w.releaseLock();
+      }
+    },
     async close() {
       closed = true;
       try {

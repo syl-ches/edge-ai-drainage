@@ -121,6 +121,7 @@ uniform vec3 uLandBand;
 uniform vec3 uPark;
 uniform vec3 uParkDeep;
 uniform float uParks;
+uniform float uSeeThrough;
 uniform vec3 uDarkLow;
 uniform vec3 uDarkHigh;
 varying vec3 vWorld;
@@ -145,7 +146,8 @@ void main() {
   // X-ray: the original navy -> teal elevation ramp.
   vec3 dark = mix(uDarkLow, uDarkHigh, clamp((elev - uZRange.x) / max(uZRange.y - uZRange.x, 1.0), 0.0, 1.0));
   vec3 col = mix(dark, day, uDay);
-  float alpha = mix(0.2, 0.94, uDay) * vEdge;
+  // X-ray surface mode thins the daylight ground so the drainage network reads through it.
+  float alpha = mix(0.2, mix(0.94, 0.55, uSeeThrough), uDay) * vEdge;
   gl_FragColor = vec4(col, alpha);
 }`;
 
@@ -161,6 +163,8 @@ export interface TerrainLayer {
   setRain(mmHr: number): void;
   /** Park / green-belt tint on or off (the "3D Vegetation & Parks" toggle). */
   setParks(on: boolean): void;
+  /** 0 = opaque diorama ground, 1 = X-ray see-through ground. */
+  setSeeThrough(k: number): void;
 }
 
 /**
@@ -297,6 +301,7 @@ export function buildTerrain(net: NetworkFile, frame: LocalFrame): TerrainLayer 
     uPark: { value: new Color(DAY.park) },
     uParkDeep: { value: new Color(DAY.parkDeep) },
     uParks: { value: 1 },
+    uSeeThrough: { value: 0 },
     uDarkLow: { value: new Color(XRAY.land) },
     uDarkHigh: { value: new Color(XRAY.landHigh) },
   };
@@ -378,6 +383,9 @@ export function buildTerrain(net: NetworkFile, frame: LocalFrame): TerrainLayer 
     },
     setParks(on) {
       uniforms.uParks.value = on ? 1 : 0;
+    },
+    setSeeThrough(k) {
+      uniforms.uSeeThrough.value = Math.min(Math.max(k, 0), 1);
     },
   };
   layer.setTheme('daylight');

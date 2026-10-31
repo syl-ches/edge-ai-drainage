@@ -274,6 +274,55 @@ def python_edge_tx_line() -> str:
 
 
 
+def crypto_check(cxx: list[str], uni: Path, tmp: Path) -> tuple[str, bool, str]:
+    """edge_crypto.h == backend/crypto.py: Speck32/64 paper vector + sealed frames (cipher + 32-bit tag) (Phase 9D)."""
+    from backend.crypto import EdgeCipher
+    name = "universal_hcsr04_node edge_crypto.h == backend/crypto.py (Speck32/64 vector a86842f2, CTR + CBC-MAC tag)"
+    exe = tmp / ("crypto_harness" + (".exe" if os.name == "nt" else ""))
+    proc = subprocess.run(cxx + ["-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror", str(uni / "test" / "crypto_harness.cpp"), "-o", str(exe)],
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        return name, False, proc.stderr[:600]
+    out = subprocess.run([str(exe)], capture_output=True, text=True).stdout.splitlines()
+    ok = "SPECK A86842F2" in out
+    c = EdgeCipher("BAGUIO_LGU_PSK_2026")
+    for ln in out:
+        if ln.startswith("SEAL "):
+            _, node, frame, nonce, cipher, tag = ln.split()
+            e = c.encrypt(int(frame, 16), int(nonce), node)
+            ok = ok and e["cipher_hex"] == f"0x{cipher}" and e["tag_hex"] == f"0x{tag}"
+    ok = ok and sum(1 for ln in out if ln.startswith("SEAL ")) == 3
+    return name, ok, "" if ok else " | ".join(out)[:400]
+
+
+def blackbox_dump_check(cxx: list[str], uni: Path, tmp: Path) -> tuple[str, bool, str]:
+    """blackbox.h ring + DUMP_SD_LOG burst: last 256 of 300 frames, oldest first, CRC-32 == zlib (Phase 9C)."""
+    import zlib
+    from backend.database import crc32_frames
+    name = "universal_hcsr04_node black box: 256-frame ring dump order + CRC-32 == zlib / backend crc32_frames"
+    exe = tmp / ("bb_harness" + (".exe" if os.name == "nt" else ""))
+    proc = subprocess.run(cxx + ["-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror", str(uni / "test" / "blackbox_harness.cpp"), "-o", str(exe)],
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        return name, False, proc.stderr[:600]
+    out = subprocess.run([str(exe)], capture_output=True, text=True).stdout.splitlines()
+    words, x = [], 0x12345678
+    for _ in range(300):
+        x = (x * 1664525 + 1013904223) & 0xFFFFFFFF
+        words.append(x)
+    want = words[-256:]
+    frames = [json.loads(ln[len("[SD_DUMP] "):]) for ln in out if ln.startswith("[SD_DUMP] ")]
+    end = [json.loads(ln[len("[SD_DUMP_END] "):]) for ln in out if ln.startswith("[SD_DUMP_END] ")]
+    got = [int(f["hex"], 16) for f in frames]
+    crc = 0
+    for w in want:
+        crc = zlib.crc32(w.to_bytes(4, "big"), crc)
+    ok = (got == want and len(end) == 1 and end[0]["frames"] == 256 and end[0]["crc32"] == f"{crc:08X}"
+          and end[0]["crc32"] == crc32_frames(f"0x{w:08X}" for w in want) and end[0]["tier"] == "SPI_SD"
+          and [f["i"] for f in frames] == list(range(256)) and frames[0]["seq"] == 45 and frames[-1]["t_ms"] == 300000)
+    return name, ok, "" if ok else f"frames={len(frames)} end={end[:1]}"
+
+
 def universal_differential(cxx: list[str], uni: Path, tmp: Path) -> tuple[str, bool, str]:
     """Universal sketch edge pipeline (host, double) == backend/edge_dsp.run_cycle on a distance stream."""
     name = "universal_hcsr04_node edge pipeline == edge_dsp.run_cycle (bench standpipe, payload bit-exact)"
@@ -389,16 +438,18 @@ def main() -> int:
                    ok_demo, "" if ok_demo else errs)
             uni = ROOT / "firmware" / "universal_hcsr04_node"
             ok_uni, errs = True, ""
-            for variant in ([], ["-DESP32"], ["-DESP32", '-DWIFI_SSID="lab"', '-DWIFI_PASSWORD="pw"']):
+            for variant in ([], ["-DESP32"], ["-DESP32", '-DWIFI_SSID="lab"', '-DWIFI_PASSWORD="pw"'], ["-DBLACKBOX_SD=1", "-DECHO_PIN=7"], ["-DESP32", "-DEDGE_CRYPTO=1"]):
                 proc = subprocess.run(cxx + ["-std=c++17", "-c", "-x", "c++", "-Wall", "-Wextra", "-Werror",
                                              f"-I{uni / 'test' / 'host_stubs'}", *variant, str(uni / "universal_hcsr04_node.ino"),
                                              "-o", str(tmp / "uni.o")], capture_output=True, text=True)
                 if proc.returncode != 0:
                     ok_uni = False
                     errs = " | ".join(ln for ln in proc.stderr.splitlines() if "error" in ln)[:600]
-            record("universal_hcsr04_node.ino compiles for Arduino Uno + ESP32-S3 (+ Wi-Fi) stubs (3 variants, -Werror)",
+            record("universal_hcsr04_node.ino compiles for Arduino Uno + ESP32-S3 (+ Wi-Fi, + Uno SD, + EDGE_CRYPTO) stubs (5 variants, -Werror)",
                    ok_uni, "" if ok_uni else errs)
             record(*universal_differential(cxx, uni, tmp))
+            record(*blackbox_dump_check(cxx, uni, tmp))
+            record(*crypto_check(cxx, uni, tmp))
     else:
         print("No C++ compiler found (g++/clang++/c++/zig/$CXX). Running fallback verifier only.")
         record("fallback: Python reference golden vectors", dsp.pack_payload(5115, -1, 127, 7, 4.2) == 0xFFFFFFFF)

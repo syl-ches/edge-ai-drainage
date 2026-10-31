@@ -12,6 +12,10 @@ export interface UsbRig {
   error: string | null;
   /** last raw lines (newest last) for a serial monitor */
   lines: string[];
+  /** Sends a console command line to the connected board; false when nothing is connected. */
+  send(line: string): Promise<boolean>;
+  /** Subscribes to every raw serial line (e.g. the [SD_DUMP] burst); returns the unsubscribe. */
+  onLine(fn: (line: string) => void): () => void;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
 }
@@ -22,6 +26,7 @@ export function useUsbRig(cfg: RigConfig, unit: DistanceUnit, onPacket: (p: Hard
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<string[]>([]);
   const session = useRef<SerialSession | null>(null);
+  const listeners = useRef(new Set<(line: string) => void>());
   const rig = useRef(new HardwareRig(cfg));
   const latest = useRef({ unit, onPacket });
   latest.current = { unit, onPacket };
@@ -46,6 +51,7 @@ export function useUsbRig(cfg: RigConfig, unit: DistanceUnit, onPacket: (p: Hard
     try {
       const s = await connectWebSerial(
         (line) => {
+          listeners.current.forEach((fn) => fn(line));
           setLines((l) => {
             const next = l.length >= maxLines ? l.slice(l.length - maxLines + 1) : l.slice();
             next.push(line);
@@ -76,5 +82,11 @@ export function useUsbRig(cfg: RigConfig, unit: DistanceUnit, onPacket: (p: Hard
 
   useEffect(() => () => void session.current?.close(), []);
 
-  return { status, label, error, lines, connect, disconnect };
+  const send = useCallback(async (line: string) => (session.current ? session.current.send(line) : false), []);
+  const onLine = useCallback((fn: (line: string) => void) => {
+    listeners.current.add(fn);
+    return () => void listeners.current.delete(fn);
+  }, []);
+
+  return { status, label, error, lines, connect, disconnect, send, onLine };
 }

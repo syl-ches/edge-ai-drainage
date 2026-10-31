@@ -26,28 +26,44 @@ const roadWidth = (k: number) =>
 type Paint = Record<string, unknown>;
 const GREEN_CLASSES = ['grass', 'scrub', 'park', 'meadow', 'farmland'];
 
+/** ArchiMap-style architectural scale-model palette (Phase 9B), shared with the 3D diorama. */
+export const ARCHIMAP = {
+  ground: '#F8FAFC',
+  street: '#FFFFFF',
+  streetEdge: '#DDD7CC',
+  parcel: '#E2DDD3',
+  sage: '#A3B19B',
+  sageDeep: '#9CAF88',
+  building: '#EFEFEF',
+  buildingEdge: '#DDD8CF',
+  water: '#A9CDE0',
+  waterway: '#7FB2CC',
+} as const;
+
 /** Per-theme paint for every basemap layer (applied with setPaintProperty on a theme toggle). */
 export const BASEMAP_PAINT: Record<Theme, Record<string, Paint>> = {
   daylight: {
-    canvas: { 'background-color': '#F3F4EE' },
+    canvas: { 'background-color': ARCHIMAP.ground },
     landcover: {
-      'fill-color': ['match', ['get', 'class'], ['wood', 'forest'], '#A3D98B', GREEN_CLASSES, '#CBE8BA', '#E6E8E0'],
-      'fill-opacity': 0.85,
+      'fill-color': ['match', ['get', 'class'], ['wood', 'forest'], ARCHIMAP.sageDeep, GREEN_CLASSES, ARCHIMAP.sage, '#F1F2EE'],
+      'fill-opacity': 0.9,
     },
-    park: { 'fill-color': '#CBE8BA', 'fill-opacity': 0.9 },
-    water: { 'fill-color': '#7DD3FC' },
-    waterway: { 'line-color': '#38BDF8', 'line-width': 1.2 },
-    'building-footprints': { 'fill-color': '#E9ECE4', 'fill-outline-color': '#D5DAD0', 'fill-opacity': 0.9 },
-    'roads-casing': { 'line-color': '#FFFFFF', 'line-opacity': 1 },
-    'roads-minor': { 'line-color': '#D9DDD2' },
-    'roads-major': { 'line-color': '#D2D7CA' },
-    'grid-minor': { 'line-color': '#DDE2D6', 'line-opacity': 0.55 },
-    'grid-major': { 'line-color': '#C9D1C2', 'line-opacity': 0.7 },
+    park: { 'fill-color': ARCHIMAP.sage, 'fill-opacity': 0.9 },
+    parcels: { 'line-color': ARCHIMAP.parcel, 'line-opacity': 0.9 },
+    water: { 'fill-color': ARCHIMAP.water },
+    waterway: { 'line-color': ARCHIMAP.waterway, 'line-width': 1.2 },
+    'building-footprints': { 'fill-color': ARCHIMAP.building, 'fill-outline-color': ARCHIMAP.buildingEdge, 'fill-opacity': 0.95 },
+    'roads-casing': { 'line-color': ARCHIMAP.streetEdge, 'line-opacity': 1 },
+    'roads-minor': { 'line-color': ARCHIMAP.street },
+    'roads-major': { 'line-color': ARCHIMAP.street },
+    'grid-minor': { 'line-color': '#ECE9E3', 'line-opacity': 0.55 },
+    'grid-major': { 'line-color': '#E0DBD2', 'line-opacity': 0.7 },
   },
   xray: {
     canvas: { 'background-color': '#090D16' },
     landcover: { 'fill-color': '#0C1A1C', 'fill-opacity': 0.6 },
     park: { 'fill-color': '#0D1F1E', 'fill-opacity': 0.7 },
+    parcels: { 'line-color': '#1A2333', 'line-opacity': 0.6 },
     water: { 'fill-color': '#0A2236' },
     waterway: { 'line-color': '#12405E', 'line-width': 1 },
     'building-footprints': { 'fill-color': '#111827', 'fill-outline-color': '#1F2A3D', 'fill-opacity': 0.8 },
@@ -61,9 +77,9 @@ export const BASEMAP_PAINT: Record<Theme, Record<string, Paint>> = {
 
 export const SKY: Record<Theme, SkySpecification> = {
   daylight: {
-    'sky-color': '#DDEFF6',
-    'horizon-color': '#F3F4EE',
-    'fog-color': '#F3F4EE',
+    'sky-color': '#E3EEF4',
+    'horizon-color': '#F8FAFC',
+    'fog-color': '#F8FAFC',
     'sky-horizon-blend': 0.7,
     'horizon-fog-blend': 0.6,
     'fog-ground-blend': 0.85,
@@ -90,6 +106,13 @@ export function applyBasemapTheme(map: MapLibreMap, theme: Theme): void {
   map.setSky(SKY[theme]);
 }
 
+/** Basemap water + waterway layers follow the "Surface Waterways" toggle. */
+export function setBasemapWaterways(map: MapLibreMap, on: boolean): void {
+  for (const id of ['water', 'waterway']) {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  }
+}
+
 /** Basemap green layers follow the "3D Vegetation & Parks" toggle with the 3D trees. */
 export function setBasemapParks(map: MapLibreMap, on: boolean): void {
   for (const id of ['landcover', 'park']) {
@@ -99,7 +122,7 @@ export function setBasemapParks(map: MapLibreMap, on: boolean): void {
 
 /**
  * Zero-API-key style: OpenFreeMap (OpenMapTiles schema) vector tiles with hand-tuned,
- * label-free layers in two looks (daylight alabaster/green diorama, obsidian X-ray) plus a
+ * label-free layers in two looks (daylight ArchiMap scale model, obsidian X-ray) plus a
  * procedural 100 m grid. No glyphs or sprites are requested, so if the tile CDN is
  * unreachable the grid, terrain and the whole 3D scene still render.
  */
@@ -123,6 +146,8 @@ export function buildBasemapStyle(frame: LocalFrame, theme: Theme = 'daylight'):
       { id: 'canvas', type: 'background', paint: paint('canvas') },
       { id: 'landcover', type: 'fill', source: BASEMAP_SOURCE_ID, 'source-layer': 'landcover', paint: paint('landcover') },
       { id: 'park', type: 'fill', source: BASEMAP_SOURCE_ID, 'source-layer': 'park', paint: paint('park') },
+      // Warm-grey parcel lines: OpenMapTiles landuse polygon edges (residential, commercial, ...).
+      { id: 'parcels', type: 'line', source: BASEMAP_SOURCE_ID, 'source-layer': 'landuse', minzoom: 14, paint: paint('parcels', { 'line-width': 0.7 }) },
       { id: 'water', type: 'fill', source: BASEMAP_SOURCE_ID, 'source-layer': 'water', paint: paint('water') },
       { id: 'waterway', type: 'line', source: BASEMAP_SOURCE_ID, 'source-layer': 'waterway', paint: paint('waterway') },
       {

@@ -140,7 +140,7 @@ describe('cross-tab sync + map override', () => {
   });
   it('raises the map banner at >= 80 % full', () => {
     const p = drive(new HardwareRig(cfg()), Array(30).fill(85), 0.6).at(-1)!;
-    expect(hardwareBannerText(p)).toEqual({ alarm: true, text: `🔴 LIVE SENSOR ALERT — EN-08 AT ${Math.round(p.capacityPct)}% CAPACITY` });
+    expect(hardwareBannerText(p)).toEqual({ alarm: true, text: `LIVE SENSOR ALERT — EN-08 AT ${Math.round(p.capacityPct)}% CAPACITY` });
     expect(hardwareBannerText({ ...p, capacityPct: 40, anomaly: 'NORMAL' }).alarm).toBe(false);
   });
   it('routes /?view=hardware-sim and /hardware-sim to the companion page', () => {

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import importlib.util
+import json
 import math
 import os
 import random
@@ -28,7 +29,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("CITYCAMP_FRAME_HZ", "20")   # fast ticker so the WS test gets frames quickly
 
+# API tests write to a throwaway telemetry database, never backend/data/.
+os.environ.setdefault("CITYCAMP_DB_PATH", str(Path(tempfile.mkdtemp(prefix="citycamp-db-")) / "test.db"))
 from backend import edge_dsp as dsp  # noqa: E402
+from backend.database import TelemetryDB, crc32_frames, frame_row  # noqa: E402
+from backend import notifications as notif  # noqa: E402
+from backend.crypto import EdgeCipher, speck_encrypt, speck_round_keys  # noqa: E402
 from backend.intelligence import arbitrate, storm_profile  # noqa: E402
 from backend.lut import TwinLut  # noqa: E402
 from backend import stgnn  # noqa: E402
@@ -184,6 +190,12 @@ class IntelligenceTests(unittest.TestCase):
         self.assertEqual(v["root_cause"], "CONFIRMED_TRASH_RACK_OCCLUSION")
         v = arbitrate({"EN-08": en08}, 10.0, True, "TRASH_RACK_ORIFICE")
         self.assertEqual(v["root_cause"], "INTAKE_SURCHARGE_OVERFLOW")
+        # Deep ponding reads SURCHARGED at the edge (it outranks TRASH_BLOCKAGE): still backwater.
+        deep = dict(anomaly_class="SURCHARGED", h_over_d=1.14, turbulence_index=0.2)
+        v = arbitrate({"EN-08": deep, "EN-10": dict(anomaly_class="NORMAL", capacity_pct=42.0)}, 78.0, False, "TRASH_RACK_ORIFICE")
+        self.assertEqual(v["root_cause"], "CONFIRMED_TRASH_RACK_OCCLUSION")
+        v = arbitrate({"EN-08": deep, "EN-10": en10_hi}, 8.0, False, "ROCK_TUNNEL_CHOKE_4.44_CMS")
+        self.assertEqual(v["root_cause"], "DOWNSTREAM_ROCK_CHOKE_BACKWATER")
 
     def test_lut_interpolator_matches_grid(self):
         for s in LUT.lut["scenarios"]:
@@ -289,7 +301,7 @@ class STGNNTests(unittest.TestCase):
         design = lib["storms"][0]
         for t in (0.0, 0.25, 0.42, 0.8):
             self.assertAlmostEqual(hyetograph_trajectory(design, t * 720.0)[0], storm_profile(t)[0], delta=6.0)
-        for script in ("gen_precip_library.py", "gen_frontend_goldens.py"):
+        for script in ("gen_precip_library.py", "gen_frontend_goldens.py", "gen_cctv_registry.py"):
             r = subprocess.run([sys.executable, str(ROOT / "scripts" / script), "--check"], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, f"{script}: {r.stdout}{r.stderr} (re-run it and commit the output)")
 
@@ -331,6 +343,99 @@ class WeatherFeedTests(unittest.TestCase):
             self.assertTrue(cache.exists())
             warm = LiveFeed(cache, fetch=lambda *a, **k: (_ for _ in ()).throw(OSError("no network")))
             self.assertEqual(warm.snapshot()["current_mm_hr"], 4.8)        # disk cache survives restarts
+
+
+class DatabaseTests(unittest.TestCase):
+    def setUp(self):
+        self.db = TelemetryDB(":memory:", url="")
+
+    def test_store_query_and_dedupe(self):
+        word = dsp.pack_payload(1695, 5, 78, 2, 3.8)
+        hx = f"0x{word:08X}"
+        rows = [frame_row("EN-08", f"2026-10-31T03:{m:02d}:00.000Z", hx, "LIVE", False) for m in range(5)]
+        self.assertEqual(rows[0]["depth_cm"], 169.5)
+        self.assertEqual(rows[0]["capacity_pct"], 78.0)
+        self.assertEqual(rows[0]["anomaly_code"], 2)
+        self.assertEqual(self.db.insert_frames(rows), 5)
+        self.assertEqual(self.db.insert_frames(rows[:3]), 0)            # duplicates ignored
+        hist = self.db.history("EN-08", 3)
+        self.assertEqual([r["timestamp_utc"][14:16] for r in hist], ["02", "03", "04"])  # newest 3, oldest first
+        self.assertEqual(self.db.history("EN-01"), [])
+        with self.assertRaises(ValueError):
+            frame_row("EN-08", "t", "0x123", "LIVE", False)
+
+    def test_sd_backfill_crc_and_batches(self):
+        frames = [dict(timestamp_utc=f"2026-10-31T04:{m:02d}:00.000Z", payload_hex=f"0x{dsp.pack_payload(800 + 10 * m, 3, 40 + m, 0, 3.9):08X}") for m in range(30)]
+        crc = crc32_frames(f["payload_hex"] for f in frames)
+        res = self.db.sd_backfill("B1", "EN-08", frames, crc)
+        self.assertEqual((res["inserted"], res["integrity_crc_status"]), (30, "PASS"))
+        again = self.db.sd_backfill("B2", "EN-08", frames, crc)
+        self.assertEqual((again["inserted"], again["duplicates"]), (0, 30))
+        bad = self.db.sd_backfill("B3", "EN-08", frames, "DEADBEEF")
+        self.assertEqual((bad["inserted"], bad["integrity_crc_status"]), (0, "FAIL"))
+        self.assertTrue(all(r["sd_recovered_flag"] for r in self.db.history("EN-08")))
+        st = self.db.stats()
+        self.assertEqual((st["engine"], st["telemetry_frames"], st["sd_sync_batches"]), ("sqlite", 30, 3))
+
+    def test_postgres_url_falls_back_to_sqlite(self):
+        db = TelemetryDB(":memory:", url="postgresql://nobody@127.0.0.1:1/none")
+        self.assertEqual(db.engine, "sqlite")
+        self.assertIn("PostgreSQL unavailable", db.stats()["note"])
+
+
+class EdgeCryptoTests(unittest.TestCase):
+    def test_speck_paper_vector(self):
+        self.assertEqual(speck_encrypt(speck_round_keys((0x1918, 0x1110, 0x0908, 0x0100)), 0x6574694C), 0xA86842F2)
+
+    def test_round_trip_tamper_and_replay(self):
+        tx, rx = EdgeCipher("BAGUIO_LGU_PSK_2026"), EdgeCipher("BAGUIO_LGU_PSK_2026")
+        e = tx.encrypt(0x34A89F12, 7, "EN-08")
+        self.assertNotEqual(e["cipher_hex"], "0x34A89F12")
+        ok = rx.decrypt_and_verify(e["cipher_hex"], e["tag_hex"], 7, "EN-08")
+        self.assertEqual((ok["verified"], ok["plain_hex"]), (True, "0x34A89F12"))
+        self.assertEqual(rx.decrypt_and_verify(e["cipher_hex"], e["tag_hex"], 7, "EN-08")["reason"], "REPLAYED_NONCE")
+        forged = f"0x{int(e['cipher_hex'], 16) ^ 0x00FF0000:08X}"
+        bad = rx.decrypt_and_verify(forged, e["tag_hex"], 8, "EN-08")
+        self.assertEqual((bad["verified"], bad["reason"], bad["plain_hex"]), (False, "INVALID_TAG", None))
+        e2 = tx.encrypt(0x34A89F12, 9, "EN-08")       # the tag binds the node id
+        self.assertFalse(rx.decrypt_and_verify(e2["cipher_hex"], e2["tag_hex"], 9, "EN-03")["verified"])
+        self.assertFalse(EdgeCipher("other-key").decrypt_and_verify(e2["cipher_hex"], e2["tag_hex"], 9, "EN-08")["verified"])
+        with self.assertRaises(ValueError):
+            EdgeCipher(tag_bits=12)
+
+
+class NotificationTests(unittest.TestCase):
+    CTX = dict(node_id="EN-08", severity="CRITICAL", cap_pct=84.0, dh_dt_cm_min=14.2, vision_pct=12.0,
+               verdict="DOWNSTREAM_ROCK_CHOKE_BACKWATER", evac_lead_min=28.0)
+
+    def test_sms_fits_160_gsm7_septets(self):
+        t = notif.format_sms(**self.CTX)
+        self.assertTrue(t.startswith("[BAGUIO FLOOD INTEL] CRIT SURGE @ EN-08 (Lagoon Intake): 84% Cap."))
+        self.assertIn("Verdict: ROCK CHOKE BACKWATER", t)
+        self.assertLessEqual(notif.gsm7_septets(t), 160)
+        long = notif.format_sms("EN-08", "CRITICAL", 127, -12.8, 95, "x" * 200, 0)
+        self.assertLessEqual(notif.gsm7_septets(long), 160)
+        self.assertEqual(notif.gsm7_safe("T\u00e9st \u2713"), "T\u00e9st ?")
+
+    def test_pdu_and_numbers(self):
+        self.assertEqual(notif.normalise_ph_mobile("0917 123 4567"), "+639171234567")
+        self.assertIsNone(notif.normalise_ph_mobile("+1 555 0100"))
+        self.assertEqual(notif.sms_submit_pdu("+639171234567", "Hello"), "0001000C91361917325476000005C8329BFD06")
+
+    def test_sandbox_loopback_without_keys(self):
+        for k in ("SEMAPHORE_API_KEY", "TWILIO_ACCOUNT_SID", "ALERT_WEBHOOK_URL", "RESEND_API_KEY", "SMTP_HOST"):
+            os.environ.pop(k, None)
+        for g in ("MAYOR", "CDRRMO", "CEPMO", "DPWH"):
+            r = notif.dispatch_alert(self.CTX, g, None, None, g == "MAYOR", "2026-10-31T05:00:00.000Z")
+            self.assertEqual(r["delivery_mode"], "SANDBOX_VERIFIED_LOOPBACK")
+            self.assertEqual({x["channel"] for x in r["ledger"]}, {"SMS", "EMAIL"})
+            self.assertTrue(all(x["status"] == "DELIVERED" and len(x["signature"]) == 32 for x in r["ledger"]))
+            self.assertIn(notif.GROUPS[g]["label"], r["email"]["text"])
+            self.assertIn("multipart/alternative", r["email"]["mime"])
+        r = notif.dispatch_alert(self.CTX, "CUSTOM", "+63 917 123 4567", "judge@example.org", False, "2026-10-31T05:00:00.000Z")
+        self.assertTrue(r["sms"]["pdu"].startswith("0001000C91361917325476"))
+        with self.assertRaises(ValueError):
+            notif.dispatch_alert(self.CTX, "CUSTOM", "12345", None, False, "t")
 
 
 class ApiTests(unittest.TestCase):
@@ -407,6 +512,70 @@ class ApiTests(unittest.TestCase):
         r = self.client.post("/api/v1/ingest/lorawan", json={"device_eui": "EN-02", "payload_hex": dsp.payload_hex(word), "scope": "full_catchment"})
         self.assertEqual(r.json()["twin"]["mode"], "HARDWARE")
         self.client.post("/api/v1/scenario", json={"mode": "PLAYBACK"})
+
+    def test_telemetry_database_endpoints(self):
+        hx = f"0x{dsp.pack_payload(1200, 8, 60, 0, 3.9):08X}"
+        frames = [dict(node_id="EN-03", payload_hex=hx, timestamp_utc=f"2026-10-31T05:{m:02d}:00.000Z") for m in range(4)]
+        r = self.client.post("/api/telemetry/ingest", json=dict(frames=frames)).json()
+        self.assertEqual((r["inserted"], r["duplicates"]), (4, 0))
+        self.assertEqual(self.client.post("/api/telemetry/ingest", json=dict(frames=frames)).json()["duplicates"], 4)
+        hist = [f for f in self.client.get("/api/telemetry/history", params=dict(node_id="EN-03", limit=50)).json()["frames"]
+                if f["timestamp_utc"].startswith("2026-10-31T05")]   # earlier tests' LoRaWAN uplinks are persisted too
+        self.assertEqual(len(hist), 4)
+        self.assertEqual(hist[-1]["capacity_pct"], 60.0)
+        sd = [dict(timestamp_utc=f"2026-10-31T06:{m:02d}:00.000Z", payload_hex=hx) for m in range(10)]
+        res = self.client.post("/api/telemetry/sd-backfill", json=dict(node_id="EN-03", frames=sd, crc32=crc32_frames(f["payload_hex"] for f in sd))).json()
+        self.assertEqual((res["status"], res["inserted"]), ("ok", 10))
+        self.assertEqual(self.client.post("/api/telemetry/sd-backfill", json=dict(node_id="EN-03", frames=sd, crc32="00000000")).json()["status"], "rejected")
+        stats = self.client.get("/api/database/stats").json()
+        self.assertGreaterEqual(stats["telemetry_frames"], 14)
+        self.assertEqual(stats["engine"], "sqlite")
+        self.assertEqual(self.client.get("/api/telemetry/history", params=dict(node_id="EN-99")).status_code, 404)
+        self.client.post("/api/incidents", json=dict(node_id="EN-08", fusion_verdict="CONFIRMED_TRASH_RACK_OCCLUSION", trash_rack_occlusion_pct=78, target_agency="CEPMO", action_summary="Clear the rack"))
+        self.assertEqual(self.client.get("/api/incidents").json()["incidents"][0]["target_agency"], "CEPMO")
+
+    def test_alert_dispatch_and_secure_ingest(self):
+        r = self.client.post("/api/alerts/dispatch", json=dict(node_id="EN-08", severity="CRITICAL", recipient_group="ALL")).json()
+        self.assertEqual(r["delivery_mode"], "SANDBOX_VERIFIED_LOOPBACK")
+        self.assertEqual([d["group"] for d in r["dispatches"]], ["MAYOR", "CDRRMO", "CEPMO", "DPWH"])
+        self.assertTrue(all(d["sms"]["septets"] <= 160 for d in r["dispatches"]))
+        self.assertGreaterEqual(len(self.client.get("/api/alerts/audit-log").json()["ledger"]), 8)
+        self.assertEqual(self.client.post("/api/alerts/dispatch", json=dict(recipient_group="CUSTOM", custom_phone="555")).status_code, 422)
+        tx = EdgeCipher("BAGUIO_LGU_PSK_2026")
+        word = dsp.pack_payload(1400, 6, 70, 0, 3.9)
+        e = tx.encrypt(word, 4242, "EN-08")
+        body = dict(device_eui="EN-08", cipher_hex=e["cipher_hex"], tag_hex=e["tag_hex"], nonce=4242)
+        ok = self.client.post("/api/v1/ingest/secure", json=body)
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.json()["plain_hex"], f"0x{word:08X}")
+        self.assertEqual(self.client.post("/api/v1/ingest/secure", json=body).status_code, 401)          # replay
+        spoof = self.client.post("/api/v1/ingest/secure", json=dict(body, cipher_hex="0x7FFFFFFF", nonce=5000))
+        self.assertEqual(spoof.status_code, 401)
+        self.assertTrue(spoof.json()["detail"]["security_alert"].startswith("INVALID EDGE SIGNATURE"))
+
+    def test_cctv_nearest_feeds(self):
+        r = self.client.get("/api/v1/cctv/nearest/EN-08")
+        self.assertEqual(r.status_code, 200)
+        feeds = r.json()["feeds"]
+        self.assertEqual([f["camera"]["camera_id"] for f in feeds], ["CAM-CCL-A", "CAM-CCL-B"])
+        self.assertAlmostEqual(feeds[0]["distance_m"], 12.0, delta=0.5)
+        self.assertTrue(all(f["in_coverage"] for f in feeds))
+        self.assertIsNone(feeds[0]["camera"]["stream"])                 # never committed; env-configured
+        self.assertEqual(self.client.get("/api/v1/cctv/nearest/EN-99").status_code, 404)
+        cams = self.client.get("/api/v1/cctv/cameras").json()
+        self.assertEqual(cams["streams_configured"], 0)
+        self.assertTrue(all(c["registry_status"] == "PLACEHOLDER" and c["source_type"] == "SYNTHETIC_OSMNX" for c in cams["cameras"]))
+        for sid in ("EN-01", "EN-02", "EN-03", "EN-04", "EN-05", "EN-06", "EN-07", "EN-09", "EN-10"):
+            self.assertEqual(len(self.client.get(f"/api/v1/cctv/nearest/{sid}").json()["feeds"]), 2)
+
+    def test_cctv_stream_override(self):
+        from backend import cctv
+        os.environ["CITYCAMP_CCTV_STREAMS"] = json.dumps({"CAM-CCL-A": "https://gw.local/hls/ccl-a.m3u8"})
+        try:
+            a = next(c for c in cctv.cameras() if c["camera_id"] == "CAM-CCL-A")
+            self.assertEqual(a["stream"], {"protocol": "hls", "url": "https://gw.local/hls/ccl-a.m3u8"})
+        finally:
+            del os.environ["CITYCAMP_CCTV_STREAMS"]
 
     def test_ingest_distance_rig(self):
         from backend.main import runtime

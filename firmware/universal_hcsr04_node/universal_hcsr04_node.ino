@@ -18,6 +18,18 @@
 // Wi-Fi: ESP32 only, when WIFI_SSID is set: a background task POSTs every 500 ms to
 //          http://SERVER_IP:8000/api/v1/ingest/distance  and  /api/v1/ingest/lorawan
 //        so a battery-powered ESP32-S3 drives the 3D map with no cable.
+// Black box (Phase 9C, blackbox.h): every 5th report (1 Hz) the 32-bit frame is logged.
+//   Tier 1  SPI microSD: /telemetry_log.bin (12-byte records: t_ms, seq, word, big-endian) and
+//           /telemetry_log.csv. Boot prints SD_STATUS:OK_SPI_CARD.
+//   Tier 2  if SD.begin() fails, or a later write fails (loose jumper), the node switches at once to
+//           its internal ring of the last frames and prints SD_STATUS:OK_FLASH_FAILSAFE. It never
+//           halts. ESP32: 256-frame RAM ring mirrored to NVS flash every 64 frames. Uno: 255-frame
+//           EEPROM ring (1 KB). (SD.begin()'s own timeout on a missing card is library-dependent.)
+//   Console: DUMP_SD_LOG streams the ring as [SD_DUMP] lines + [SD_DUMP_END] {frames, crc32,
+//            tier}; SD_STATUS reprints the tier. The web app (Black-box SD recovery) sends it.
+//   SD wiring (ESP32-S3 default SPI): CS GPIO10, MOSI GPIO11, SCK GPIO12, MISO GPIO13, 3V3, GND.
+//   Uno: SD is off by default (hardware SPI needs D10, which is ECHO here); set BLACKBOX_SD 1 and
+//   move ECHO to D7 (ECHO_PIN) to use a card on D8 (SD_CS_PIN); the EEPROM ring always works.
 //
 // WIRING (no resistors, hackathon style). Read these two notes first:
 //   1. ESP32-S3 GPIOs are NOT 5 V tolerant. Use a 3.3 V-capable HC-SR04 (HC-SR04P, RCWL-1601)
@@ -38,6 +50,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #endif
+#include "blackbox.h"
+#include "edge_crypto.h"
 
 // ---------------------------------------------------------------- user configuration
 #define DEVICE_EUI "EN-08"        // map sensor this rig represents (EN-01 .. EN-10)
@@ -57,6 +71,17 @@
 #define SERVER_PORT 8000
 #define UPLINK_SCOPE "single_node" // or "full_catchment"
 #define POST_PERIOD_MS 500
+#ifndef BLACKBOX_SD
+#if defined(ESP32)
+#define BLACKBOX_SD 1             // SPI microSD logging (tier 1)
+#else
+#define BLACKBOX_SD 0             // Uno: see the SD wiring note above
+#endif
+#endif
+#define BLACKBOX_EVERY 5          // log every 5th report: 1 frame per second
+#ifndef EDGE_CRYPTO
+#define EDGE_CRYPTO 0             // 1: [EDGE_TX] carries cipher_hex / tag_hex / nonce instead of payload_hex (edge_crypto.h)
+#endif
 
 // ---------------------------------------------------------------- pins
 #if defined(ESP32)
@@ -65,12 +90,26 @@
 #define LED_GREEN 7
 #define LED_YELLOW 8
 #define LED_RED 9
+#define SD_CS_PIN 10
 #else
 #define TRIG_PIN 9
+#ifndef ECHO_PIN
 #define ECHO_PIN 10
+#endif
 #define LED_GREEN 4
 #define LED_YELLOW 5
 #define LED_RED 6
+#define SD_CS_PIN 8
+#endif
+
+#if BLACKBOX_SD
+#include <SPI.h>
+#include <SD.h>
+#endif
+#if defined(ESP32)
+#include <Preferences.h>
+#else
+#include <EEPROM.h>
 #endif
 
 #ifdef UNIVERSAL_USE_DOUBLE
@@ -323,15 +362,34 @@ static void print_kv(const char *key, real_t v, int decimals, bool comma = true)
   if (comma) Serial.print(",");
 }
 
+#if EDGE_CRYPTO
+static edgecrypto::Keys g_keys;
+#endif
+
 static void print_edge_tx(const edge::Result &r) {
   char hex[11];
-  edge::hex32(r.payload, hex);
   Serial.print("[EDGE_TX] {\"device_eui\":\"" DEVICE_EUI "\",");
   print_kv("dist_mm", r.dist_mm, 1);
   print_kv("fill_pct", r.cap_pct, 1);
+#if EDGE_CRYPTO
+  // Sealed frame (Phase 9D): nonce = the rolling sequence number; the plain payload never leaves.
+  uint32_t tag = 0;
+  const uint32_t cipher = edgecrypto::seal(g_keys, r.payload, (uint32_t)g_seq, DEVICE_EUI, &tag);
+  edge::hex32(cipher, hex);
+  Serial.print("\"cipher_hex\":\"");
+  Serial.print(hex);
+  edge::hex32(tag, hex);
+  Serial.print("\",\"tag_hex\":\"");
+  Serial.print(hex);
+  Serial.print("\",\"nonce\":");
+  Serial.print((unsigned long)g_seq);
+  Serial.print(",");
+#else
+  edge::hex32(r.payload, hex);
   Serial.print("\"payload_hex\":\"");
   Serial.print(hex);
   Serial.print("\",");
+#endif
   print_kv("kalman_filtered_depth_mm", r.depth_mm, 1);
   print_kv("raw_unfiltered_depth_mm", r.raw_depth_mm, 1);
   print_kv("dh_dt_mm_min", r.dh_dt_mm_min, 2);
@@ -406,6 +464,165 @@ static void uplink_task(void *) {
 }
 #endif
 
+// ---------------------------------------------------------------- black box (Phase 9C)
+#if defined(ESP32)
+static blackbox::RamRing<256> g_ring;
+static Preferences g_nvs;
+static uint16_t g_since_mirror = 0;
+
+/** Internal-flash mirror of the ring (words + head + count; millis are not kept across a reboot). */
+static void flash_mirror() {
+  g_nvs.putBytes("words", g_ring.words, sizeof g_ring.words);
+  g_nvs.putUShort("head", g_ring.head);
+  g_nvs.putUShort("n", g_ring.n);
+}
+
+static void flash_restore() {
+  uint16_t n = g_nvs.getUShort("n", 0);
+  if (n == 0 || n > 256) return;
+  if (g_nvs.getBytes("words", g_ring.words, sizeof g_ring.words) != sizeof g_ring.words) return;
+  g_ring.head = (uint16_t)(g_nvs.getUShort("head", 0) % 256);
+  g_ring.n = n;
+  for (uint16_t i = 0; i < 256; ++i) {
+    g_ring.times[i] = 0;
+    g_ring.seqs[i] = 0;
+  }
+}
+#else
+/** 255-frame ring in the Uno's 1 KB EEPROM: byte 0 magic, 1 head, 2 count, words from byte 4. */
+struct EepromRing {
+  static const uint16_t CAP = 255;
+  uint32_t last_t = 0;
+  uint32_t last_seq = 0;
+  void begin() {
+    if (EEPROM.read(0) != 0xB9) {
+      EEPROM.update(0, 0xB9);
+      EEPROM.update(1, 0);
+      EEPROM.update(2, 0);
+    }
+  }
+  void push(uint32_t w, uint32_t t_ms, uint32_t s) {
+    uint8_t h = EEPROM.read(1);
+    for (int b = 0; b < 4; ++b) EEPROM.update(4 + 4 * h + b, (uint8_t)(w >> (24 - 8 * b)));
+    EEPROM.update(1, (uint8_t)((h + 1) % CAP));
+    uint8_t n = EEPROM.read(2);
+    if (n < CAP) EEPROM.update(2, (uint8_t)(n + 1));
+    last_t = t_ms;
+    last_seq = s;
+  }
+  uint16_t count() const { return EEPROM.read(2); }
+  uint16_t slot(uint16_t i) const { return (uint16_t)((EEPROM.read(1) + CAP - count() + i) % CAP); }
+  uint32_t word(uint16_t i) const {
+    uint16_t k = slot(i);
+    uint32_t w = 0;
+    for (int b = 0; b < 4; ++b) w = (w << 8) | EEPROM.read(4 + 4 * k + b);
+    return w;
+  }
+  // EEPROM keeps words only: times and sequence numbers are rebuilt from the 1 Hz logging cadence.
+  uint32_t t_ms(uint16_t i) const {
+    uint32_t back = (uint32_t)(count() - 1 - i) * (uint32_t)(SAMPLE_PERIOD_MS * REPORT_EVERY * BLACKBOX_EVERY);
+    return last_t > back ? last_t - back : 0;
+  }
+  uint32_t seq(uint16_t i) const {
+    uint32_t back = (uint32_t)(count() - 1 - i) * BLACKBOX_EVERY;
+    return last_seq > back ? last_seq - back : 0;
+  }
+};
+static EepromRing g_ring;
+#endif
+
+static bool g_sd_ok = false;
+static int g_since_log = 0;
+
+static const char *blackbox_tier() { return g_sd_ok ? "SPI_SD" : "FLASH_FAILSAFE"; }
+
+static void print_sd_status() { Serial.println(g_sd_ok ? "SD_STATUS:OK_SPI_CARD" : "SD_STATUS:OK_FLASH_FAILSAFE"); }
+
+#if BLACKBOX_SD
+#if defined(ESP32)
+#define BB_APPEND FILE_APPEND
+#else
+#define BB_APPEND FILE_WRITE
+#endif
+/** Appends one frame to both SD files; false on any failure (card pulled, loose wire, full). */
+static bool sd_append(uint32_t t_ms, uint32_t seq, uint32_t word) {
+  uint8_t rec[12];
+  const uint32_t v[3] = {t_ms, seq, word};
+  for (int j = 0; j < 3; ++j)
+    for (int b = 0; b < 4; ++b) rec[4 * j + b] = (uint8_t)(v[j] >> (24 - 8 * b));
+  File bin = SD.open("/telemetry_log.bin", BB_APPEND);
+  if (!bin) return false;
+  size_t wrote = bin.write(rec, sizeof rec);
+  bin.close();
+  if (wrote != sizeof rec) return false;
+  File csv = SD.open("/telemetry_log.csv", BB_APPEND);
+  if (!csv) return false;
+  char hx[11];
+  blackbox::hex32(word, hx);
+  csv.print((unsigned long)t_ms);
+  csv.print(",");
+  csv.print((unsigned long)seq);
+  csv.print(",");
+  csv.println(hx);
+  csv.close();
+  return true;
+}
+#endif
+
+static void blackbox_log(unsigned long now) {
+  if (++g_since_log < BLACKBOX_EVERY) return;
+  g_since_log = 0;
+  g_ring.push(g_last.payload, (uint32_t)now, (uint32_t)g_seq);  // the ring mirrors every tier
+#if defined(ESP32)
+  if (++g_since_mirror >= 64) {
+    g_since_mirror = 0;
+    flash_mirror();
+  }
+#endif
+#if BLACKBOX_SD
+  if (g_sd_ok && !sd_append((uint32_t)now, (uint32_t)g_seq, g_last.payload)) {
+    g_sd_ok = false;  // fail over to the internal ring at once, never halt
+    print_sd_status();
+  }
+#endif
+}
+
+static void blackbox_begin() {
+#if defined(ESP32)
+  g_nvs.begin("blackbox", false);
+  flash_restore();
+#else
+  g_ring.begin();
+#endif
+#if BLACKBOX_SD
+  g_sd_ok = SD.begin(SD_CS_PIN);
+#endif
+  print_sd_status();
+}
+
+// Console commands (one per line): DUMP_SD_LOG, SD_STATUS.
+static char g_cmd[24];
+static uint8_t g_cmd_n = 0;
+
+static void handle_command(const char *c) {
+  if (strcmp(c, "DUMP_SD_LOG") == 0) blackbox::dump(Serial, g_ring, blackbox_tier());
+  else if (strcmp(c, "SD_STATUS") == 0) print_sd_status();
+}
+
+static void poll_commands() {
+  while (Serial.available() > 0) {
+    int c = Serial.read();
+    if (c < 0) break;
+    if (c == '\n' || c == '\r') {
+      g_cmd[g_cmd_n] = '\0';
+      if (g_cmd_n) handle_command(g_cmd);
+      g_cmd_n = 0;
+    } else if (g_cmd_n < sizeof g_cmd - 1) {
+      g_cmd[g_cmd_n++] = (char)c;
+    }
+  }
+}
+
 // ---------------------------------------------------------------- Arduino entry points
 void setup() {
   Serial.begin(115200);
@@ -417,6 +634,10 @@ void setup() {
   edge::kalman_reset(&g_kal);
   g_win.n = 0;
   Serial.println("# City Camp twin universal HC-SR04 node, [EDGE_TX] + DIST_MM @ 115200");
+  blackbox_begin();
+#if EDGE_CRYPTO
+  g_keys.init();
+#endif
 #if defined(ESP32)
   if (WIFI_SSID[0] != '\0') {
     WiFi.mode(WIFI_STA);
@@ -429,6 +650,7 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
+  poll_commands();
   update_leds(now);
   if (now - g_last_sample < SAMPLE_PERIOD_MS) return;
   g_last_sample = now;
@@ -451,6 +673,7 @@ void loop() {
   g_since_report = 0;
   ++g_seq;
   print_edge_tx(g_last);
+  blackbox_log(now);
 #if defined(ESP32)
   portENTER_CRITICAL(&g_mux);
   g_snap = g_last;

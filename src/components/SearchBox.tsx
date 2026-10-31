@@ -16,6 +16,9 @@ interface Props {
   network: NetworkFile;
   state: TwinState;
   onPick(p: SearchPick): void;
+  /** 'pill': icon that opens a popover (default); 'field': always-visible sidebar input. */
+  variant?: 'pill' | 'field';
+  placeholder?: string;
 }
 
 interface Item extends SearchPick {
@@ -82,7 +85,8 @@ function search(index: Item[], query: string): Item[] {
 }
 
 /** Collapsed search icon in the top bar; expands to an input with grouped results (sensors, nodes, conduits). */
-export function SearchBox({ network, state, onPick }: Props) {
+export function SearchBox({ network, state, onPick, variant = 'pill', placeholder }: Props) {
+  const field = variant === 'field';
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -105,7 +109,7 @@ export function SearchBox({ network, state, onPick }: Props) {
     close();
   };
 
-  if (!open) {
+  if (!open && !field) {
     return (
       <button onClick={() => setOpen(true)} title="Search sensors, nodes and conduits" aria-label="Search" className="btn-idle flex shrink-0 items-center rounded-full p-2">
         <Search size={13} />
@@ -120,9 +124,9 @@ export function SearchBox({ network, state, onPick }: Props) {
   };
 
   return (
-    <>
-      <div className="btn-idle flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-3 pr-1.5 text-[11px]">
-        <Search size={13} className="shrink-0" />
+    <div className={field ? 'relative' : 'contents'}>
+      <div className={field ? 'sh-input flex items-center gap-2 rounded-md px-2.5 py-2' : 'btn-idle flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-3 pr-1.5 text-[11px]'}>
+        <Search size={13} strokeWidth={1.5} className="shrink-0" />
         <input
           ref={input}
           value={query}
@@ -144,16 +148,23 @@ export function SearchBox({ network, state, onPick }: Props) {
               pick(results[cursor]);
             }
           }}
-          placeholder="Search EN-08, trash rack, TUN-C01…"
+          placeholder={placeholder ?? 'Search EN-08, trash rack, TUN-C01…'}
           aria-label="Search sensors, nodes and conduits"
-          className="w-36 bg-transparent text-[11px] text-white outline-none placeholder:text-slate-400 sm:w-56"
+          className={field ? 'sh-mono sh-ink w-full min-w-0 bg-transparent text-[12px] outline-none placeholder:text-[var(--sh-muted)]' : 'w-36 bg-transparent text-[11px] text-white outline-none placeholder:text-slate-400 sm:w-56'}
         />
-        <button onClick={close} aria-label="Close search" className="rounded-full p-1 hover:bg-white/10">
-          <X size={12} />
-        </button>
+        {(!field || query) && (
+          <button onClick={close} aria-label="Clear search" className="rounded-full p-1 hover:bg-white/10">
+            <X size={12} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
+      {(!field || query.trim() !== '') && (
       <div
-        className="hud-card fixed inset-x-2 top-[calc(var(--topbar-h,48px)+16px)] z-40 max-h-[60vh] overflow-y-auto rounded-2xl p-1.5 text-[11px] sm:inset-x-auto sm:left-[404px] sm:w-[380px]"
+        className={
+          field
+            ? 'sh-menu absolute inset-x-0 top-[calc(100%+4px)] z-40 max-h-[52vh] overflow-y-auto rounded-md p-1 text-[11px]'
+            : 'hud-card fixed inset-x-2 top-[calc(var(--topbar-h,48px)+16px)] z-40 max-h-[60vh] overflow-y-auto rounded-2xl p-1.5 text-[11px] sm:inset-x-auto sm:left-[404px] sm:w-[380px]'
+        }
         role="listbox"
       >
         {results.length === 0 && <div className="px-3 py-2 opacity-70">No sensors, nodes or conduits match “{query}”.</div>}
@@ -170,7 +181,7 @@ export function SearchBox({ network, state, onPick }: Props) {
                   aria-selected={results[cursor] === r}
                   onClick={() => pick(r)}
                   onMouseEnter={() => setCursor(results.indexOf(r))}
-                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left ${results[cursor] === r ? 'bg-sky-500/25' : ''}`}
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left ${results[cursor] === r ? (field ? 'bg-[var(--sh-hover)]' : 'bg-sky-500/25') : ''}`}
                 >
                   {dot(r)}
                   <span className="min-w-0 flex-1">
@@ -183,6 +194,7 @@ export function SearchBox({ network, state, onPick }: Props) {
           );
         })}
       </div>
-    </>
+      )}
+    </div>
   );
 }

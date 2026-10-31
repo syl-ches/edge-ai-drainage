@@ -6,7 +6,8 @@ import type { Theme } from '../three/theme';
 import type { LutInterpolator, TwinState } from '../utils/lutInterpolator';
 import { ALARM_PCT, nodeDepthM, nodeFullnessPct, sensorConduitIndex, sensorGeometry, ultrasonicDistanceMm, visualBlockagePct } from '../utils/fullness';
 import type { SimView } from '../utils/urlState';
-import { drawCatchmentProfile, drawNodeCutaway, PALETTES, type NodeModel, type ProfileModel } from './crossSection/draw';
+import { drawCatchmentProfile, drawNodeCutaway, PALETTES } from './crossSection/draw';
+import { SectionSmoother } from './crossSection/models';
 
 interface Props {
   data: TwinData;
@@ -53,7 +54,7 @@ export function CrossSectionSimulator(p: Props) {
   const drainRef = useRef(false);
   const latest = useRef(p);
   latest.current = p;
-  const smooth = useRef({ depth: 0, full: 0, lagoon: 0, hill: 0, tunnel: 0, choke: 0, down: 0, init: false });
+  const smooth = useRef(new SectionSmoother());
 
   const geometries = useMemo(() => {
     const m = new Map<string, ReturnType<typeof sensorGeometry>>();
@@ -96,80 +97,14 @@ export function CrossSectionSimulator(p: Props) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      const k = 1 - Math.exp(-dt * 3.2);
       const t = now / 1000;
-      const st = q.state;
       const pal = PALETTES[q.theme];
       const sm = smooth.current;
-
-      const idx = q.interp.sensorIndex.get(q.node) ?? 0;
-      const sen = st.sensors[idx];
-      const g = sensorGeometry(sen.sensor, q.data.network);
-      const targetDepth = nodeDepthM(sen);
-      const targetFull = nodeFullnessPct(sen);
-      const C = st.conduits;
-      const at = (id: string) => q.interp.conduitIndex.get(id) ?? -1;
-      const fillOf = (id: string) => {
-        const i = at(id);
-        return i >= 0 ? C.depth[i] / q.data.network.conduits[i].geometry.rise_m : 0;
-      };
-      const hillTarget = Math.max(nodeFullnessPct(st.sensors[0]), nodeFullnessPct(st.sensors[1])) / 100;
-      if (!sm.init) {
-        Object.assign(sm, { depth: targetDepth, full: targetFull, lagoon: st.lagoon.depthM, hill: hillTarget, tunnel: fillOf('TUN-C01'), choke: fillOf('TUN-C03'), down: fillOf('TUN-C09'), init: true });
-      }
-      sm.depth += (targetDepth - sm.depth) * k;
-      sm.full += (targetFull - sm.full) * k;
-      sm.lagoon += (st.lagoon.depthM - sm.lagoon) * k;
-      sm.hill += (hillTarget - sm.hill) * k;
-      sm.tunnel += (fillOf('TUN-C01') - sm.tunnel) * k;
-      sm.choke += (fillOf('TUN-C03') - sm.choke) * k;
-      sm.down += (fillOf('TUN-C09') - sm.down) * k;
-
+      sm.update(dt, q.state, q.interp, q.data.network, q.node);
       if (q.view === 'node') {
-        const conduitI = sen.sensor.attached_kind === 'CONDUIT' ? at(sen.sensor.attached_to) : -1;
-        const lidDepth =
-          g.shape === 'STORAGE'
-            ? q.data.network.lagoon.max_depth_m
-            : g.shape === 'ORIFICE'
-              ? q.data.network.lagoon.rim_elev_m - q.data.network.orifices[0].sill_elev_m
-              : sen.sensor.coordinates[2] - Number(sen.sensor.pipe_geometry.invert_elev_m);
-        const model: NodeModel = {
-          id: sen.id,
-          title: `${g.structureLabel} (${sen.id})`,
-          kind: g.shape,
-          rise: g.fullScaleM,
-          span: g.spanM,
-          lidDepth,
-          mount: g.mountM,
-          crownMounted: g.crownMounted,
-          depth: sm.depth,
-          fullPct: sm.full,
-          velocity: conduitI >= 0 ? C.velocity[conduitI] : 0.3,
-          anomaly: sen.anomaly,
-          turbulence: Math.min(sen.turbulence, 1),
-          rain: st.rain,
-          blockagePct: st.blockagePct,
-          draining: drainRef.current,
-          isVision: sen.sensor.hardware === 'JETSON_YOLO_TRASHRACK',
-        };
-        drawNodeCutaway(ctx, w, h, model, t, pal, capacityColor(sm.full / 100, q.theme));
+        drawNodeCutaway(ctx, w, h, sm.nodeModel(q.state, q.interp, q.data.network, q.node, drainRef.current), t, pal, capacityColor(sm.full / 100, q.theme));
       } else {
-        const tun = at('TUN-C01');
-        const model: ProfileModel = {
-          rain: st.rain,
-          hillFill: sm.hill,
-          arterialFill: fillOf('LGD-C07'),
-          lagoonDepth: sm.lagoon,
-          lagoonMax: q.data.network.lagoon.max_depth_m,
-          blockagePct: st.blockagePct,
-          tunnelFill: sm.tunnel,
-          chokeFill: sm.choke,
-          downstreamFill: sm.down,
-          tunnelVelocity: tun >= 0 ? C.velocity[tun] : 0,
-          hillAnomaly: st.sensors[0].anomaly,
-          draining: drainRef.current,
-        };
-        drawCatchmentProfile(ctx, w, h, model, t, pal, (r) => capacityColor(r, q.theme));
+        drawCatchmentProfile(ctx, w, h, sm.profileModel(q.state, q.interp, q.data.network, drainRef.current), t, pal, (r) => capacityColor(r, q.theme));
       }
     };
     raf = requestAnimationFrame(tick);

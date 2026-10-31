@@ -5,7 +5,7 @@ frames against it so the two stay in lock-step.
 """
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -233,3 +233,58 @@ class IngestRequest(BaseModel):
     # single_node: only this sensor (and the forecast's assimilation) follows the uplink;
     # full_catchment: the whole twin is driven by inverting its capacity through the LUT.
     scope: Literal["single_node", "full_catchment"] = "full_catchment"
+
+
+# ---------------------------------------------------------------- Phase 9C telemetry database
+class TelemetryFrameIn(BaseModel):
+    """One 32-bit uplink to persist. Engineering values are decoded server-side from the payload."""
+    node_id: str
+    payload_hex: str
+    timestamp_utc: Optional[str] = None
+    source_mode: str = "LIVE"
+
+
+class TelemetryIngestRequest(BaseModel):
+    frames: list[TelemetryFrameIn] = Field(default_factory=list, max_length=5000)
+
+
+class SdFrameIn(BaseModel):
+    timestamp_utc: str
+    payload_hex: str
+
+
+class SdBackfillRequest(BaseModel):
+    """Black-box (SD card or flash ring buffer) frames recovered after a comms blackout."""
+    node_id: str
+    batch_id: Optional[str] = None
+    frames: list[SdFrameIn] = Field(default_factory=list, max_length=20000)
+    crc32: Optional[str] = None   # CRC-32 over the frames' big-endian bytes, as the firmware dump reports
+
+
+class IncidentRequest(BaseModel):
+    node_id: str
+    fusion_verdict: str
+    trash_rack_occlusion_pct: float = 0.0
+    target_agency: str
+    action_summary: str
+
+
+# ---------------------------------------------------------------- Phase 9D alerts + edge security
+class AlertDispatchRequest(BaseModel):
+    node_id: str = "EN-08"
+    severity: Literal["CRITICAL", "WARNING", "INFO"] = "CRITICAL"
+    fusion_verdict: Optional[str] = None      # default: the live fusion verdict
+    recipient_group: Literal["MAYOR", "CDRRMO", "CEPMO", "DPWH", "CUSTOM", "ALL"] = "CDRRMO"
+    custom_phone: Optional[str] = None
+    custom_email: Optional[str] = None
+    attach_pdf_summary: bool = False
+    auto: bool = False                         # threshold auto-dispatch (sandbox unless ALERT_AUTO_LIVE=1)
+
+
+class SecureIngestRequest(BaseModel):
+    """A sealed 32-bit frame (Speck32/64 CTR + CBC-MAC tag, backend/crypto.py)."""
+    device_eui: str
+    cipher_hex: str
+    tag_hex: str
+    nonce: int = Field(ge=0, le=0xFFFFFFFF)
+    scope: Literal["single_node", "full_catchment"] = "single_node"

@@ -16,6 +16,7 @@ import type { TwinState } from '../utils/lutInterpolator';
 import { LocalFrame } from './frame';
 import { buildBuildings, type BuildingsLayer } from './layers/buildings';
 import { buildConduits, type ConduitsLayer } from './layers/conduits';
+import { buildIntake, type IntakeLayer } from './layers/intake';
 import { buildLagoon, type LagoonLayer } from './layers/lagoon';
 import { buildNodes, ShaftKind, type NodesLayer } from './layers/nodes';
 import { buildRack, type RackLayer } from './layers/rack';
@@ -23,7 +24,7 @@ import { buildSensors, type SensorsLayer } from './layers/sensors';
 import { buildRoads, type RoadsLayer } from './layers/roads';
 import { buildTerrain, type TerrainLayer } from './layers/terrain';
 import { buildWeather, type WeatherLayer } from './layers/weather';
-import { applyBasemapTheme, setBasemapParks } from '../map/basemap';
+import { applyBasemapTheme, setBasemapParks, setBasemapWaterways } from '../map/basemap';
 import type { ShadingMode } from './materials/buildingMaterials';
 import { LIGHTING, setThemeUniforms, type Theme } from './theme';
 import { buildVegetation, type VegetationLayer } from './vegetationLayer';
@@ -49,7 +50,12 @@ export interface LayerVisibility {
   vegetation: boolean;
   network: boolean;
   badges: boolean;
+  /** Surface waterways: basemap water + the open inflow chutes into the bowl. */
+  waterways: boolean;
 }
+
+/** Catchment scope framings of the left sidebar. */
+export type CatchmentScope = 'bowl' | 'tunnel' | 'grid';
 
 export type CameraPresetId = 'overview' | 'intake' | 'choke' | 'drop';
 export interface CameraPreset {
@@ -86,6 +92,7 @@ export class TwinEngine implements CustomLayerInterface {
   readonly terrain: TerrainLayer;
   readonly roads: RoadsLayer;
   readonly vegetation: VegetationLayer;
+  readonly intake: IntakeLayer;
   theme: Theme = 'daylight';
   private lastRain = 0;
 
@@ -118,6 +125,10 @@ export class TwinEngine implements CustomLayerInterface {
     this.conduits = buildConduits(network.conduits, this.frame, this.cameraPos);
     this.nodes = buildNodes(network.nodes, network.conduits, network.orifices, this.frame);
     this.rack = buildRack(rackDef, intakeShaft, this.frame);
+    // Phase 9B: the field-photo intake compound draws the real sloped screen; keep the rack's
+    // throat, halo and picking anchor but hide its symbolic bars.
+    this.intake = buildIntake(network, this.frame, this.terrain.sampleElevation);
+    this.rack.setModelVisible(false);
     this.lagoon = buildLagoon(network.lagoon, this.frame, this.cameraPos);
     this.sensors = buildSensors(network.sensors, network.conduits, network.lagoon, rackDef, this.frame, this.cameraPos);
     this.buildings = buildBuildings(network.buildings, this.frame, this.cameraPos);
@@ -136,6 +147,7 @@ export class TwinEngine implements CustomLayerInterface {
       this.conduits.group,
       this.nodes.group,
       this.rack.group,
+      this.intake.group,
       this.sensors.group,
       this.buildings.group,
       this.weather.group,
@@ -147,7 +159,6 @@ export class TwinEngine implements CustomLayerInterface {
   private buildPresets(): CameraPreset[] {
     const { network } = this.data;
     const anchor: [number, number] = [network.meta.anchor.lon, network.meta.anchor.lat];
-    const rack = network.orifices[0].coordinates;
     const choke = network.conduits.find((c) => c.segment_class === 'UNFINISHED_ROCK_CHOKE')!;
     const drop = this.nodes.shafts.find(
       (s) => s.kind === ShaftKind.DropShaft && s.id !== network.orifices[0].to_node,
@@ -156,10 +167,12 @@ export class TwinEngine implements CustomLayerInterface {
     // Choke: oblique side-on, 55° off the tunnel axis. Intake: face the grate from the lagoon side.
     const [c0, c1] = choke.coordinates;
     const axisBearing = (Math.atan2(c1[0] - c0[0], c1[1] - c0[1]) * 180) / Math.PI;
-    const intakeBearing = (Math.atan2(rack[0] - anchor[0], rack[1] - anchor[1]) * 180) / Math.PI;
+    // Looking down the intake channel (compound +y, along the lagoon rim) at the sloped screen.
+    const intakeBearing = (Math.atan2(this.intake.fwd.x, this.intake.fwd.y) * 180) / Math.PI;
     return [
       { id: 'overview', label: 'Overview Bowl', center: anchor, zoom: 15.8, pitch: 62, bearing: -25 },
-      { id: 'intake', label: 'Tunnel Intake & Trash Rack', center: [rack[0], rack[1]], zoom: 21.2, pitch: 58, bearing: intakeBearing + 20 },
+      // Look down the intake channel at the sloped screen and its cage, court on the bank.
+      { id: 'intake', label: 'Tunnel Intake & Trash Rack', center: this.intakeCenter(), zoom: 19.7, pitch: 60, bearing: intakeBearing + 15 },
       {
         id: 'choke',
         label: `${choke.geometry.span_m}m×${choke.geometry.rise_m}m Rock Choke`,
@@ -177,6 +190,13 @@ export class TwinEngine implements CustomLayerInterface {
         bearing: -60,
       },
     ];
+  }
+
+  /** Mid-point of the intake channel (16 m upstream of the screen) as lng/lat. */
+  private intakeCenter(): [number, number] {
+    const o = this.intake.origin;
+    const f = this.intake.fwd;
+    return this.frame.toLngLat(o.x - f.x * 16, o.y - f.y * 16);
   }
 
   // ---------------------------------------------------------------- CustomLayerInterface
@@ -209,6 +229,8 @@ export class TwinEngine implements CustomLayerInterface {
     this.nodes.setTime(t);
     this.lagoon.setTime(t);
     this.rack.setTime(t);
+    this.intake.setTime(t);
+    this.buildings.setTime(t);
     this.sensors.setTime(t);
     this.terrain.setTime(t);
     this.vegetation.setTime(t);
@@ -243,6 +265,7 @@ export class TwinEngine implements CustomLayerInterface {
     this.nodes.applyState(st);
     this.lagoon.applyState(st.lagoon);
     this.rack.applyBlockage(st.blockagePct);
+    this.intake.applyState(st);
     this.sensors.applyState(st.sensors);
     // Alarmed sensors (>= 80 % full / surcharged / live hardware surge) blink their conduit red.
     const alarm: number[] = [];
@@ -274,14 +297,44 @@ export class TwinEngine implements CustomLayerInterface {
 
   setShadingMode(mode: ShadingMode): void {
     this.buildings.setMode(mode);
+    // Fresnel-glass X-ray also thins the ground so the conduits read through it.
+    this.terrain.setSeeThrough(mode === 'glass' ? 1 : 0);
     this.map?.triggerRepaint();
+  }
+
+  /** 2D plan (pitch 0) or 3D isometric (pitch 60) with a smooth camera ease. */
+  setDimension(d: '2d' | '3d'): void {
+    this.map?.easeTo({ pitch: d === '2d' ? 0 : 60, duration: 900, essential: true });
+  }
+
+  /** Frames a catchment scope: lagoon bowl + intake, the tunnel, or every node. */
+  fitScope(scope: CatchmentScope): void {
+    if (!this.map) return;
+    const net = this.data.network;
+    let pts: [number, number][];
+    if (scope === 'bowl') pts = [...net.lagoon.polygon[0].map(([x, y]) => [x, y] as [number, number]), [net.orifices[0].coordinates[0], net.orifices[0].coordinates[1]]];
+    else if (scope === 'tunnel') pts = net.conduits.filter((c) => c.network === 'TUNNEL').flatMap((c) => c.coordinates.map(([x, y]) => [x, y] as [number, number]));
+    else pts = net.nodes.map((n) => [n.coordinates[0], n.coordinates[1]] as [number, number]);
+    const lon = pts.map((p) => p[0]);
+    const lat = pts.map((p) => p[1]);
+    this.map.fitBounds(
+      [
+        [Math.min(...lon), Math.min(...lat)],
+        [Math.max(...lon), Math.max(...lat)],
+      ],
+      { padding: 60, pitch: this.map.getPitch() > 5 ? 55 : 0, bearing: scope === 'tunnel' ? -30 : this.map.getBearing(), duration: 1600, maxZoom: 18.5 },
+    );
   }
 
   setLayers(v: LayerVisibility): void {
     this.buildings.setVisible(v.buildings);
+    this.intake.setLandmarksVisible(v.buildings);
+    this.intake.setStructureVisible(v.network);
     this.vegetation.setVisible(v.vegetation);
     this.terrain.setParks(v.vegetation);
     if (this.map) setBasemapParks(this.map, v.vegetation);
+    this.intake.setChutesVisible(v.waterways);
+    if (this.map) setBasemapWaterways(this.map, v.waterways);
     this.conduits.group.visible = v.network;
     this.nodes.setVisible(v.network);
     this.rack.group.visible = v.network;

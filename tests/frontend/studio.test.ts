@@ -170,7 +170,7 @@ describe('studio -> edge pipeline -> map alarm', () => {
     expect(last.capacityPct).toBeGreaterThanOrEqual(80);
     const banner = hardwareBannerText(last);
     expect(banner.alarm).toBe(true);
-    expect(banner.text).toBe(`🔴 LIVE SENSOR ALERT — EN-08 AT ${Math.round(last.capacityPct)}% CAPACITY`);
+    expect(banner.text).toBe(`LIVE SENSOR ALERT — EN-08 AT ${Math.round(last.capacityPct)}% CAPACITY`);
   });
 
   it('a pour surge from a steady 30 % raises FLASH_SURGE', () => {

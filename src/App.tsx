@@ -1,18 +1,19 @@
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { loadTwin, type TwinData } from './data/loadTwin';
 import type { PickHit, TwinEngine } from './three/TwinEngine';
 import { MapView, type PointerHit } from './components/MapView';
-import { TwinControlHUD } from './components/TwinControlHUD';
-import { AssetInspectorDrawer } from './components/AssetInspectorDrawer';
 import type { SearchPick } from './components/SearchBox';
 import { QrShareModal } from './components/QrShareModal';
 import { Tooltip } from './components/Tooltip';
 import { SensorBadges } from './components/SensorBadges';
-import { Legend } from './components/Legend';
-import { TopBar } from './components/TopBar';
-import { ShaderModeBar } from './components/ShaderModeBar';
-import { CrossSectionSimulator, SIM_DOCK_MIN_PX, SIM_DOCK_VH } from './components/CrossSectionSimulator';
+import { CrossSectionSimulator } from './components/CrossSectionSimulator';
+import { HeaderBar } from './components/shell/HeaderBar';
+import { LeftSidebar } from './components/shell/LeftSidebar';
+import { RightDock } from './components/shell/RightDock';
+import { MobileSheet } from './components/shell/MobileSheet';
+import { initialShell, shaderOf, shellReducer, surfaceOf, type SurfaceMode } from './ui/shell';
+import type { CatchmentScope } from './three/TwinEngine';
 import { SubsurfaceInspector } from './components/SubsurfaceInspector';
 import type { ShadingMode } from './three/materials/buildingMaterials';
 import type { Theme } from './three/theme';
@@ -42,9 +43,13 @@ import { sensorGeometry } from './utils/fullness';
 import { TelemetryRecorder, type EdgeSample } from './utils/telemetryRecorder';
 import { buildReportData, type ReportData } from './utils/pdfReportGenerator';
 import { AnalyticsReportModal } from './components/AnalyticsReportModal';
+import { AnalyticsCommandCenter } from './components/AnalyticsCommandCenter';
+import { frameRecord, openTelemetryStore, seedIfEmpty, TelemetryDatabase } from './utils/telemetryDatabase';
 
 // The Ultra-HD Pitch Studio has its own renderer and textures; load it only when opened.
 const UltraHdPitchStudio = lazy(() => import('./components/UltraHdPitchStudio'));
+// Phase 9B Command Center CCTV monitor (its own WebGL replay renderer).
+const CommandCenterCctvPlayer = lazy(() => import('./components/CommandCenterCctvPlayer'));
 
 /** Session telemetry snapshot period (ms) for the analytics report. */
 const RECORD_MS = 2000;
@@ -84,13 +89,16 @@ export default function App() {
   const [rain, setRain] = useState(initial.rain);
   const [clog, setClog] = useState(initial.clog);
   const [theme, setTheme] = useState<Theme>(initial.theme);
-  const [shader, setShader] = useState<ShadingMode>(initial.shader);
+  // Phase 9A workspace shell: header SOLID | X-RAY pill and the dock X-RAY tile share one reducer.
+  const [shell, dispatch] = useReducer(shellReducer, undefined, () => initialShell(window.innerWidth, initial.shader));
+  const shader = shaderOf(shell.surface);
+  const setShader = useCallback((m: ShadingMode) => dispatch({ type: 'surface', mode: surfaceOf(m) }), []);
+  const [scope, setScope] = useState<CatchmentScope>('bowl');
   const [layers, setLayers] = useState<LayerFlags>(initial.layers);
   const [simView, setSimView] = useState<SimView | null>(initial.sim);
   const [simNode, setSimNode] = useState(initial.simNode);
   const [simExpanded, setSimExpanded] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [viewport, setViewport] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   const [scale, setScale] = useState(initial.scale);
   const [sel, setSel] = useState<PickHit | null>(() => parseSel(initial.sel));
   const [hover, setHover] = useState<PointerHit | null>(null);
@@ -154,11 +162,28 @@ export default function App() {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'daylight' ? '#F3F4EE' : '#090D16');
   }, [theme]);
   useEffect(() => {
-    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    const onResize = () => dispatch({ type: 'viewport', width: window.innerWidth });
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
   useEffect(() => engine?.setPipeScale(scale), [engine, scale]);
+  // X-RAY reveals the subsurface network; back to SOLID shows the surface first (layers stay
+  // individually toggleable in the LAYER card).
+  const lastSurface = useRef<SurfaceMode>(shell.surface);
+  useEffect(() => {
+    if (lastSurface.current === shell.surface) return;
+    const toXray = shell.surface === 'fresnel';
+    const fromXray = lastSurface.current === 'fresnel';
+    lastSurface.current = shell.surface;
+    if (toXray) setLayers((l) => (l.network ? l : { ...l, network: true }));
+    else if (fromXray && shell.surface === 'solid') setLayers((l) => (l.network ? { ...l, network: false } : l));
+  }, [shell.surface]);
+  const lastDim = useRef(shell.dimension);
+  useEffect(() => {
+    if (!engine || lastDim.current === shell.dimension) return;
+    lastDim.current = shell.dimension;
+    engine.setDimension(shell.dimension);
+  }, [engine, shell.dimension]);
   useEffect(() => engine?.setSelected(sel), [engine, sel]);
   useEffect(() => {
     if (!engine) return;
@@ -235,7 +260,7 @@ export default function App() {
       if (!forward) return;
       bus.current?.publish(p);
       const now = Date.now();
-      if (now - lastPost.current >= BACKEND_POST_MS) {
+      if (!blackoutRef.current && now - lastPost.current >= BACKEND_POST_MS) {
         lastPost.current = now;
         void postToBackend(backendBase(initial.api), p);
       }
@@ -367,6 +392,37 @@ export default function App() {
     const id = window.setInterval(tick, RECORD_MS);
     return () => window.clearInterval(id);
   }, [data]);
+  // ---------------------------------------------------------------- Phase 9C: telemetry database
+  const [tdb, setTdb] = useState<TelemetryDatabase | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+  /** Typhoon comms-blackout demo: the cloud stream (backend POSTs + DB mirror) is cut. */
+  const blackoutRef = useRef(false);
+  useEffect(() => {
+    if (!data) return;
+    let alive = true;
+    void openTelemetryStore().then(async (store) => {
+      const db = new TelemetryDatabase(store, backendBase(initial.api));
+      await seedIfEmpty(db, data);
+      if (alive) setTdb(db);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [data, initial.api]);
+  useEffect(() => {
+    if (!tdb) return;
+    const id = window.setInterval(() => {
+      const { state: st, mode: md } = reportInputs.current;
+      if (!st || blackoutRef.current) return;
+      const ts = new Date().toISOString();
+      void tdb.ingest(st.sensors.map((S) => frameRecord(S.id, ts, S.payloadHex, md === 'LIVE' ? 'LIVE' : 'SIMULATION')));
+    }, 10_000);
+    return () => window.clearInterval(id);
+  }, [tdb]);
+  const onBlackout = useCallback((active: boolean) => {
+    blackoutRef.current = active;
+  }, []);
+  const openCommand = useCallback(() => setCommandOpen(true), []);
   const reportOpenRef = useRef(reportOpen);
   reportOpenRef.current = reportOpen;
   const openReport = useCallback(() => {
@@ -394,6 +450,9 @@ export default function App() {
     window.open(`${import.meta.env.BASE_URL}?view=hardware-sim&sensor=${target}${api}`, '_blank', 'noopener');
   }, [sel, initial.api]);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [cctvSensor, setCctvSensor] = useState<string | null>(null);
+  const openCctv = useCallback((id?: string) => setCctvSensor(id ?? 'EN-08'), []);
+  const closeCctv = useCallback(() => setCctvSensor(null), []);
   const openStudio = useCallback(() => setStudioOpen(true), []);
   const closeStudio = useCallback(() => setStudioOpen(false), []);
   const studioPacket = useCallback((p: HardwarePacket) => ingestPacket(p, true), [ingestPacket]);
@@ -437,7 +496,8 @@ export default function App() {
   const openSensor = useCallback((id: string) => {
     setSel({ kind: 'sensor', id });
     setSimNode(id);
-    setSimView('node');
+    dispatch({ type: 'tile', tile: 'section' });
+    dispatch({ type: 'sectionView', view: 'cutaway' });
   }, []);
   const onClick = useCallback(
     (hit: PointerHit | null) => {
@@ -460,8 +520,64 @@ export default function App() {
     setMode('LIVE');
   }, []);
   const toggleLayer = useCallback((k: keyof LayerFlags) => setLayers((l) => ({ ...l, [k]: !l[k] })), []);
-  const toggleSimulator = useCallback(() => setSimView((v) => (v ? null : 'node')), []);
+  const openSimulator = useCallback(() => {
+    setSimView((v) => v ?? 'node');
+    setSimExpanded(true);
+  }, []);
+  const onScope = useCallback(
+    (s: CatchmentScope) => {
+      setScope(s);
+      engine?.fitScope(s);
+    },
+    [engine],
+  );
+  const onRecenter = useCallback(() => {
+    setScope('bowl');
+    engine?.fitScope('bowl');
+  }, [engine]);
+  const onResetView = useCallback(() => {
+    setScope('bowl');
+    engine?.flyTo('overview');
+  }, [engine]);
+  const onUpperBasin = useCallback(() => {
+    const pts = (data?.network.sensors ?? []).filter((s) => ['EN-01', 'EN-02', 'EN-05'].includes(s.sensor_id));
+    if (!pts.length) return;
+    engine?.flyToLngLat(pts.reduce((a, s) => a + s.coordinates[0], 0) / pts.length, pts.reduce((a, s) => a + s.coordinates[1], 0) / pts.length, 16.9);
+  }, [data, engine]);
   const toggleInspector = useCallback(() => setInspectorOpen((v) => !v), []);
+  const onSurface = useCallback((m: SurfaceMode) => dispatch({ type: 'surface', mode: m }), []);
+  const onDimension = useCallback((d: '2d' | '3d') => dispatch({ type: 'dimension', dimension: d }), []);
+  const exportJson = useCallback(() => {
+    const st = reportInputs.current.state;
+    if (!st) return;
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            product: 'Baguio Flood Intelligence · City Camp Lagoon digital twin',
+            exported_at: new Date().toISOString(),
+            mode: reportInputs.current.mode,
+            rainfall_mm_hr: st.rain,
+            trash_rack_blockage_pct: st.blockagePct,
+            lagoon: { ...st.lagoon, depthSeries: Array.from(st.lagoon.depthSeries) },
+            fusion: reportInputs.current.frame?.fusion ?? arbitrate(st),
+            sensors: st.sensors.map((S) => ({ id: S.id, capacity_pct: S.capacityPct, depth_mm: S.depthMm, dh_dt_mm_min: S.dhDtMmMin, anomaly: S.anomaly, payload_hex: S.payloadHex })),
+            status_counts: st.statusCounts,
+            session_snapshots: recorder.current.snapshots(),
+            note: 'Synthetic network geometry (SYNTHETIC_OSMNX); see CLAUDE.md §1.',
+          },
+          null,
+          1,
+        ),
+      ],
+      { type: 'application/json' },
+    );
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `BaguioFloodIntelligence_telemetry_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '')}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, []);
   const onOffline = useCallback(() => setOffline(true), []);
   const onRain = useCallback((v: number) => setRain(v), []);
   const onClog = useCallback((v: number) => setClog(v), []);
@@ -497,103 +613,159 @@ export default function App() {
   }
 
   const fusion = frame?.fusion ?? arbitrate(state);
-  const simDocked = simView !== null && !simExpanded;
   const hoverCard = hover && selKey(hover) !== selKey(sel) ? describePick(hover, data, interp, state, frame?.sensors ?? null) : null;
+  const sectionNode = sel?.kind === 'sensor' ? sel.id : simNode;
+  const cctvFor = () => openCctv(sel?.kind === 'sensor' ? sel.id : 'EN-08');
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      <MapView
-        data={data}
-        onReady={setEngine}
-        onHover={setHover}
-        onClick={onClick}
-        onBasemapOffline={onOffline}
-        onCamera={onCamera}
-        initialCamera={initial.camera}
-        initialTheme={initial.theme}
+    <div className="sh-surface flex h-full w-full flex-col overflow-hidden" style={{ ['--topbar-h' as string]: '48px' }}>
+      <HeaderBar
+        mobile={shell.mobile}
+        surface={shell.surface}
+        onSurface={onSurface}
+        dimension={shell.dimension}
+        onDimension={onDimension}
+        theme={theme}
+        onTheme={setTheme}
+        mode={mode}
+        onMode={setMode}
+        rain={effectiveRain}
+        weather={weather}
+        live={live}
+        cameras={engine?.presets ?? []}
+        onCamera={onCameraPreset}
+        onUpperBasin={onUpperBasin}
+        onSimulator={openSimulator}
+        onInspector={toggleInspector}
+        onHardwareSim={openHardwareSim}
+        onStudio={openStudio}
+        usb={usb}
+        usbSensorId={usbSensorId}
+        onCctv={cctvFor}
+        onReport={openReport}
+        onExportJson={exportJson}
+        onAnalytics={openCommand}
+        onShare={onShare}
       />
-      {engine && <SensorBadges engine={engine} state={state} rev={rev} theme={theme} visible={layers.badges} onSelect={openSensor} />}
-      {engine && (
-        <TopBar
-          mode={mode}
-          onMode={setMode}
-          weather={weather}
-          liveTarget={liveTarget}
-          theme={theme}
-          onTheme={setTheme}
-          layers={layers}
-          onToggleLayer={toggleLayer}
-          simOpen={simView !== null}
-          onSimulator={toggleSimulator}
-          inspectorOpen={inspectorOpen}
-          onInspector={toggleInspector}
-          onHardwareSim={openHardwareSim}
-          onReport={openReport}
-          onStudio={openStudio}
-          network={data.network}
-          state={state}
-          onSearchPick={onSearchPick}
-        />
-      )}
-      {engine && hw && (
-        <HardwareAlertBanner
-          packet={hw.packet}
-          onFocus={() => {
-            focusSensor(hw.packet.sensorId);
-            openSensor(hw.packet.sensorId);
-          }}
-          onDisconnect={disconnectRig}
-          rightInset={sel ? 416 : 12}
-        />
-      )}
-      {engine && <ShaderModeBar mode={shader} onMode={setShader} bottomOffset={simDocked ? Math.max((viewport.h * SIM_DOCK_VH) / 100, SIM_DOCK_MIN_PX) + 24 : 18} />}
-      {engine && (
-        <TwinControlHUD
-          state={state}
-          rev={rev}
-          mode={mode}
-          onMode={setMode}
-          rain={effectiveRain}
-          clog={clog}
-          onRain={onRain}
-          onClog={onClog}
-          scale={scale}
-          onScale={setScale}
-          cameras={engine.presets}
-          onCamera={onCameraPreset}
-          fps={fps}
-          live={live}
-          driver={driver}
-          onDriver={onDriver}
-          liveTarget={liveTarget}
-          weather={weather}
-          storms={data.library.storms}
-          forecast={forecast}
-          forecastOrigin={forecastOrigin}
-          usb={usb}
-          usbSensorId={usbSensorId}
-          onHardwareSim={openHardwareSim}
-          fusion={fusion}
-          dspHistory={dspHistory}
-          dspSensor={dspSensor}
-          onShare={onShare}
-          basemapOffline={offline}
-        />
-      )}
-      {hoverCard && hover && <Tooltip card={hoverCard} x={hover.x} y={hover.y} pinned={false} />}
-      {sel && (
-        <AssetInspectorDrawer
-          hit={sel}
-          data={data}
-          interp={interp}
-          state={state}
-          rev={rev}
-          live={frame?.sensors ?? null}
-          dspHistory={sel.kind === 'sensor' ? dspHistory : []}
-          onClose={() => setSel(null)}
-        />
-      )}
-      {simView && (
+      <div className="relative flex min-h-0 flex-1">
+        {!shell.mobile && shell.leftOpen && (
+          <LeftSidebar
+            open
+            onToggle={() => dispatch({ type: 'left' })}
+            network={data.network}
+            state={state}
+            onSearchPick={onSearchPick}
+            scope={scope}
+            onScope={onScope}
+            onRecenter={onRecenter}
+            onReset={onResetView}
+            mode={mode}
+            onMode={setMode}
+            weather={weather}
+            liveTarget={liveTarget}
+            live={live}
+            driver={driver}
+            onDriver={onDriver}
+            storms={data.library.storms}
+            rain={effectiveRain}
+            clog={clog}
+            onRain={onRain}
+            onClog={onClog}
+            layers={layers}
+            onToggleLayer={toggleLayer}
+            surface={shell.surface}
+            onSurface={onSurface}
+          />
+        )}
+        <main className="relative min-w-0 flex-1 overflow-hidden" aria-label="3D viewport">
+          <MapView
+            data={data}
+            onReady={setEngine}
+            onHover={setHover}
+            onClick={onClick}
+            onBasemapOffline={onOffline}
+            onCamera={onCamera}
+            initialCamera={initial.camera}
+            initialTheme={initial.theme}
+          />
+          {engine && <SensorBadges engine={engine} state={state} rev={rev} theme={theme} visible={layers.badges} onSelect={openSensor} onCctv={openCctv} />}
+          {!shell.mobile && !shell.leftOpen && (
+            <button onClick={() => dispatch({ type: 'left', open: true })} className="sh-btn absolute left-0 top-3 z-20 rounded-r-md border-l-0 px-0.5 py-3" aria-label="Expand left sidebar">
+              <ChevronRight size={14} strokeWidth={1.5} />
+            </button>
+          )}
+          {!shell.mobile && !shell.rightOpen && (
+            <button onClick={() => dispatch({ type: 'right', open: true })} className="sh-btn absolute right-0 top-3 z-20 rounded-l-md border-r-0 px-0.5 py-3" aria-label="Expand right dock">
+              <ChevronLeft size={14} strokeWidth={1.5} />
+            </button>
+          )}
+          {engine && hw && (
+            <HardwareAlertBanner
+              packet={hw.packet}
+              onFocus={() => {
+                focusSensor(hw.packet.sensorId);
+                openSensor(hw.packet.sensorId);
+              }}
+              onDisconnect={disconnectRig}
+            />
+          )}
+          {hoverCard && hover && <Tooltip card={hoverCard} x={hover.x} y={hover.y} pinned={false} />}
+          {offline && !shell.mobile && (
+            <div className="sh-card sh-muted pointer-events-none absolute bottom-3 left-3 z-10 rounded-md px-2.5 py-1 text-[11px]">Basemap tiles offline · 3D twin, grid and contours still live</div>
+          )}
+          {shell.mobile && (
+            <MobileSheet
+              shell={shell}
+              dispatch={dispatch}
+              data={data}
+              interp={interp}
+              state={state}
+              theme={theme}
+              sectionNode={sectionNode}
+              onNode={(id) => {
+                focusSensor(id);
+                openSensor(id);
+              }}
+              forecast={forecast}
+              forecastOrigin={forecastOrigin}
+              onReport={openReport}
+            />
+          )}
+        </main>
+        {!shell.mobile && shell.rightOpen && (
+          <RightDock
+            shell={shell}
+            dispatch={dispatch}
+            onCctv={cctvFor}
+            data={data}
+            interp={interp}
+            state={state}
+            rev={rev}
+            theme={theme}
+            sel={sel}
+            onCloseSel={() => setSel(null)}
+            live={frame?.sensors ?? null}
+            dspHistory={dspHistory}
+            dspSensor={dspSensor}
+            sectionNode={sectionNode}
+            fusion={fusion}
+            forecast={forecast}
+            forecastOrigin={forecastOrigin}
+            scale={scale}
+            onScale={setScale}
+            cameras={engine?.presets ?? []}
+            onCamera={onCameraPreset}
+            onExpandSection={openSimulator}
+            onInspector={toggleInspector}
+            onReport={openReport}
+            onExportJson={exportJson}
+            onAnalytics={openCommand}
+            onSelectCctv={openCctv}
+            fps={fps}
+          />
+        )}
+      </div>
+      {simView && simExpanded && (
         <CrossSectionSimulator
           data={data}
           interp={interp}
@@ -610,10 +782,16 @@ export default function App() {
           onClog={onClog}
           live={mode === 'LIVE'}
           onRequestSim={toSimMode}
-          expanded={simExpanded}
-          onExpanded={setSimExpanded}
-          onClose={() => setSimView(null)}
-          rightInset={sel && viewport.w >= 640 ? 416 : 12}
+          expanded
+          onExpanded={(v) => {
+            setSimExpanded(v);
+            if (!v) setSimView(null);
+          }}
+          onClose={() => {
+            setSimView(null);
+            setSimExpanded(false);
+          }}
+          rightInset={12}
         />
       )}
       {inspectorOpen && (
@@ -629,7 +807,22 @@ export default function App() {
           onClose={() => setInspectorOpen(false)}
         />
       )}
-      {!sel && !simView && <Legend theme={theme} />}
+      {commandOpen && (
+        <AnalyticsCommandCenter
+          data={data}
+          state={state}
+          forecast={forecast}
+          fusion={fusion}
+          live={frame?.sensors ?? null}
+          snapshots={recorder.current.snapshots()}
+          dspHistory={dspHistory}
+          db={tdb}
+          usb={usb}
+          onReport={openReport}
+          onBlackout={onBlackout}
+          onClose={() => setCommandOpen(false)}
+        />
+      )}
       {reportOpen && reportData && <AnalyticsReportModal data={reportData} onClose={() => setReportOpen(false)} />}
       {studioOpen && (
         <Suspense fallback={null}>
@@ -643,6 +836,11 @@ export default function App() {
               popOutUrl: `${import.meta.env.BASE_URL}?view=pitch-studio${initial.api ? `&api=${encodeURIComponent(initial.api)}` : ''}`,
             }}
           />
+        </Suspense>
+      )}
+      {cctvSensor && (
+        <Suspense fallback={null}>
+          <CommandCenterCctvPlayer data={data} sensorId={cctvSensor} api={backendBase(initial.api)} onClose={closeCctv} />
         </Suspense>
       )}
       <QrShareModal open={shareOpen} onClose={() => setShareOpen(false)} />

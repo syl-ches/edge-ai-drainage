@@ -21,6 +21,9 @@ Lagoon endorheic karst catchment (`16.4093° N, 120.5863° E`, ~1,430 m ASL).
 | 7B | Physics-informed ST-GNN forecaster (+15/+30/+60), live / historical precipitation sources, Arduino & aquarium companion site, Web Serial, cross-tab + backend rig sync (§18) | **Done** |
 | 8 | Universal ESP32-S3 / Uno HC-SR04 sketch (USB + Wi-Fi), `/ingest/distance`, telemetry recorder, LGU analytics modal + strict-typography PDF report (§19) | **Done** |
 | 9 | Ultra-HD Pitch Studio: supersampled cutaway diorama + aquarium bench, acoustic bounce, live map sync (§20) | **Done** |
+| 9A | Baguio Flood Intelligence workspace: 48 px header, collapsible left sidebar + right analysis dock, SOLID / X-RAY surface-first boot, phone bottom sheet (§22) | **Done** |
+| 9C | Analytics Command Center, SQLite + IndexedDB telemetry database, triple-redundant black-box SD recovery (firmware + web) (§23) | **Done** |
+| 9B | ArchiMap palette + Solid Concrete default, City Camp Lagoon intake compound + inflow chutes, Command Center CCTV resolver / replay / YOLO overlay, fusion SURCHARGED fix (§21) | **Done** |
 
 **All Phase 1 geometry is synthetic**, laid out by hand around the real lagoon centroid
 (`source_type: SYNTHETIC_OSMNX`). Road alignments, catchment areas, inverts and the tunnel
@@ -90,8 +93,11 @@ edge-ai-drainage/
 │   ├── live/telemetry.ts              # LIVE mode: WS /ws/live client (+ scenario commands), on-demand local typhoon replay
 │   ├── live/weather.ts, liveDriver.ts # Open-Meteo Baguio weather; what drives LIVE mode (§17)
 │   ├── types/live.ts                  # TwinFrame contract (mirrors backend/schemas.py)
+│   ├── ui/shell.ts                    # workspace shell reducer: surface mode, panels, dock tiles, phone sheet (§22)
 │   ├── studio/                        # Pitch Studio scenes: cutaway, bench, tankSim, acoustic, textures (§20)
-│   └── components/                    # MapView, TwinControlHUD, TopBar, ShaderModeBar, SensorBadges,
+│   ├── intake/compound.ts             # City Camp Lagoon intake compound builder, shared by map + CCTV (§21)
+│   ├── cctv/                          # CCTV storm replay (replay.ts) + procedural feed renderer (cctvScene.ts)
+│   └── components/                    # shell/ (HeaderBar, LeftSidebar, RightDock, SectionPanel, MobileSheet), MapView, SensorBadges,
 │                                      # AssetInspectorDrawer, CrossSectionSimulator (+ crossSection/draw.ts),
 │                                      # SubsurfaceInspector, Legend, QrShareModal, UltraHdPitchStudio, ...
 ├── public/manifest.webmanifest, sw.js, icons/   # PWA (installable, offline-capable)
@@ -101,6 +107,8 @@ edge-ai-drainage/
 │   ├── edge_dsp.py                    # REFERENCE edge pipeline (firmware must match bit-for-bit)
 │   ├── intelligence.py                # fusion arbitrator, FEWS station fusion
 │   ├── stgnn.py                       # physics-informed ST-GNN forecaster (+15/+30/+60 min)
+│   ├── cctv.py                        # nearest Command Center CCTV resolver (≡ src/utils/cctvStreams.ts)
+│   ├── database.py                    # SQLite / PostgreSQL telemetry store: frames, incidents, SD batches (§23)
 │   ├── weather_feed.py                # LIVE_FEED (Open-Meteo / Tomorrow.io) + historical hyetographs
 │   └── lut.py, schemas.py             # numpy LUT interpolator; pydantic contracts
 ├── firmware/arduino_aquarium_demo/    # Phase 7B Uno/Nano/Mega/ESP32 sketch printing DIST_MM / FILL_PCT lines
@@ -148,7 +156,8 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # (bin/ 
 .venv/Scripts/python scripts/serial_bridge.py --virtual-standpipe        # no hardware needed
 .venv/Scripts/python scripts/gen_firmware_profiles.py                    # after any network regeneration
 .venv/Scripts/python scripts/gen_precip_library.py [--check]             # FEWS gauges + storm hyetographs
-.venv/Scripts/python scripts/gen_frontend_goldens.py [--check]           # after any stgnn / edge_dsp / weather change
+.venv/Scripts/python scripts/gen_frontend_goldens.py [--check]           # after any stgnn / edge_dsp / weather / cctv change
+.venv/Scripts/python scripts/gen_cctv_registry.py [--check]              # Command Center CCTV placeholder registry
 ```
 
 Debug handle: `window.__cityCampTwin = { map, engine }` (e.g. `engine.pick(x, y)`,
@@ -394,10 +403,10 @@ vision (Jetson), EN-10 TUN-C02 (choke transition).
 - **Buildings** (`materials/buildingMaterials.ts`, shared with the Utility Inspector) have
   three shading modes, switched by `TwinEngine.setShadingMode`. Edge `LineSegments` are drawn
   **only** in Holo Wireframe (`SHADING_SHOWS_EDGES`):
-  - **Solid Concrete:** pure matte `#FFFFFF` walls and roofs, shaded only by the studio sun
-    and hemisphere. No floor bands, no outlines, no green roofs.
+  - **Solid Concrete** (default since 9B): matte `#EFEFEF` walls and roofs, shaded only by the
+    studio sun and hemisphere. No floor bands, no outlines, no green roofs.
   - **Holo Wireframe:** edges `#059669` (crown) → `#475569` (footing) over a 4 % fill.
-  - **Fresnel Glass** (default, outline-free, `GLASS`): core `(0.95,0.99,1.00)`, rim
+  - **Fresnel Glass** (outline-free, `GLASS`; crossfades with Solid Concrete, §21): core `(0.95,0.99,1.00)`, rim
     `(0.06,0.72,0.58)`, base opacity 0.08, rim power 2.8,
     `alpha = clamp(0.08 + F·0.48, 0.06, 0.62)`. N and V are world-space because the custom
     projection has no usable view matrix (|N·V| is frame-invariant). X-ray uses a navy/sky
@@ -419,7 +428,8 @@ vision (Jetson), EN-10 TUN-C02 (choke transition).
   sensor > rack > node > conduit priority. Don't use `Raycaster` with the custom projection.
 - **Basemap:** OpenFreeMap vector tiles (OpenMapTiles schema) with label-free layers
   in two paint sets (`BASEMAP_PAINT[theme]`, switched with `setPaintProperty`):
-  - daylight: land `#F3F4EE`, parks `#CBE8BA`, roads `#D9DDD2` with white casings;
+  - daylight (ArchiMap, §21): ground `#F8FAFC`, sage parks `#A3B19B`, white roads with warm-grey
+    `#DDD7CC` casings, warm-grey parcel lines;
   - X-ray: obsidian over `#090D16`.
 
   A GeoJSON 100 m grid sits on top. No glyphs or sprites are used, so offline the
@@ -481,6 +491,8 @@ is opened from LAN phones.
 | `POST /api/v1/ingest/lorawan` | Physical uplink: direct JSON (`device_eui` = `EN-xx` or EUI, `payload_hex`/`payload_b64` + diagnostics), or a The Things Stack v3 webhook (`uplink_message.frm_payload`). `scope`: `full_catchment` (default) or `single_node` |
 | `POST /api/v1/ingest/distance` | Bench / aquarium rig: `{"device_eui", "dist_mm" \| "fill_pct", "tank_height_mm" (300), "temperature_c"}` runs the bench edge pipeline server-side, or `payload_hex` from a board that already did. `scope` defaults to `single_node` |
 | `POST /api/v1/decode` | Decode a 4-byte payload |
+| `GET /api/v1/cctv/cameras`, `/api/v1/cctv/nearest/{id}` | Command Center CCTV registry and nearest camera pair (§21) |
+| `GET /api/telemetry/history`, `POST /api/telemetry/ingest`, `POST /api/telemetry/sd-backfill`, `GET /api/database/stats`, `GET/POST /api/incidents` | Telemetry database (§23) |
 
 - `TwinFrame` (`backend/schemas.py` ≡ `src/types/live.ts`): `scenario`, `lagoon`,
   `sensors{EN-xx: LiveSensor}` (raw burst, raw vs Kalman depth, σ_d², h/D, Q/V/Fr/He,
@@ -700,7 +712,7 @@ is opened from LAN phones.
     conduit: fullness, depth = h/D × rise, and status. Its pill, pin, pad and pipe then blink red
     at ≥ 80 %.
   - `full_catchment` instead inverts the fullness to a rainfall (`invertRainForSensor`).
-  - `HardwareAlertBanner` shows "🔴 LIVE SENSOR ALERT — EN-xx AT NN% CAPACITY" with
+  - `HardwareAlertBanner` shows "LIVE SENSOR ALERT — EN-xx AT NN% CAPACITY" (Siren SVG icon) with
     [Jump to Sensor] (`engine.flyToLngLat`) and [Disconnect Sim]. The disconnect sends a
     `disconnect` message and mutes the bus for 2 s.
 - **Contract locks**: `gen_frontend_goldens.py` writes `stgnn_golden.json`, `edge_golden.json`
@@ -828,7 +840,7 @@ is opened from LAN phones.
   - standalone: `openSyncBus` + `postToBackend` at 2 Hz, exactly like the aquarium site.
 
   The map then blinks the target sensor red at ≥ 80 % and shows
-  "🔴 LIVE SENSOR ALERT — EN-xx AT NN% CAPACITY" with [Jump to Sensor]. The studio rainfall
+  "LIVE SENSOR ALERT — EN-xx AT NN% CAPACITY" with [Jump to Sensor]. The studio rainfall
   slider drives the map only in Simulation Mode. A physical board via Web Serial
   (`useUsbRig`) replaces the virtual tank (`TankSim.follow`).
 - **Panels:** sensor / scope / board / ultrasonic selectors, a Serial Monitor of `[EDGE_TX]`
@@ -836,3 +848,180 @@ is opened from LAN phones.
   is the debug handle.
 - **Tests:** `tests/frontend/studio.test.ts` covers TankSim, the bouncer, the scene mappings,
   pixel ratio, presets, routing, and the Critical-85 → red-banner and pour → FLASH_SURGE chains.
+
+## 21. ArchiMap look, City Camp Lagoon intake compound & Command Center CCTV (Phase 9B)
+
+- **ArchiMap palette** (`map/basemap.ts::ARCHIMAP`, `three/theme.ts::DAY`): alabaster ground
+  `#F8FAFC`, white streets `#FFFFFF` with warm-grey `#DDD7CC` edges, warm-grey parcel lines
+  (OpenMapTiles `landuse` outlines, layer `parcels`), sage greens `#A3B19B` / `#9CAF88` for
+  `landcover` / `park` and the terrain park mask, emerald + sage tree clusters, matte massing.
+  Attribution stays OpenFreeMap © OpenMapTiles, data © OpenStreetMap (no Overture data is used).
+- **Solid Concrete is the default shading** (`urlState` default `shader=solid`): matte `#EFEFEF`
+  (`SOLID_ALBEDO`). Solid ↔ Fresnel Glass crossfades over `SHADING_FADE_S` (0.7 s):
+  `BuildingMaterials.crossfade` draws both meshes, the solid material is `transparent` with
+  `depthWrite` kept and `uOpacity`, the glass multiplies its alpha by `uFade`. Wireframe switches
+  are instant. `BuildingsLayer.setTime` advances the fade from the engine clock.
+- **Intake compound** (`src/intake/compound.ts`, pure geometry, one merged mesh per material role):
+  - frame: x across the channel (+x outer bank), y downstream along the lagoon rim, z = 0 at the
+    1428.0 m sill (`INTAKE_DATUM_ASL`); walkway rim z = 5 (1433.0 m). The rack sits on the lagoon
+    rim, so the channel runs along the rim (`layers/intake.ts::intakeAxes`: right = outward from the
+    bowl, fwd = outward rotated +90°); the left bank faces the lagoon.
+  - sunken walled channel (concrete + stone-masonry courses, coping, walkways, galvanised pipe
+    railings), vehicular maintenance ramp with grip ribs, transverse drop-weir (crest z 0.9),
+    silt-trap pool, tunnel portal;
+  - sloped bar screen at the field-observed **~50°** (`RACK_VISUAL_ANGLE_DEG`), 3.0 m of bars
+    (the hydraulic opening) + a rusty apron wing, cross-beams; **the hydraulic model still uses the
+    75° `bar_angle_deg`** until a survey settles it (changing it changes ξ and the LUT);
+  - polygonal steel-truss cage dome with bracing and a translucent mesh roof;
+  - staff gauge on the lagoon datum (`GAUGE_ZERO_ASL` 1426.5, same as EN-07): green / amber / red
+    at 45 / 80 % of the 6.5 m stage;
+  - landmarks on the outer bank: wet access road, green gable-roofed open-sided court (19 x 31 m),
+    red hip-roofed station, dark utility shed whose side-drain jet arcs into the channel with rain;
+  - dynamic: channel water at the lagoon WSE with regime looks (`regimeOf`: calm silt-green,
+    muddy SURGE, dark stagnant BACKWATER), weir foam, 260 instanced debris pieces filling the
+    screen from the toe with occlusion (0-95 %), a silt mound, the outfall jet.
+  - Built from a written description of field photos and CCTV stills, not survey drawings.
+- **Map layer** (`three/layers/intake.ts`): `StudioMaterial` (`three/materials/studioMaterial.ts`,
+  studio light in GLSL, instancing + instance colours, X-ray albedo). Structure follows the
+  drainage toggle, landmarks the buildings toggle. The rack layer keeps its picking anchor and halo
+  but hides its symbolic bars and throat (`setModelVisible(false)`). The four RCBCs that discharge
+  into the bowl (LGD-C07, DHR-C07, KSD-C07, QOP-C06) get open inflow chutes from the headwall to
+  the bowl floor with a water ribbon at the conduit's h/rise. The "Tunnel Intake & Trash Rack"
+  camera preset looks down the channel.
+- **Fusion fix (both mirrors):** EN-08 `SURCHARGED` now counts as backwater, like
+  `TRASH_BLOCKAGE` (the edge classifier ranks SURCHARGED higher, so a deep pool never read as
+  ponding and a 78 %-clogged rack in heavy rain fell through to "debris, no backwater").
+- **Command Center CCTV** (platform = middleware over the city VMS; it installs no cameras):
+  - registry `public/data/cctv_cameras.json` from `scripts/gen_cctv_registry.py [--check]`:
+    CAM-CCL-A "City Camp Lagoon A" (12.0 m from EN-08, looks down the channel at rack, weir,
+    gauge), CAM-CCL-B "City Camp Lagoon B" (24.3 m, across the channel at the outfall, road, court,
+    station), and one street camera per other node. **All PLACEHOLDER**, `stream: null`; real URLs
+    come only from `CITYCAMP_CCTV_STREAMS` (backend env, JSON id -> HLS / HTTP URL of the VMS
+    gateway; browsers cannot play RTSP) or a clip in `public/cctv/` (`manifest.json`) / dropped on
+    a viewport. Coverage radius 250 m.
+  - resolver `utils/cctvStreams.ts` ≡ `backend/cctv.py` (`GET /api/v1/cctv/cameras`,
+    `GET /api/v1/cctv/nearest/{EN-xx|EUI}`), locked by `tests/frontend/fixtures/cctv_golden.json`.
+    `connectionBadge` never claims a VMS link that is not configured.
+  - replay `cctv/replay.ts` (pure): 60-min storm, time-lapse 1x = 30 storm-s/s, speeds 0.5/1/2x,
+    skip ±15 s of clip (7.5 storm-min). Lagoon depth from the LUT depth series of the burst;
+    EN-07/08/10 read at the equivalent rain with that end-state depth; verdict = `arbitrate`.
+    Uses a **private** `LutInterpolator` (evaluate() mutates its state). Presets: 1 dry baseline
+    (15 %, NOMINAL), 2 typhoon debris (30 → 78 %, DEBRIS_WATCH then TRASH_RACK_OCCLUSION_DISPATCH
+    at ~40 min), 3 clean grate + choke backwater (8 %, DOWNSTREAM_CHOKE_BACKWATER_OVERRIDE from
+    ~25 min, CDRRMO evacuation-warning review once overflow is ≤ 60 min away). Preset 3 is shaped
+    after the 09-30-2024 CCTV still; synthetic hydrology.
+  - renderer `cctv/cctvScene.ts`: offscreen WebGL of the same compound (stock materials, physical
+    lights ~π x legacy) + backdrop, then a 2D CCTV pass: grade, grain, interlace, rain, vignette,
+    OSD `MM-DD-YYYY Ddd HH:MM:SS` + camera name, YOLOv8 boxes = projected 3D extents (drawn only
+    if ≥ 60 % in frame), REC dot. Procedural frames always carry **SIMULATED REPLAY**; real
+    footage gets no boxes (no model in the browser).
+  - player `components/CommandCenterCctvPlayer.tsx` (lazy): split / A / B, DVR bar, presets, YOLO
+    toggle, fusion card, telemetry, evidence PNG + 8 s WebM (OSD, overlay and EN-08 telemetry
+    burned in; procedural exports state "not camera footage"). Entry points: top-bar
+    **Command Center CCTV**, the EN-09 pill (CCTV icon), **View Nearest Command Center CCTV** in
+    any sensor's drawer.
+- **No emoji in the UI:** status glyphs are lucide SVGs (banner Siren / CircleCheck, external-link
+  icon instead of ↗). `tests/frontend/ui.test.ts` scans `src/` for Extended_Pictographic code
+  points (© ® ™ allowed for attributions).
+- **Tests:** `tests/frontend/cctv.test.ts` (resolver parity, presets and verdicts, fusion
+  regression, overlay labels, compound geometry), `ui.test.ts`; backend `test_cctv_*` + the
+  registry freshness check.
+
+## 22. Baguio Flood Intelligence workspace shell (Phase 9A)
+
+- **Brand:** "Baguio Flood Intelligence" (`baguioFlood` wordmark + vector flood-wave emblem,
+  `HeaderBar.tsx::BrandMark`). The map canvas carries no floating control pills; everything
+  sits in three zones around the viewport (`App`: header row + `[LeftSidebar | main | RightDock]`).
+- **State:** one pure reducer, `src/ui/shell.ts::shellReducer` (surface mode, 2D/3D, panel open
+  flags, dock panel, mobile, bottom-sheet tab, section view). The header **SOLID | X-RAY** pill and
+  the dock **X-RAY** tile dispatch the same actions. `surface` ∈ `solid | fresnel | wire`
+  (`shaderOf` / `surfaceOf` map to the building `ShadingMode`).
+  - **Boot = Solid Concrete, surface first:** `DEFAULT_URL_STATE.shader = 'solid'` and
+    `layers.network = false`. Switching to X-RAY turns the network on, crossfades the buildings to
+    Fresnel glass and thins the daylight ground (`terrain.setSeeThrough`, alpha 0.94 -> 0.55);
+    back to SOLID hides the network again. The LAYER card still toggles each layer by hand.
+  - **2D | 3D:** `TwinEngine.setDimension` eases pitch 0 <-> 60 over 0.9 s.
+- **Header (48 px):** NETWORK (camera quick-jumps, Upper Basin Conduits, Cross-Section
+  Simulator, Utility Inspector), SIMULATION (Live Weather / Storm Sim), HARDWARE (USB Arduino /
+  ESP32 connect, Aquarium Serial Rig, Ultra-HD Pitch Studio), CCTV VMS, render pill, 2D|3D,
+  daylight / X-ray theme, EXPORT (LGU PDF, telemetry JSON), QR share, LIVE TELEMETRY badge
+  (`liveBadge`: names only connected sources, Open-Meteo and the edge backend; never PAGASA).
+- **Left sidebar (280 px, collapsible):** monospace search field (SearchBox `variant="field"`, DMS
+  placeholder from the anchor), CATCHMENT SCOPE tiles (Basin Bowl / Tunnel Choke / Full Grid ->
+  `TwinEngine.fitScope`) with figures **computed from the network** (`catchmentStats`: 105.0 ha
+  over 7 barangays in the current synthetic data), Recenter / Reset; TELEMETRY · WEATHER
+  (Live Weather readout + pitch scenarios + storm replay | Storm Sim scrubbers + presets
+  `STORM_SIM_PRESETS`: Normal, Typhoon Surge, Trash Clog, Rock Choke Backwater, each verified to
+  its fusion verdict); LAYER (Subsurface Conduits, Surface Waterways, 3D Buildings, Tree Canopy,
+  Sensor Pins; massing Solid / Wire / Glass). `layers.waterways` (`wwy`) drives the basemap
+  water layers and the intake inflow chutes.
+- **Right dock (320 px, collapsible):** 2 x 3 tiles (NETWORK, X-RAY, CAPACITY, CCTV VMS, SECTION
+  default, LGU REPORT) over the panel: NETWORK (counts, pipe scale, cameras, legend), CAPACITY
+  (status bars, lagoon & bottleneck, fusion verdict, most-stressed conduits), SECTION
+  (`SectionPanel`: basin profile or manhole cutaway drawn by the simulator's painters through the
+  shared `crossSection/models.ts::SectionSmoother`, logical width >= 560 px scaled into the dock,
+  legend bar Terrain / Culvert / Normal / Warning / Critical 3 Hz), LGU REPORT (ST-GNN forecast,
+  edge DSP chart, PDF + JSON). A selected asset shows its inspector (`AssetInspectorDrawer
+  embedded`) above the panel; picking a sensor switches the dock to its manhole cutaway.
+- **Phone (< 768 px, `MOBILE_MAX_PX`):** both panels collapse (restored when the window widens),
+  compact header (title, rainfall, SOLID | X-RAY), Maps-style bottom sheet (`MobileSheet`) with
+  Live Nodes (tap = fly + select), Cross-Section, Forecast & PDF.
+- **Design tokens** (`index.css`, `.sh-*`): white `#FFFFFF` surfaces, `#F8FAFC` panels, 1 px
+  `#E2E8F0` hairlines, charcoal `#0F172A` active states, uppercase tracked micro-labels, tabular
+  mono; literal per-theme variables with a dark set for the X-ray theme. Fonts are bundled
+  (`@fontsource-variable/inter`, `@fontsource/jetbrains-mono`): no font CDN at runtime.
+- **Removed:** `TopBar`, `TwinControlHUD`, `Legend`, the floating `ShaderModeBar` (its
+  `ShaderSegments` stays for the Utility Inspector); the docked simulator now opens full-screen
+  from SECTION or the NETWORK menu.
+- **Tests:** `tests/frontend/shell.test.ts` (boot defaults, pill = tile, collapse, phone
+  breakpoint + sheet, DMS, data-derived figures, preset verdicts, live badge); `ui.test.ts` emoji scan.
+
+## 23. Analytics Command Center, hybrid persistence & black-box SD recovery (Phase 9C)
+
+- **Backend database** (`backend/database.py`, stdlib `sqlite3`): `backend/data/baguio_flood_telemetry.db`
+  (git-ignored; `CITYCAMP_DB_PATH` overrides; tests use a temp file), schema migrated on start.
+  `DATABASE_URL=postgresql://...` is used only if `psycopg` is installed and reachable, else SQLite
+  with a `note` in the stats. Tables:
+  - `telemetry_frames` (node, UTC time, raw hex, depth cm, dh/dt cm/min, capacity %, anomaly code,
+    battery V, source mode, sd_recovered_flag), UNIQUE (node, time, payload) = dedupe. The engineering
+    columns are the **server-side §10 decode** of the payload (`frame_row`), never client values.
+  - `incident_dispatches`, `sd_sync_batches` (frames recovered, window, CRC verdict).
+  - Endpoints: `GET /api/telemetry/history?node_id&limit`, `POST /api/telemetry/ingest`,
+    `POST /api/telemetry/sd-backfill` (CRC-32 over the frames' big-endian bytes, `crc32_frames`;
+    a mismatch rejects the batch), `GET /api/database/stats`, `GET/POST /api/incidents`. Live
+    `/api/v1/ingest/lorawan` uplinks are persisted too (source `LORAWAN`).
+- **Browser database** (`utils/telemetryDatabase.ts`): `BaguioFloodDB_v1` IndexedDB (`IdbStore`;
+  `MemoryStore` when IndexedDB is unavailable) behind `TelemetryDatabase`, which mirrors writes to the
+  backend and reads backend-first, local-fallback. Same decode (`frameRecord`), same dedupe key, same
+  CRC-32 (`crc32Frames`) plus a per-frame CRC-8/ATM tag (`crc8Frame`). First boot seeds **24 h of
+  SYNTHETIC_SEED frames** (LUT design storm, `syntheticSeed`, deterministic) so charts are populated
+  on a phone with no backend; every chart labels the seed as synthetic. `App` mirrors the live / sim
+  state every 10 s (skipped during a blackout).
+- **Black box, firmware** (`firmware/universal_hcsr04_node/blackbox.h` + sketch): 1 Hz frame log.
+  Tier 1 SPI microSD (`/telemetry_log.bin` 12-byte records + `/telemetry_log.csv`, boot prints
+  `SD_STATUS:OK_SPI_CARD`). Tier 2 on `SD.begin()` failure or any later write failure: switch at once
+  (no halt) to the internal ring, `SD_STATUS:OK_FLASH_FAILSAFE` (ESP32: 256-frame RAM ring + NVS
+  mirror every 64 frames; Uno: 255-frame EEPROM ring, times rebuilt from the 1 Hz cadence). The switch
+  is immediate once `SD.begin()` returns; that call's own timeout depends on the SD library. Console
+  `DUMP_SD_LOG` streams `[SD_DUMP] {i, seq, t_ms, hex}` + `[SD_DUMP_END] {frames, crc32, tier}`;
+  `SD_STATUS` reprints. ESP32 SD on CS 10 / MOSI 11 / SCK 12 / MISO 13; Uno SD is off by default
+  (hardware SPI needs D10 = ECHO): `-DBLACKBOX_SD=1 -DECHO_PIN=7`, CS D8. Host-tested
+  (`test/blackbox_harness.cpp`: ring order + CRC-32 == zlib / `crc32_frames`; 4 compile variants).
+- **Black box, web** (`utils/sdRecovery.ts` pure state machine + `components/SdRecoveryManager.tsx`):
+  IDLE -> BLACKOUT (App stops backend POSTs + mirroring; one frame per second is buffered) -> SYNCING
+  (Web Serial `send('DUMP_SD_LOG')`, `useUsbRig.onLine` collects the burst for 3 s and `assembleDump`
+  places frames on the wall clock; with no board the browser's copy is the third, SOFTWARE_FAILSAFE
+  tier) -> BACKFILLED (`db.sdBackfill`, sd_recovered_flag) -> the hydrograph reloads with the window
+  hatched. Badges: storage media (from `SD_STATUS`), "32-bit (4-byte hex) · 96 % smaller than JSON"
+  (measured: 4 B vs 102 B of compact JSON for the same five fields), database engine (live stats).
+- **Command Center** (`components/AnalyticsCommandCenter.tsx`, builders in `utils/commandCenter.ts`;
+  header EXPORT and HARDWARE menus, CAPACITY / LGU REPORT dock panels): (1) node hydrograph, 24 h
+  history + now + ST-GNN +15/+30/+60 with the **90 % band** (the forecaster's p05/p95), against the
+  weir crest 1428.9 m and the 80 % spill threshold for EN-07 (fill % with 45/80/100 % for other
+  nodes); (2) sortable 63-conduit stress table (dims, flow, fill, dh/dt and Kalman sigma^2 where an edge
+  node watches the conduit, verdict); (3) raw vs Kalman audit (live edge, else the in-browser probe);
+  (4) CDRRMO / CEPMO / DPWH-BCDEO action matrix with "Log dispatch" (SQLite + IndexedDB), the LGU
+  PDF, CSV and JSON-snapshot exports; (5) the SD recovery panel.
+- **Tests:** `tests/frontend/database.test.ts` (decode, CRCs, both stores, dual driver offline,
+  seed, recovery without a board, dump parsing, command-center builders; `fake-indexeddb`);
+  backend `DatabaseTests` + `test_telemetry_database_endpoints`; firmware black-box check.

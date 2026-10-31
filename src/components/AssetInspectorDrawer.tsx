@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { X, AlertTriangle, Camera, Cpu, Radio } from 'lucide-react';
+import { X, AlertTriangle, Camera, Cctv, Cpu, Radio } from 'lucide-react';
 import type { TwinData } from '../data/loadTwin';
 import type { PickHit } from '../three/TwinEngine';
 import { ANOMALY_COLORS, capacityColor } from '../three/palette';
@@ -19,6 +19,10 @@ interface Props {
   live: Record<string, LiveSensor> | null;
   dspHistory: DspSample[];
   onClose(): void;
+  /** Opens the nearest Command Center CCTV feeds for a sensor. */
+  onCctv?(sensorId: string): void;
+  /** Render as a card inside the workspace right dock instead of a floating drawer (Phase 9A). */
+  embedded?: boolean;
 }
 
 function Row({ k, v, tone, mono = true }: { k: string; v: string; tone?: string; mono?: boolean }) {
@@ -185,7 +189,7 @@ function NodeGauge({ n, hgl }: { n: TwinNode; hgl: number }) {
   );
 }
 
-export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistory, onClose }: Props) {
+export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistory, onClose, onCctv, embedded = false }: Props) {
   const card = describePick(hit, data, interp, state, live);
   if (!card) return null;
   let body: ReactNode = null;
@@ -253,6 +257,11 @@ export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistor
             </span>
           )}
         </div>
+        {onCctv && (
+          <button onClick={() => onCctv(hit.id)} className="btn-sky flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold">
+            <Cctv size={13} strokeWidth={1.75} /> View Nearest Command Center CCTV
+          </button>
+        )}
         <PayloadBreakdown word={word} saturated={L?.saturated_fields ?? S.saturated} isVision={isVision} />
         <div>
           <Row k="Anomaly" v={L?.anomaly_class ?? S.anomaly} tone={ANOMALY_COLORS[L?.anomaly_class ?? S.anomaly]} />
@@ -289,7 +298,14 @@ export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistor
   }
 
   return (
-    <aside className="hud-card pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl sm:inset-x-auto sm:bottom-3 sm:right-3 sm:top-[calc(var(--topbar-h,52px)+20px)] sm:max-h-none sm:w-[400px] sm:rounded-2xl">
+    <aside
+      className={
+        embedded
+          ? 'hud-card flex flex-col rounded-md'
+          : 'hud-card pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-2xl sm:inset-x-auto sm:bottom-3 sm:right-3 sm:top-[calc(var(--topbar-h,52px)+20px)] sm:max-h-none sm:w-[400px] sm:rounded-2xl'
+      }
+      aria-label="Selected asset inspector"
+    >
       <header className="flex items-start justify-between gap-2 border-b border-white/5 p-4" style={{ borderTop: `2px solid ${card.accent}`, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
         <div className="min-w-0">
           <div className="text-[10px] uppercase tracking-wider text-slate-500">{card.kicker}</div>
@@ -307,7 +323,7 @@ export function AssetInspectorDrawer({ hit, data, interp, state, live, dspHistor
           <X size={16} />
         </button>
       </header>
-      <div className="space-y-3 overflow-y-auto p-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className={`space-y-3 p-4 ${embedded ? '' : 'overflow-y-auto'}`} style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {body}
       </div>
     </aside>

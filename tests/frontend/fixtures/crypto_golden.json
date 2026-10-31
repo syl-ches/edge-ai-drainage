@@ -1,0 +1,101 @@
+{
+ "psk": "BAGUIO_LGU_PSK_2026",
+ "cases": [
+  {
+   "tag_bits": 32,
+   "frame": "0x34A89F12",
+   "node": "EN-08",
+   "cipher_hex": "0x5DF32368",
+   "tag_hex": "0xFA458CC7",
+   "nonce": 1
+  },
+  {
+   "tag_bits": 32,
+   "frame": "0x54C1672A",
+   "node": "EN-07",
+   "cipher_hex": "0xAD6023E7",
+   "tag_hex": "0x6A3903BE",
+   "nonce": 4242
+  },
+  {
+   "tag_bits": 32,
+   "frame": "0xFFFFFFFF",
+   "node": "EN-10",
+   "cipher_hex": "0xAF86B331",
+   "tag_hex": "0x59A50B1D",
+   "nonce": 4294967294
+  },
+  {
+   "tag_bits": 32,
+   "frame": "0x00000000",
+   "node": "EN-01",
+   "cipher_hex": "0x09A8F8A9",
+   "tag_hex": "0x6C9ADB2E",
+   "nonce": 0
+  },
+  {
+   "tag_bits": 16,
+   "frame": "0x34A89F12",
+   "node": "EN-08",
+   "cipher_hex": "0x5DF32368",
+   "tag_hex": "0xFA45",
+   "nonce": 1
+  },
+  {
+   "tag_bits": 16,
+   "frame": "0x54C1672A",
+   "node": "EN-07",
+   "cipher_hex": "0xAD6023E7",
+   "tag_hex": "0x6A39",
+   "nonce": 4242
+  },
+  {
+   "tag_bits": 16,
+   "frame": "0xFFFFFFFF",
+   "node": "EN-10",
+   "cipher_hex": "0xAF86B331",
+   "tag_hex": "0x59A5",
+   "nonce": 4294967294
+  },
+  {
+   "tag_bits": 16,
+   "frame": "0x00000000",
+   "node": "EN-01",
+   "cipher_hex": "0x09A8F8A9",
+   "tag_hex": "0x6C9A",
+   "nonce": 0
+  },
+  {
+   "tag_bits": 8,
+   "frame": "0x34A89F12",
+   "node": "EN-08",
+   "cipher_hex": "0x5DF32368",
+   "tag_hex": "0xFA",
+   "nonce": 1
+  },
+  {
+   "tag_bits": 8,
+   "frame": "0x54C1672A",
+   "node": "EN-07",
+   "cipher_hex": "0xAD6023E7",
+   "tag_hex": "0x6A",
+   "nonce": 4242
+  },
+  {
+   "tag_bits": 8,
+   "frame": "0xFFFFFFFF",
+   "node": "EN-10",
+   "cipher_hex": "0xAF86B331",
+   "tag_hex": "0x59",
+   "nonce": 4294967294
+  },
+  {
+   "tag_bits": 8,
+   "frame": "0x00000000",
+   "node": "EN-01",
+   "cipher_hex": "0x09A8F8A9",
+   "tag_hex": "0x6C",
+   "nonce": 0
+  }
+ ]
+}

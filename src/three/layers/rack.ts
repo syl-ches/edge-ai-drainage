@@ -24,6 +24,8 @@ export interface RackLayer {
   setPipeScale(k: number): void;
   setTime(t: number): void;
   setHighlight(on: boolean): void;
+  /** Show or hide the symbolic bars / frame / debris (the Phase 9B intake compound draws the real screen). */
+  setModelVisible(on: boolean): void;
 }
 
 /**
@@ -109,6 +111,10 @@ export function buildRack(rack: Orifice, shaft: TwinNode, frame: LocalFrame): Ra
     },
     setHighlight(on) {
       haloMat.opacity = on ? 0.18 : 0;
+    },
+    setModelVisible(on) {
+      for (const o of rackGroup.children) if (o !== halo) o.visible = on;
+      throat.visible = on;
     },
   };
 }

@@ -57,27 +57,30 @@ vec3 studioLight(vec3 albedo, vec3 n) {
 `;
 
 // ---------------------------------------------------------------- 3D palettes
+// Daylight = the ArchiMap architectural scale-model look (Phase 9B): alabaster ground, white
+// streets with warm-grey edges, muted sage greens, matte #EFEFEF massing (map/basemap.ts ARCHIMAP).
 export const DAY = {
-  land: '#F3F4EE',
-  landBand: '#E6E8E0',
-  road: '#D9DDD2',
-  roadCasing: '#FFFFFF',
-  park: '#CBE8BA',
-  parkDeep: '#A3D98B',
+  land: '#F8FAFC',
+  landBand: '#F0F1EF',
+  road: '#FFFFFF',
+  roadCasing: '#DDD7CC',
+  park: '#A3B19B',
+  parkDeep: '#9CAF88',
   waterDeep: '#0E7490',
   waterShallow: '#38BDF8',
-  contourMinor: '#CDD3C4',
-  contourMajor: '#9FB39A',
-  buildingWall: '#FFFFFF',
-  buildingRoof: '#F8FAFC',
-  buildingEdge: '#CBD5E1',
-  greenRoof: '#A3D98B',
+  contourMinor: '#E2DDD3',
+  contourMajor: '#C9C1B4',
+  buildingWall: '#EFEFEF',
+  buildingRoof: '#EFEFEF',
+  buildingEdge: '#DDD8CF',
+  greenRoof: '#9CAF88',
   glassCore: '#F5FCF8',
   glassRim: '#10B981',
   wireEmerald: '#10B981',
   wireSlate: '#64748B',
-  foliage: ['#15803D', '#16A34A', '#22C55E', '#4ADE80'],
-  trunk: '#8B6B4A',
+  // Emerald + sage tree clusters over the sage parks.
+  foliage: ['#4E7D57', '#5F8A5B', '#6E9768', '#86A27A'],
+  trunk: '#7A6450',
   rain: ['#0284C7', '#0EA5E9'],
 } as const;
 

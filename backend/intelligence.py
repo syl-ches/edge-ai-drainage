@@ -36,7 +36,9 @@ def storm_profile(t: float) -> tuple[float, float]:
 def arbitrate(sensors: dict[str, dict], vision_blockage_pct: float, lagoon_overflowing: bool,
               bottleneck: str) -> dict:
     en08, en10 = sensors.get("EN-08", {}), sensors.get("EN-10", {})
-    ponding = en08.get("anomaly_class") == "TRASH_BLOCKAGE"
+    # Backwater at the intake: the flat-pool signature, or a pool already deeper than full scale
+    # (the edge classifier ranks SURCHARGED above TRASH_BLOCKAGE, so deep ponding reads SURCHARGED).
+    ponding = en08.get("anomaly_class") in ("TRASH_BLOCKAGE", "SURCHARGED")
     choke_cap = float(en10.get("capacity_pct", 0.0))
     evidence = [
         f"EN-08 ultrasonic: {en08.get('anomaly_class', '—')} (h/D {en08.get('h_over_d', 0):.2f}, "

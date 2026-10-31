@@ -70,28 +70,25 @@ The launcher also handles these cases for you:
 
 - **Live Weather mode (default):**
   - The twin starts on the current Baguio City rainfall, fetched from Open-Meteo with no API
-    key. The top-bar pill shows mm/hr, °C, the condition and the sync status.
+    key. The left sidebar's TELEMETRY · WEATHER card shows mm/hr, °C, wind and the sync status.
   - "Live pitch scenarios" (monsoon, typhoon) and **historical storm replays** push a demo
     storm to the sensor fleet. The replays are Typhoon Ompong 2018, Kristine/Egay, an afternoon
     cloudburst and the Habagat monsoon, all synthetic design hyetographs.
   - A real sensor uplink overrides everything.
-- **Simulation Mode** (top bar): manual rainfall and trash-rack blockage sliders over 48
-  precomputed storm scenarios, with presets up to an Ondoy-scale 200 mm/h typhoon.
-- **Top bar:**
-  - switch between the Daylight Diorama and Dark X-Ray themes;
-  - toggle buildings, vegetation, the drainage network and node badges;
-  - open the Cross-Section Simulator, the Subsurface Utility Inspector and the
-    **Ultra-HD Pitch Studio**.
-- **Bottom bar:** shade buildings as Solid Concrete, Holo Wireframe or Fresnel Glass to see
-  the pipes underneath.
+- **Storm Sim** (left sidebar or the SIMULATION menu): manual rainfall and trash-rack occlusion
+  scrubbers over 48 precomputed storm scenarios, with Normal, Typhoon Surge, Trash Clog and Rock
+  Choke Backwater presets.
+- **Header:** daylight / dark theme, SOLID | X-RAY, 2D | 3D, and menus for the Cross-Section
+  Simulator, the Subsurface Utility Inspector, the hardware rigs, the **Ultra-HD Pitch Studio**,
+  CCTV and exports. Layers and building massing (Solid / Wire / Glass) are in the LAYER card.
 - **Sensor markers:** a pin over each manhole turns amber at 45 % full. At 80 % it **blinks
   red**, with ripples on the street and its drain pipe pulsing red.
-- **Click a sensor pill** (`● EN-08 88% ▸`) to see:
+- **Click a sensor pill** (`EN-08 88%`) to see, in the right dock:
   - its decoded 4-byte LoRaWAN payload;
   - the Kalman-filtered depth;
   - the Edge-AI anomaly class;
   - a cutaway animation of its manhole.
-- **ST-GNN forecast panel** (left HUD): +15 / +30 / +60 min lagoon level with a 90 % band,
+- **ST-GNN forecast** (LGU REPORT tile, or Forecast & PDF on a phone): +15 / +30 / +60 min lagoon level with a 90 % band,
   time to overflow, surcharge probability and the next critical bottleneck sensor.
   - It comes from the backend when connected, otherwise it is computed in the browser.
   - It is a physics-informed graph model with no trained weights.
@@ -99,9 +96,61 @@ The launcher also handles these cases for you:
   the forecast.
 - **Share:** the QR button opens the exact view on a phone on the same Wi-Fi.
 
+## The workspace at a glance
+
+The app is **Baguio Flood Intelligence**: a header bar, a left sidebar, the 3D map in the middle
+and an analysis dock on the right (both side panels collapse with their arrow tabs).
+- It opens on the **surface** (Solid Concrete). Click **X-RAY** in the header, or the X-RAY tile,
+  to see the drainage pipes underground; **2D | 3D** flattens or tilts the camera.
+- **Left sidebar:** search for a sensor or pipe, frame the Basin Bowl / Tunnel Choke / Full Grid,
+  switch **Live Weather | Storm Sim**, and turn layers on or off.
+- **Right dock:** NETWORK, X-RAY, CAPACITY, CCTV VMS, SECTION (live profile or manhole cutaway)
+  and LGU REPORT. Click a sensor on the map to see its details here.
+- **On a phone** (scan the QR code): the map fills the screen; a bottom sheet holds Live Nodes,
+  Cross-Section and Forecast & PDF.
+
+## Command Center CCTV & the City Camp Lagoon intake
+
+- **Intake compound:** fly to **Tunnel Intake & Trash Rack** to see the sunken channel, maintenance
+  ramp, drop-weir, staff gauge, the sloped trash rack under its steel cage, and the covered court,
+  station and shed beside it. Debris piles onto the rack as blockage rises.
+- **Command Center CCTV** (CCTV VMS in the header or dock, the EN-09 pill, or **View Nearest Command Center CCTV** in a
+  sensor's drawer) shows the two nearest city cameras for that sensor:
+  - a 60-minute storm replay with play / pause, ±15 s, 0.5x / 1x / 2x speed and a timeline;
+  - three presets: dry baseline, typhoon debris on the rack, and clean rack with rock-choke
+    backwater;
+  - the YOLOv8 overlay, the multi-sensor fusion verdict, and evidence snapshot / clip downloads.
+- **Real footage:** no camera streams are configured in this repository, so the feeds are a
+  **simulated replay** of the 3D model and say so on screen and in every export. To show real video:
+  - set `CITYCAMP_CCTV_STREAMS` for the backend (HLS / MP4 URLs from the city's video gateway), or
+  - drop an `.mp4` / `.webm` on a viewport, or list clips in `public/cctv/manifest.json`.
+
+## Analytics Command Center & black-box recovery
+
+**EXPORT PDF -> Analytics Command Center** (or the CAPACITY / LGU REPORT tiles) opens a full-screen
+view with:
+- the lagoon hydrograph with the +15 / +30 / +60 min forecast;
+- a sortable table of all 63 pipes;
+- the raw-vs-Kalman noise audit;
+- the CDRRMO / CEPMO / DPWH action matrix;
+- PDF, CSV and JSON exports.
+
+Telemetry is saved in the browser (IndexedDB) and, when `npm start` is running, in
+`backend/data/baguio_flood_telemetry.db`. On first open the browser database is filled with 24 h of
+**synthetic** storm data so the charts are not empty.
+
+**Black-box demo:**
+1. **Simulate Typhoon Comms Blackout.**
+2. **Restore Link & Trigger SD Burst Sync.**
+3. **Backfill Hydrograph Gap.**
+
+With an ESP32 / Uno running the universal sketch on USB, step 2 asks the board for its log
+(`DUMP_SD_LOG`). Without one, the browser keeps its own copy. The ESP32 logs to a microSD card on
+CS GPIO10 and falls back to internal flash if the card or a wire fails.
+
 ## Ultra-HD Pitch Studio
 
-Click **Ultra-HD Pitch Studio** in the top bar (or open `http://localhost:5173/?view=pitch-studio`).
+Open **HARDWARE → Ultra-HD Pitch Studio** in the header (or open `http://localhost:5173/?view=pitch-studio`).
 It is a high-definition 3D presentation scene for pitches and demos:
 - **3D Subsurface Terrain Cutaway:** a sliced street block showing the road, grates, buildings
   and rain above, soil and limestone layers on the cut faces, and the manhole shaft, box culvert
@@ -121,7 +170,7 @@ It is a high-definition 3D presentation scene for pitches and demos:
 ## Arduino / ESP32 & aquarium demo
 
 1. Run `npm start` and open the map.
-2. Click **Open Arduino & Aquarium Sim ↗** in the top bar. A second tab opens at
+2. Open **HARDWARE → Aquarium Serial Rig** in the header. A second tab opens at
    `/?view=hardware-sim`.
 3. In that tab, pick the map sensor the tank stands for (default **EN-08**). Then use the
    controls:
@@ -138,7 +187,7 @@ It is a high-definition 3D presentation scene for pitches and demos:
 5. **Full Catchment Coupling Mode** scales the whole catchment to the tank instead of a single
    sensor.
 
-**Analytics & PDF report:** click **Analytics & PDF Report** in the top bar.
+**Analytics & PDF report:** open **EXPORT PDF → Official LGU PDF report** in the header (or the LGU REPORT tile).
 - It previews a 3-page official report and downloads it as
   `Baguio_City_Camp_Drainage_Analytics_Report.pdf`, built in the browser.
 - **Contents:**
@@ -174,7 +223,7 @@ It needs no libraries.
 - **Sensor:** set `SENSOR_TYPE` for an HC-SR04 / JSN-SR04T or an A02YYUW.
 - **Tank:** set `TANK_HEIGHT_MM` to the sensor-to-floor distance; the tank is 100 % full at 74 %
   of that height.
-- **Connect:** plug the board in by USB, open the simulator (or the map's HUD) in **Chrome or
+- **Connect:** plug the board in by USB, open the simulator (or **HARDWARE → Connect USB Arduino / ESP32** on the map) in **Chrome or
   Edge**, and click **Connect USB Arduino / ESP32**. Any sketch that prints distances
   (`DIST_MM:240`, `24 cm`, `FILL_PCT:85`) or our `[EDGE_TX]` frames works.
 - **Other browsers:** run `.venv/Scripts/python scripts/serial_bridge.py` instead.

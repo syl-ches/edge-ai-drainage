@@ -1,0 +1,5 @@
+{
+ "_readme": "Optional local CCTV footage for the Command Center replay. Drop .mp4 / .webm files in this folder and map camera ids to file names, e.g. \"CAM-CCL-A\": \"cam-ccl-a.mp4\". Files you do not have the right to share must not be committed.",
+ "CAM-CCL-A": "",
+ "CAM-CCL-B": ""
+}

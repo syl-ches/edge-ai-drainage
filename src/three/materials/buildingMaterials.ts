@@ -1,6 +1,7 @@
 // Shared surface-building materials for the main map and the Subsurface Utility Inspector.
-//   solid — pure matte architectural white (#FFFFFF walls and roofs, no floor bands, no
-//           outlines), shaded only by the studio sun + hemisphere; dark slate massing in X-ray.
+//   solid — matte architectural white (#EFEFEF walls and roofs, ArchiMap scale-model look; no
+//           floor bands, no outlines), shaded only by the studio sun + hemisphere; dark slate
+//           massing in X-ray. The default shading mode since Phase 9B.
 //   wire  — the only mode with edge lines: #059669 crowns -> #475569 footings over a 4 % fill.
 //   glass — outline-free Schlick-Fresnel glass: crystal-clear core, soft emerald grazing rim
 //           (X-ray: slate core + cyan rim); depthWrite off so the drainage always shows through.
@@ -25,6 +26,11 @@ export const SHADING_MODES: { id: ShadingMode; label: string }[] = [
   { id: 'wire', label: 'Holo Wireframe' },
   { id: 'glass', label: 'Fresnel Glass' },
 ];
+
+/** Daylight albedo of Solid Concrete massing: #EFEFEF. */
+export const SOLID_ALBEDO = 0xef / 255;
+/** Solid Concrete <-> Fresnel Glass crossfade length (s). */
+export const SHADING_FADE_S = 0.7;
 
 /** Edge LineSegments are drawn in Holo Wireframe only (solid and glass are outline-free). */
 export const SHADING_SHOWS_EDGES: Record<ShadingMode, boolean> = { solid: false, wire: true, glass: false };
@@ -71,16 +77,17 @@ varying float vH;
 
 const solidFragment = /* glsl */ `
 ${varyings}
+uniform float uOpacity;
 ${STUDIO_LIGHT_GLSL}
 void main() {
   vec3 n = normalize(vNormal);
   bool roof = n.z > 0.8;
-  // Daylight: one pure white albedo; faces read only through the sun/hemisphere shading.
+  // Daylight: one matte #EFEFEF albedo; faces read only through the sun/hemisphere shading.
   vec3 dark = roof ? vec3(0.20, 0.255, 0.333) : vec3(0.118, 0.161, 0.231);
-  vec3 albedo = mix(dark, vec3(1.0), uDay);
+  vec3 albedo = mix(dark, vec3(${SOLID_ALBEDO.toFixed(4)}), uDay);
   vec3 col = studioLight(albedo, n);
   if (uDay < 0.5) col += albedo * 0.25;
-  gl_FragColor = vec4(min(col, vec3(1.0)), 1.0);
+  gl_FragColor = vec4(min(col, vec3(1.0)), uOpacity);
 }`;
 
 const glassFragment = /* glsl */ `
@@ -89,6 +96,7 @@ uniform vec3 uCoreColor;
 uniform vec3 uRimColor;
 uniform float uBaseOpacity;
 uniform float uRimPower;
+uniform float uFade;
 void main() {
   // Schlick Fresnel. The custom mercator projection has no usable view matrix, so N and V are
   // taken in world space (eye = inverse(MVP)·(0,0,1,0)); |N·V| is the same in any frame.
@@ -99,7 +107,7 @@ void main() {
   vec3 rim = mix(vec3(0.220, 0.741, 0.973), uRimColor, uDay);
   vec3 color = mix(core, rim, fresnel);
   float alpha = clamp(uBaseOpacity + fresnel * ${GLASS.rimGain.toFixed(2)}, ${GLASS.alphaMin.toFixed(2)}, ${GLASS.alphaMax.toFixed(2)});
-  gl_FragColor = vec4(color, alpha);
+  gl_FragColor = vec4(color, alpha * uFade);
 }`;
 
 const wireFillFragment = /* glsl */ `
@@ -133,15 +141,20 @@ export interface BuildingMaterials {
   edges: ShaderMaterial;
   /** Shows the meshes of one shading mode (edge lines only in Holo Wireframe). */
   apply(mode: ShadingMode, meshes: BuildingMeshes): void;
+  /** Solid <-> glass crossfade at k in 0..1 (both meshes drawn; solid fades with depth kept). */
+  crossfade(from: 'solid' | 'glass', k: number, meshes: BuildingMeshes): void;
   setGlassOpacity(v: number): void;
 }
 
 export function createBuildingMaterials(cameraPos: Vector3): BuildingMaterials {
   const base = { uDay: THEME_UNIFORMS.uDay, uCameraPos: { value: cameraPos } };
+  // Transparent only so it can fade; at uOpacity 1 it is opaque and still writes depth.
   const solid = new ShaderMaterial({
     vertexShader: vertex,
     fragmentShader: solidFragment,
-    uniforms: { ...base, ...LIGHT_UNIFORMS },
+    uniforms: { ...base, ...LIGHT_UNIFORMS, uOpacity: { value: 1 } },
+    transparent: true,
+    depthWrite: true,
     side: DoubleSide,
   });
   const glass = new ShaderMaterial({
@@ -153,6 +166,7 @@ export function createBuildingMaterials(cameraPos: Vector3): BuildingMaterials {
       uRimColor: { value: new Vector3(...GLASS.rim) },
       uBaseOpacity: { value: GLASS.baseOpacity },
       uRimPower: { value: GLASS.rimPower },
+      uFade: { value: 1 },
     },
     transparent: true,
     depthWrite: false,
@@ -180,10 +194,21 @@ export function createBuildingMaterials(cameraPos: Vector3): BuildingMaterials {
     wireFill,
     edges,
     apply(m, meshes) {
+      solid.uniforms.uOpacity.value = 1;
+      glass.uniforms.uFade.value = 1;
       meshes.solid.visible = m === 'solid';
       meshes.glass.visible = m === 'glass';
       meshes.wireFill.visible = m === 'wire';
       meshes.edges.visible = SHADING_SHOWS_EDGES[m];
+    },
+    crossfade(from, k, meshes) {
+      const toGlass = from === 'solid' ? k : 1 - k;
+      meshes.solid.visible = toGlass < 0.999;
+      meshes.glass.visible = toGlass > 0.001;
+      meshes.wireFill.visible = false;
+      meshes.edges.visible = false;
+      solid.uniforms.uOpacity.value = 1 - toGlass;
+      glass.uniforms.uFade.value = toGlass;
     },
     setGlassOpacity(v) {
       glass.uniforms.uBaseOpacity.value = v;
