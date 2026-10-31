@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstring>
 
+#define UNIVERSAL_HOST_BUILD 1  // never read a developer's local node_config.h in tests
 #define HIGH 1
 #define LOW 0
 #define INPUT 0
@@ -38,5 +39,6 @@ typedef int portMUX_TYPE;
 #define portEXIT_CRITICAL(m) ((void)(m))
 #define pdMS_TO_TICKS(ms) (ms)
 inline void vTaskDelay(unsigned long) {}
+inline void configTime(long, int, const char *, const char *) {}
 inline int xTaskCreatePinnedToCore(void (*)(void *), const char *, unsigned, void *, int, void *, int) { return 1; }
 #endif

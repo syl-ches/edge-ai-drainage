@@ -34,6 +34,7 @@ import {
   invertRainForSensor,
   openSyncBus,
   postToBackend,
+  wifiPacketFromFrame,
   type HardwarePacket,
   type SyncBus,
 } from './live/hardwareSync';
@@ -58,6 +59,8 @@ const RECORD_MS = 2000;
 const LOCAL_FORECAST_MS = 2000;
 /** Rig packets are forwarded to the backend at most this often (ms). */
 const BACKEND_POST_MS = 500;
+/** A board on USB and Wi-Fi at once: its USB packets win while they keep arriving. */
+const USB_PRIORITY_MS = 2000;
 
 const DSP_HISTORY = 120;
 
@@ -286,6 +289,14 @@ export default function App() {
     const id = window.setTimeout(() => setHw(null), HW_HOLD_MS - (Date.now() - hw.at));
     return () => window.clearTimeout(id);
   }, [hw]);
+  // A board on Wi-Fi arrives through the backend frames. Not re-posted: the backend already has it.
+  useEffect(() => {
+    const f = live?.frame;
+    const now = Date.now();
+    const p = f ? wifiPacketFromFrame(f, now) : null;
+    if (!p) return;
+    setHw((prev) => (prev?.packet.origin === 'WEB_SERIAL' && now - prev.at < USB_PRIORITY_MS ? prev : { packet: p, at: p.ts }));
+  }, [live]);
   const disconnectRig = useCallback(() => {
     bus.current?.publish({ v: 1, type: 'disconnect', ts: Date.now(), from: 'MAP', sensorId: hw?.packet.sensorId });
     mutedUntil.current = Date.now() + 2000;
@@ -706,7 +717,7 @@ export default function App() {
                 focusSensor(hw.packet.sensorId);
                 openSensor(hw.packet.sensorId);
               }}
-              onDisconnect={disconnectRig}
+              onDisconnect={hw.packet.origin === 'WIFI_NODE' ? undefined : disconnectRig}
             />
           )}
           {hoverCard && hover && <Tooltip card={hoverCard} x={hover.x} y={hover.y} pinned={false} />}

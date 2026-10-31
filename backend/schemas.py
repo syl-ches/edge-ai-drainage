@@ -29,6 +29,8 @@ class LiveSensor(BaseModel):
     sensor_id: str
     device_eui: str
     origin: Literal["VIRTUAL", "HARDWARE"]
+    transport: str | None = None                 # "WIFI" when a board posted this record directly
+    dist_mm: float | None = None
     temperature_c: float
     raw_burst_mm: list[float]
     raw_unfiltered_depth_mm: float

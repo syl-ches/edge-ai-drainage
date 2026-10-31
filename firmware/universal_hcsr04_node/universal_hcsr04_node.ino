@@ -16,29 +16,40 @@
 //          [EDGE_TX] {"device_eui":"EN-08","dist_mm":..,"fill_pct":..,"payload_hex":"0x..",...}
 //          DIST_MM:<mm>        (plain line for any generic parser; the web rig prefers EDGE_TX)
 // Wi-Fi: ESP32 only, when WIFI_SSID is set: a background task POSTs every 500 ms to
-//          http://SERVER_IP:8000/api/v1/ingest/distance  and  /api/v1/ingest/lorawan
-//        so a battery-powered ESP32-S3 drives the 3D map with no cable.
+//          http://SERVER_IP:8000/api/v1/ingest/distance
+//        so a battery-powered ESP32-S3 drives the 3D map with no cable. Every 5 s the USB console
+//        prints LINK_STATUS:... with the Wi-Fi state and the last HTTP result.
+//        Copy node_config.example.h to node_config.h (git-ignored) for your Wi-Fi and PC address.
+// Missed echoes: a sample with no echo repeats the last good one; after ECHO_FAULT_MISSES in a row
+//   the frame is flagged SENSOR_FAULT so the map never shows a dead sensor's last value as live.
+//   With no echo since boot nothing can be measured: SENSOR_FAULT:NO_ECHO is printed instead.
 // Black box (Phase 9C, blackbox.h): every 5th report (1 Hz) the 32-bit frame is logged.
 //   Tier 1  SPI microSD: /telemetry_log.bin (12-byte records: t_ms, seq, word, big-endian) and
-//           /telemetry_log.csv. Boot prints SD_STATUS:OK_SPI_CARD.
+//           /telemetry_log.csv (readable: time, distance, fill, depth, rate, anomaly, payload).
+//           Boot prints SD_STATUS:OK_SPI_CARD.
 //   Tier 2  if SD.begin() fails, or a later write fails (loose jumper), the node switches at once to
 //           its internal ring of the last frames and prints SD_STATUS:OK_FLASH_FAILSAFE. It never
-//           halts. ESP32: 256-frame RAM ring mirrored to NVS flash every 64 frames. Uno: 255-frame
-//           EEPROM ring (1 KB). (SD.begin()'s own timeout on a missing card is library-dependent.)
+//           halts. ESP32: 256-frame RAM ring mirrored to NVS flash every 64 frames, and the card is
+//           retried every SD_RETRY_MS. Uno: 255-frame EEPROM ring (1 KB). (SD.begin()'s own timeout
+//           on a missing card is library-dependent.)
 //   Console: DUMP_SD_LOG streams the ring as [SD_DUMP] lines + [SD_DUMP_END] {frames, crc32,
 //            tier}; SD_STATUS reprints the tier. The web app (Black-box SD recovery) sends it.
-//   SD wiring (ESP32-S3 default SPI): CS GPIO10, MOSI GPIO11, SCK GPIO12, MISO GPIO13, 3V3, GND.
+//   SD wiring (ESP32-S3, set explicitly so every board variant agrees): CS GPIO10, MOSI GPIO11,
+//   SCK GPIO12, MISO GPIO13. VCC: 5 V on modules with a regulator, 3V3 on bare card sockets.
 //   Uno: SD is off by default (hardware SPI needs D10, which is ECHO here); set BLACKBOX_SD 1 and
 //   move ECHO to D7 (ECHO_PIN) to use a card on D8 (SD_CS_PIN); the EEPROM ring always works.
 //
-// WIRING (no resistors, hackathon style). Read these two notes first:
-//   1. ESP32-S3 GPIOs are NOT 5 V tolerant. Use a 3.3 V-capable HC-SR04 (HC-SR04P, RCWL-1601)
-//      powered from 3V3 so ECHO is a 3.3 V signal, or add a 1 k / 2 k divider on ECHO.
+// WIRING. Read these notes first (ESP32-S3 + HW-131 guide: docs/HARDWARE_BENCH_DEMO_GUIDE.md §7):
+//   1. ESP32-S3 GPIOs are NOT 5 V tolerant. This rig powers the HC-SR04 from the HW-131 3.3 V rail,
+//      so ECHO is a 3.3 V signal and goes straight to GPIO18. If the sensor is ever moved to 5 V,
+//      ECHO needs a divider: ECHO -> 1 k -> GPIO18, and GPIO18 -> 2 k -> GND.
 //   2. A bare LED straight on a GPIO has no current limit. Use LED modules with built-in
 //      resistors (common in sensor kits), or put a 220-330 ohm resistor in series.
+//   3. The ESP32-S3 runs from the HW-131 3.3 V rail into its 3V3 pin. Never put 5 V on that pin.
+//      The SD module takes the 5 V rail. All grounds must be common.
 //            ESP32-S3   Arduino Uno
 //   TRIG       GPIO5        D9
-//   ECHO       GPIO6        D10
+//   ECHO       GPIO18       D10
 //   LED green  GPIO7        D4
 //   LED yellow GPIO8        D5
 //   LED red    GPIO9        D6
@@ -52,13 +63,24 @@
 #endif
 #include "blackbox.h"
 #include "edge_crypto.h"
+#if !defined(UNIVERSAL_HOST_BUILD) && __has_include("node_config.h")
+#include "node_config.h"          // your Wi-Fi + PC address, see node_config.example.h
+#endif
 
 // ---------------------------------------------------------------- user configuration
+#ifndef DEVICE_EUI
 #define DEVICE_EUI "EN-08"        // map sensor this rig represents (EN-01 .. EN-10)
+#endif
+#ifndef TANK_HEIGHT_MM
 #define TANK_HEIGHT_MM 300.0      // sensor face -> tank floor
+#endif
+#ifndef NODE_FULL_SCALE_M
 #define NODE_FULL_SCALE_M 2.0     // full-scale depth D of that map node (EN-08 rack opening 2.0 m)
+#endif
+#ifndef AIR_TEMP_C
 #define AIR_TEMP_C 24.0           // no DS18B20 on this build: room temperature
-#define VBAT_V 4.05               // USB / LiPo nominal (no battery ADC on this build)
+#endif
+#define VBAT_V 4.05               // fixed nominal: no battery ADC on this build, so not a measurement
 #define SAMPLE_PERIOD_MS 100UL    // 10 Hz ultrasonic reads
 #define REPORT_EVERY 2            // print / uplink every 2nd sample (5 Hz)
 #ifndef WIFI_SSID
@@ -67,10 +89,21 @@
 #ifndef WIFI_PASSWORD
 #define WIFI_PASSWORD ""
 #endif
+#ifndef SERVER_IP
 #define SERVER_IP "192.168.1.100" // PC running `npm start` (FastAPI on port 8000)
+#endif
 #define SERVER_PORT 8000
+#ifndef UPLINK_SCOPE
 #define UPLINK_SCOPE "single_node" // or "full_catchment"
+#endif
 #define POST_PERIOD_MS 500
+#define HTTP_TIMEOUT_MS 1500
+#define WIFI_RETRY_MS 15000UL     // association can take several seconds: do not restart it sooner
+#define LINK_STATUS_MS 5000UL
+#ifndef WIFI_TX_POWER
+#define WIFI_TX_POWER WIFI_POWER_8_5dBm  // lower TX current peaks: a 9 V cell through a linear regulator sags at full power
+#endif
+#define ECHO_FAULT_MISSES 10      // 1 s of consecutive missed echoes at 10 Hz
 #ifndef BLACKBOX_SD
 #if defined(ESP32)
 #define BLACKBOX_SD 1             // SPI microSD logging (tier 1)
@@ -79,6 +112,7 @@
 #endif
 #endif
 #define BLACKBOX_EVERY 5          // log every 5th report: 1 frame per second
+#define SD_RETRY_MS 30000UL       // ESP32: re-mount a card that failed or dropped out
 #ifndef EDGE_CRYPTO
 #define EDGE_CRYPTO 0             // 1: [EDGE_TX] carries cipher_hex / tag_hex / nonce instead of payload_hex (edge_crypto.h)
 #endif
@@ -86,11 +120,14 @@
 // ---------------------------------------------------------------- pins
 #if defined(ESP32)
 #define TRIG_PIN 5
-#define ECHO_PIN 6
+#define ECHO_PIN 18
 #define LED_GREEN 7
 #define LED_YELLOW 8
 #define LED_RED 9
 #define SD_CS_PIN 10
+#define SD_MOSI_PIN 11
+#define SD_SCK_PIN 12
+#define SD_MISO_PIN 13
 #else
 #define TRIG_PIN 9
 #ifndef ECHO_PIN
@@ -108,6 +145,7 @@
 #endif
 #if defined(ESP32)
 #include <Preferences.h>
+#include <time.h>
 #else
 #include <EEPROM.h>
 #endif
@@ -313,6 +351,12 @@ inline Result cycle(Kalman *k, const real_t *burst_raw_mm, real_t temp_c, real_t
   return r;
 }
 
+/** run_cycle(sensor_fault=True): the top classifier priority, values otherwise unchanged. */
+inline void mark_sensor_fault(Result *r, real_t vbat) {
+  r->anomaly_code = 5;
+  r->payload = pack_payload(r->depth_mm, r->dh_dt_mm_min, r->cap_pct, 5, vbat);
+}
+
 inline void hex32(uint32_t w, char *out) {  // "0x" + 8 upper-case hex digits
   static const char H[] = "0123456789ABCDEF";
   out[0] = '0';
@@ -331,6 +375,7 @@ static unsigned long g_last_sample = 0;
 static unsigned long g_last_cycle = 0;
 static unsigned long g_seq = 0;
 static int g_since_report = 0;
+static unsigned int g_missed_echoes = 0;
 
 /** HC-SR04 round trip -> one-way mm at the 343.2 m/s reference (thermal comp happens later). */
 static real_t read_hcsr04_mm() {
@@ -411,29 +456,39 @@ static void print_edge_tx(const edge::Result &r) {
 static portMUX_TYPE g_mux = portMUX_INITIALIZER_UNLOCKED;
 static edge::Result g_snap;
 static unsigned long g_snap_seq = 0;
+static volatile int g_http_code = 0;        // last POST: 200 ok, < 0 PC unreachable, 0 none yet
+static volatile unsigned long g_post_ok = 0;
+static volatile unsigned long g_post_fail = 0;
 
-static void http_post(const char *path, const char *body, size_t len) {
+static int http_post(const char *path, const char *body, size_t len) {
   char url[96];
   snprintf(url, sizeof(url), "http://%s:%d%s", SERVER_IP, SERVER_PORT, path);
   HTTPClient http;
-  http.setTimeout(400);
-  if (!http.begin(url)) return;
+  http.setConnectTimeout(HTTP_TIMEOUT_MS);
+  http.setTimeout(HTTP_TIMEOUT_MS);
+  if (!http.begin(url)) return -1;
   http.addHeader("Content-Type", "application/json");
-  http.POST((uint8_t *)body, len);
+  int code = http.POST((uint8_t *)body, len);
   http.end();
+  return code;
 }
 
 static void uplink_task(void *) {
   unsigned long sent = 0;
-  unsigned long last_try = 0;
+  unsigned long last_try = millis();
+  bool clock_started = false;
   for (;;) {
     if (WiFi.status() != WL_CONNECTED) {
-      if (millis() - last_try > 5000UL) {
+      if (millis() - last_try > WIFI_RETRY_MS) {
         last_try = millis();
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
       }
       vTaskDelay(pdMS_TO_TICKS(250));
       continue;
+    }
+    if (!clock_started) {
+      clock_started = true;
+      configTime(0, 0, "pool.ntp.org", "time.google.com");  // wall clock (UTC) for the SD log
     }
     edge::Result r;
     unsigned long seq;
@@ -445,9 +500,9 @@ static void uplink_task(void *) {
       sent = seq;
       char hex[11];
       edge::hex32(r.payload, hex);
-      char body[420];
+      char body[460];
       int n = snprintf(body, sizeof(body),
-                       "{\"device_eui\":\"%s\",\"payload_hex\":\"%s\",\"dist_mm\":%.1f,\"tank_height_mm\":%.0f,"
+                       "{\"device_eui\":\"%s\",\"transport\":\"WIFI\",\"payload_hex\":\"%s\",\"dist_mm\":%.1f,\"tank_height_mm\":%.0f,"
                        "\"fill_pct\":%.1f,\"scope\":\"%s\",\"kalman_filtered_depth_mm\":%.1f,"
                        "\"raw_unfiltered_depth_mm\":%.1f,\"dh_dt_mm_min\":%.2f,\"sigma_d2_mm2\":%.2f,"
                        "\"turbulence_index\":%.4f,\"h_over_d\":%.4f,\"temperature_c\":%.1f,\"bench_demo\":true}",
@@ -455,11 +510,34 @@ static void uplink_task(void *) {
                        (double)r.depth_mm, (double)r.raw_depth_mm, (double)r.dh_dt_mm_min, (double)r.sigma_d2,
                        (double)r.turbulence, (double)r.h_over_d, (double)AIR_TEMP_C);
       if (n > 0 && n < (int)sizeof(body)) {
-        http_post("/api/v1/ingest/distance", body, (size_t)n);
-        http_post("/api/v1/ingest/lorawan", body, (size_t)n);
+        const int code = http_post("/api/v1/ingest/distance", body, (size_t)n);
+        g_http_code = code;
+        if (code == 200) g_post_ok = g_post_ok + 1;
+        else g_post_fail = g_post_fail + 1;
       }
     }
     vTaskDelay(pdMS_TO_TICKS(POST_PERIOD_MS));
+  }
+}
+
+/** Printed from loop() so it never interleaves with [EDGE_TX]. Keep "<number> mm/cm" out of these
+ *  lines: the web serial parser reads that pattern as a distance. */
+static void print_link_status() {
+  char line[120];
+  const int st = WiFi.status();
+  if (st == WL_CONNECTED) {
+    IPAddress ip = WiFi.localIP();
+    const int code = g_http_code;
+    snprintf(line, sizeof(line), "LINK_STATUS:WIFI_UP ip=%u.%u.%u.%u rssi=%d http=%d ok=%lu fail=%lu", ip[0], ip[1], ip[2], ip[3],
+             (int)WiFi.RSSI(), code, (unsigned long)g_post_ok, (unsigned long)g_post_fail);
+    Serial.println(line);
+    if (code < 0) Serial.println("# PC unreachable: check SERVER_IP, that npm start is running, and that both are on one network");
+    else if (code == 404) Serial.println("# backend rejected DEVICE_EUI: use EN-01 .. EN-10");
+  } else {
+    snprintf(line, sizeof(line), "LINK_STATUS:WIFI_DOWN wifi_status=%d ssid=%s", st, WIFI_SSID);
+    Serial.println(line);
+    if (st == WL_NO_SSID_AVAIL) Serial.println("# network not found: the ESP32-S3 joins 2.4 GHz only, check the SSID");
+    else if (st == WL_CONNECT_FAILED) Serial.println("# join failed: check WIFI_PASSWORD");
   }
 }
 #endif
@@ -544,8 +622,19 @@ static void print_sd_status() { Serial.println(g_sd_ok ? "SD_STATUS:OK_SPI_CARD"
 #else
 #define BB_APPEND FILE_WRITE
 #endif
+/** UTC seconds for the CSV; 0 until NTP has synced (without Wi-Fi: never, use t_ms). */
+static uint32_t unix_now() {
+#if defined(ESP32)
+  const time_t t = time(nullptr);
+  return t > 1700000000 ? (uint32_t)t : 0;
+#else
+  return 0;
+#endif
+}
+
 /** Appends one frame to both SD files; false on any failure (card pulled, loose wire, full). */
-static bool sd_append(uint32_t t_ms, uint32_t seq, uint32_t word) {
+static bool sd_append(uint32_t t_ms, uint32_t seq, const edge::Result &r) {
+  const uint32_t word = r.payload;
   uint8_t rec[12];
   const uint32_t v[3] = {t_ms, seq, word};
   for (int j = 0; j < 3; ++j)
@@ -559,14 +648,40 @@ static bool sd_append(uint32_t t_ms, uint32_t seq, uint32_t word) {
   if (!csv) return false;
   char hx[11];
   blackbox::hex32(word, hx);
+  if (csv.size() == 0) csv.println("t_ms,unix_time,seq,dist_mm,fill_pct,depth_mm,dh_dt_mm_min,anomaly,payload_hex");
   csv.print((unsigned long)t_ms);
   csv.print(",");
+  csv.print((unsigned long)unix_now());
+  csv.print(",");
   csv.print((unsigned long)seq);
+  csv.print(",");
+  csv.print(r.dist_mm, 1);
+  csv.print(",");
+  csv.print(r.cap_pct, 1);
+  csv.print(",");
+  csv.print(r.depth_mm, 1);
+  csv.print(",");
+  csv.print(r.dh_dt_mm_min, 2);
+  csv.print(",");
+  csv.print(edge::ANOMALY_NAMES[r.anomaly_code & 7]);
   csv.print(",");
   csv.println(hx);
   csv.close();
   return true;
 }
+
+#if defined(ESP32)
+static unsigned long g_last_sd_try = 0;
+
+/** A power sag or loose jumper must not end logging for the rest of the run. */
+static void sd_retry(unsigned long now) {
+  if (g_sd_ok || now - g_last_sd_try < SD_RETRY_MS) return;
+  g_last_sd_try = now;
+  SD.end();
+  g_sd_ok = SD.begin(SD_CS_PIN);
+  if (g_sd_ok) print_sd_status();
+}
+#endif
 #endif
 
 static void blackbox_log(unsigned long now) {
@@ -580,10 +695,13 @@ static void blackbox_log(unsigned long now) {
   }
 #endif
 #if BLACKBOX_SD
-  if (g_sd_ok && !sd_append((uint32_t)now, (uint32_t)g_seq, g_last.payload)) {
+  if (g_sd_ok && !sd_append((uint32_t)now, (uint32_t)g_seq, g_last)) {
     g_sd_ok = false;  // fail over to the internal ring at once, never halt
     print_sd_status();
   }
+#if defined(ESP32)
+  sd_retry(now);
+#endif
 #endif
 }
 
@@ -595,6 +713,9 @@ static void blackbox_begin() {
   g_ring.begin();
 #endif
 #if BLACKBOX_SD
+#if defined(ESP32)
+  SPI.begin(SD_SCK_PIN, SD_MISO_PIN, SD_MOSI_PIN, SD_CS_PIN);  // the default pins differ per board variant
+#endif
   g_sd_ok = SD.begin(SD_CS_PIN);
 #endif
   print_sd_status();
@@ -626,6 +747,9 @@ static void poll_commands() {
 // ---------------------------------------------------------------- Arduino entry points
 void setup() {
   Serial.begin(115200);
+#if defined(ESP32) && ARDUINO_USB_CDC_ON_BOOT
+  Serial.setTxTimeoutMs(0);  // on battery no USB host is listening: printing must never stall sampling
+#endif
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(LED_GREEN, OUTPUT);
@@ -642,7 +766,8 @@ void setup() {
   if (WIFI_SSID[0] != '\0') {
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    xTaskCreatePinnedToCore(uplink_task, "uplink", 6144, nullptr, 1, nullptr, 0);
+    WiFi.setTxPower(WIFI_TX_POWER);
+    xTaskCreatePinnedToCore(uplink_task, "uplink", 8192, nullptr, 1, nullptr, 0);
     Serial.println("# Wi-Fi uplink enabled -> http://" SERVER_IP ":8000/api/v1/ingest/distance");
   }
 #endif
@@ -652,13 +777,26 @@ void loop() {
   unsigned long now = millis();
   poll_commands();
   update_leds(now);
+#if defined(ESP32)
+  static unsigned long last_link = 0;
+  if (WIFI_SSID[0] != '\0' && now - last_link >= LINK_STATUS_MS) {
+    last_link = now;
+    print_link_status();
+  }
+#endif
   if (now - g_last_sample < SAMPLE_PERIOD_MS) return;
   g_last_sample = now;
 
   real_t d = read_hcsr04_mm();
   if (d < 0) {
-    if (g_win.n == 0) return;  // no echo yet: nothing to repeat
+    ++g_missed_echoes;
+    if (g_win.n == 0) {  // no echo yet: nothing to repeat
+      if (g_missed_echoes % 20 == 1) Serial.println("SENSOR_FAULT:NO_ECHO check TRIG, ECHO and HC-SR04 power");
+      return;
+    }
     d = g_win.s[g_win.n - 1];  // missed echo: repeat the last good sample
+  } else {
+    g_missed_echoes = 0;
   }
   d = edge::clampr(d, edge::MIN_DIST_MM, (real_t)TANK_HEIGHT_MM);
   edge::window_push(&g_win, d);
@@ -667,6 +805,7 @@ void loop() {
   real_t dt_min = g_last_cycle == 0 ? (real_t)(1.0 / 60.0) : (real_t)(now - g_last_cycle) / (real_t)60000.0;
   g_last_cycle = now;
   g_last = edge::cycle(&g_kal, burst, (real_t)AIR_TEMP_C, dt_min, (real_t)TANK_HEIGHT_MM, (real_t)NODE_FULL_SCALE_M, (real_t)VBAT_V);
+  if (g_missed_echoes >= ECHO_FAULT_MISSES) edge::mark_sensor_fault(&g_last, (real_t)VBAT_V);
   g_have = true;
 
   if (++g_since_report < REPORT_EVERY) return;

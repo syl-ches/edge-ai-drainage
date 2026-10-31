@@ -22,6 +22,9 @@ export interface LiveSensor {
   sensor_id: string;
   device_eui: string;
   origin: TelemetryOrigin;
+  /** 'WIFI' when a board posted this record directly to the backend */
+  transport?: string | null;
+  dist_mm?: number | null;
   temperature_c: number;
   raw_burst_mm: number[];
   raw_unfiltered_depth_mm: number;

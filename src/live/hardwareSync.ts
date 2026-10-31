@@ -5,6 +5,7 @@
 //      the FastAPI WebSocket broadcasts the hardware override to every connected client.
 // Plus the map-side override: the targeted sensor (and its conduit) follow the packet
 // ("single_node"), or the whole catchment is re-driven through the LUT ("full_catchment").
+import type { TwinFrame } from '../types/live';
 import type { AnomalyClass } from '../types/twin';
 import type { LutInterpolator, TwinState } from '../utils/lutInterpolator';
 import { STATUSES } from '../utils/lutInterpolator';
@@ -17,7 +18,7 @@ export const HW_STORAGE_KEY = 'citycamp_hardware_sync';
 export const HW_HOLD_MS = 30_000;
 
 export type SyncScope = 'single_node' | 'full_catchment';
-export type RigOrigin = 'AQUARIUM_SIM' | 'WEB_SERIAL';
+export type RigOrigin = 'AQUARIUM_SIM' | 'WEB_SERIAL' | 'WIFI_NODE';
 
 export interface HardwarePacket {
   v: 1;
@@ -149,6 +150,41 @@ export async function postToBackend(base: string, p: HardwarePacket, timeoutMs =
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * A board on Wi-Fi reaches the map through the backend, not the browser. This turns its uplink in a
+ * frame into a rig packet, so it gets the same banner, conduit overlay and audit trail as a USB board.
+ * `ts` is when the backend received it, so a board that goes silent still expires after HW_HOLD_MS.
+ */
+export function wifiPacketFromFrame(frame: Pick<TwinFrame, 'sensors' | 'hardware_override'>, nowMs: number): HardwarePacket | null {
+  const o = frame.hardware_override;
+  const s = o ? frame.sensors[o.sensor_id] : undefined;
+  if (!o || !s || s.origin !== 'HARDWARE' || s.transport !== 'WIFI') return null;
+  return {
+    v: 1,
+    type: 'telemetry',
+    seq: s.payload_uint32,
+    ts: nowMs - o.age_s * 1000,
+    origin: 'WIFI_NODE',
+    sensorId: s.sensor_id,
+    deviceEui: s.device_eui,
+    scope: o.scope ?? 'single_node',
+    fillPct: s.h_over_d * 100,
+    depthMm: s.kalman_filtered_depth_mm,
+    rawDepthMm: s.raw_unfiltered_depth_mm,
+    dhDtMmMin: s.dh_dt_mm_min,
+    sigmaD2: s.sigma_d2_mm2,
+    turbulence: s.turbulence_index,
+    capacityPct: s.capacity_pct,
+    anomaly: s.anomaly_class,
+    anomalyCode: s.anomaly_code,
+    payloadHex: s.payload_hex,
+    vbatV: s.vbat_v,
+    tempC: s.temperature_c,
+    distanceMm: s.dist_mm ?? null,
+    rawBurstMm: s.raw_burst_mm,
+  };
 }
 
 /** LUT rainfall whose state best reproduces a sensor fullness (mirror of backend lut.invert_rain_for_sensor). */

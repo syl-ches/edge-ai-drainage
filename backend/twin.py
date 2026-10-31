@@ -182,6 +182,7 @@ class TwinRuntime:
         kal = float(extras.get("kalman_filtered_depth_mm", d["depth_mm"]))
         sensor = dict(
             sensor_id=sensor_id, device_eui=meta["device_eui"], origin="HARDWARE",
+            transport=extras.get("transport"), dist_mm=extras.get("dist_mm"),
             temperature_c=float(extras.get("temperature_c", 14.0)),
             raw_burst_mm=[float(x) for x in extras.get("raw_burst_mm", [])][:10],
             raw_unfiltered_depth_mm=float(extras.get("raw_unfiltered_depth_mm", d["depth_mm"])),

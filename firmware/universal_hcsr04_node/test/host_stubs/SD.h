@@ -8,13 +8,16 @@ struct File {
   bool ok = false;
   explicit operator bool() const { return ok; }
   size_t write(const uint8_t *, size_t n) { return n; }
+  size_t size() { return 0; }
   void print(const char *) {}
   void print(unsigned long) {}
+  void print(double, int) {}
   void println(const char *) {}
   void close() {}
 };
 struct SDClass {
   bool begin(int) { return false; }
+  void end() {}
   File open(const char *, int) { return File{}; }
 };
 static SDClass SD;

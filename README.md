@@ -205,16 +205,18 @@ It needs no libraries.
 
   | | TRIG | ECHO | LED green | LED yellow | LED red |
   |---|---|---|---|---|---|
-  | ESP32-S3 | 5 | 6 | 7 | 8 | 9 |
+  | ESP32-S3 | 5 | 18 | 7 | 8 | 9 |
   | Uno | 9 | 10 | 4 | 5 | 6 |
 - **What it does:** it runs the full edge pipeline on the board and lights green/yellow, with
   red blinking at 3 Hz from 80 % full.
-- **Output:** `[EDGE_TX]` frames over USB. On the ESP32-S3, set `WIFI_SSID`, `WIFI_PASSWORD`
-  and `SERVER_IP` (your PC) and it posts to the backend over Wi-Fi every 500 ms, so it can run
-  on a battery.
+- **Output:** `[EDGE_TX]` frames over USB. On the ESP32-S3, copy `node_config.example.h` to
+  `node_config.h`, set `WIFI_SSID`, `WIFI_PASSWORD` and `SERVER_IP` (your PC), and it posts to the
+  backend over Wi-Fi every 500 ms, so it can run on a battery. It also logs readings to a microSD
+  card. Full wiring for an HW-131 supply:
+  [docs/HARDWARE_BENCH_DEMO_GUIDE.md §7](docs/HARDWARE_BENCH_DEMO_GUIDE.md).
 - **Safety:**
-  - Use a 3.3 V HC-SR04 (HC-SR04P) or a voltage divider on ECHO with the ESP32-S3; its pins are
-    not 5 V tolerant.
+  - Power the HC-SR04 from 3.3 V with the ESP32-S3, or add a voltage divider on ECHO if it runs
+    on 5 V; the ESP32-S3's pins are not 5 V tolerant.
   - Use LED modules with built-in resistors, or add 220–330 Ω resistors.
 
 **Other boards / sensors:** flash

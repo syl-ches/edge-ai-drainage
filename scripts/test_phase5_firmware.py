@@ -20,6 +20,7 @@ and the run is reported as PARTIAL (exit code 0, clearly labelled).
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import math
 import os
@@ -363,10 +364,13 @@ def universal_differential(cxx: list[str], uni: Path, tmp: Path) -> tuple[str, b
         window.append(d)
         window = window[-dsp.BURST_LEN:]
         burst = [window[0]] * (dsp.BURST_LEN - len(window)) + window
+        faulted = dsp.run_cycle(cfg, copy.deepcopy(kal), burst, temp, dt / 60.0, sensor_fault=True, bench_demo=True, standpipe=True,
+                                pipe_height_mm=tank, vbat_v=vbat)
         res = dsp.run_cycle(cfg, kal, burst, temp, dt / 60.0, bench_demo=True, standpipe=True, pipe_height_mm=tank, vbat_v=vbat)
         parts = out[i].split()
         codes.add(res["anomaly_code"])
         ok = (parts[0] == dsp.payload_hex(res["payload"]) and int(parts[4]) == res["anomaly_code"]
+              and parts[5] == dsp.payload_hex(faulted["payload"])
               and abs(float(parts[1]) - res["depth_mm"]) < 1e-6 and abs(float(parts[2]) - res["dh_dt_mm_min"]) < 1e-6)
         if not ok:
             mismatches += 1

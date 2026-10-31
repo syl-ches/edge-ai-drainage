@@ -249,6 +249,8 @@ def ingest_distance(req: DistanceIngestRequest) -> dict:
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
     rec = out["sensor"]
+    with contextlib.suppress(Exception):           # persistence never blocks the live path
+        db.insert_frames([frame_row(sid, utc_now(), rec["payload_hex"], "HARDWARE", False)])
     return dict(status="ok", sensor_id=sid, scope=req.scope, payload_hex=rec["payload_hex"],
                 decoded=dsp.unpack_payload(rec["payload_uint32"]), fill_pct=out["fill_pct"], dist_mm=out["dist_mm"],
                 anomaly_class=out["anomaly_class"], capacity_pct=rec["capacity_pct"], twin=runtime.drive_preview())

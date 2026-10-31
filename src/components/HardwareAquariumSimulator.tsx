@@ -30,9 +30,9 @@ const MAX_FILL = 120;
 
 export type BoardKind = 'ESP32_S3' | 'UNO';
 export type UltrasonicKind = 'HC-SR04' | 'A02YYUW';
-/** Pinout of firmware/universal_hcsr04_node (resistor-free hackathon wiring). */
+/** Pinout of firmware/universal_hcsr04_node (ESP32-S3: HC-SR04 on 3.3 V, so ECHO needs no divider). */
 export const BOARDS: Record<BoardKind, { name: string; pins: string; link: string }> = {
-  ESP32_S3: { name: 'ESP32-S3 · universal edge node', pins: 'TRIG 5 · ECHO 6 · LED G 7 · Y 8 · R 9', link: 'USB serial + Wi-Fi POST every 500 ms' },
+  ESP32_S3: { name: 'ESP32-S3 · universal edge node', pins: 'TRIG 5 · ECHO 18 · LED G 7 · Y 8 · R 9', link: 'USB serial + Wi-Fi POST every 500 ms' },
   UNO: { name: 'Arduino Uno · universal edge node', pins: 'TRIG 9 · ECHO 10 · LED G 4 · Y 5 · R 6', link: 'USB serial 115200 baud' },
 };
 /** Near-field blind zone drawn under the transducer, mm. */

@@ -605,6 +605,17 @@ class ApiTests(unittest.TestCase):
         r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08", "payload_hex": dsp.payload_hex(word),
                                                                "dist_mm": 70.0, "fill_pct": 90.0, "tank_height_mm": 300})
         self.assertEqual((r.json()["payload_hex"], r.json()["capacity_pct"]), (dsp.payload_hex(word), 90.0))
+        # the Wi-Fi sketch body: tagged for the map's banner, persisted once as a HARDWARE frame
+        wifi = dsp.pack_payload(1810.0, 4.0, 90.5, 2, 4.05)
+        before = len(self.client.get("/api/telemetry/history", params={"node_id": "EN-08", "limit": 5000}).json()["frames"])
+        r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08", "transport": "WIFI", "payload_hex": dsp.payload_hex(wifi),
+                                                               "dist_mm": 72.0, "fill_pct": 90.5, "tank_height_mm": 300})
+        self.assertEqual(r.status_code, 200, r.text)
+        frames = self.client.get("/api/telemetry/history", params={"node_id": "EN-08", "limit": 5000}).json()["frames"]
+        self.assertEqual(len(frames), before + 1)
+        self.assertEqual(max(frames, key=lambda f: f["timestamp_utc"])["source_mode"], "HARDWARE")
+        frame = runtime.tick(0.5)
+        self.assertEqual((frame["sensors"]["EN-08"]["transport"], frame["sensors"]["EN-08"]["dist_mm"]), ("WIFI", 72.0))
         # full-catchment coupling drives the whole twin
         r = self.client.post("/api/v1/ingest/distance", json={"device_eui": "EN-08", "fill_pct": 85, "scope": "full_catchment"})
         self.assertEqual(r.json()["twin"]["mode"], "HARDWARE")

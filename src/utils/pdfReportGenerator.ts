@@ -167,7 +167,7 @@ export function buildReportData(i: ReportInputs): ReportData {
     conduitGroups,
     history: i.history,
     hardware: i.hardware
-      ? { sensorId: i.hardware.sensorId, pct: Math.min(i.hardware.capacityPct, 127), anomaly: i.hardware.anomaly, origin: i.hardware.origin === 'WEB_SERIAL' ? 'USB Arduino or ESP32 board' : 'aquarium simulator' }
+      ? { sensorId: i.hardware.sensorId, pct: Math.min(i.hardware.capacityPct, 127), anomaly: i.hardware.anomaly, origin: i.hardware.origin === 'WIFI_NODE' ? 'Wi-Fi ESP32-S3 node' : i.hardware.origin === 'WEB_SERIAL' ? 'USB Arduino or ESP32 board' : 'aquarium simulator' }
       : null,
   };
 }

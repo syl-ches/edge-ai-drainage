@@ -4,7 +4,9 @@ dist/
 __pycache__/
 .vite/
 firmware/citycamp_edge_node/include/secrets.h
+firmware/*/node_config.h
 firmware/citycamp_edge_node/.pio/
 .venv/
 .cache/
 backend/data/
+.venv/

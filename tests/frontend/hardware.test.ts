@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest';
 import type { LutFile, NetworkFile } from '../../src/types/twin';
 import { LutInterpolator } from '../../src/utils/lutInterpolator';
 import { HardwareRig, lineSplitter, parseSerialLine, type RigConfig } from '../../src/live/serialRig';
-import { applyHardwarePacket, ingestBody, invertRainForSensor, openSyncBus, type HardwarePacket, type SyncMessage } from '../../src/live/hardwareSync';
+import { applyHardwarePacket, ingestBody, invertRainForSensor, openSyncBus, wifiPacketFromFrame, type HardwarePacket, type SyncMessage } from '../../src/live/hardwareSync';
+import type { LiveSensor } from '../../src/types/live';
 import { alarmConduitId, markerTone } from '../../src/utils/fullness';
 import { STATUSES } from '../../src/utils/lutInterpolator';
 import { unpackTelemetryPayload } from '../../src/utils/payloadCodec';
-import { hardwareBannerText } from '../../src/components/HardwareAlertBanner';
+import { hardwareBannerText, rigLabel } from '../../src/components/HardwareAlertBanner';
 import { isHardwareSimRoute } from '../../src/main.route';
 
 const network = JSON.parse(readFileSync('public/data/city_camp_network.json', 'utf8')) as NetworkFile;
@@ -137,6 +138,25 @@ describe('cross-tab sync + map override', () => {
   it('posts the serial-bridge JSON shape with scope to /api/v1/ingest/lorawan', () => {
     const p = drive(new HardwareRig(cfg({ scope: 'full_catchment' })), [40, 41], 1)[1];
     expect(ingestBody(p)).toMatchObject({ device_eui: 'EN-08', payload_hex: p.payloadHex, scope: 'full_catchment', bench_demo: true });
+  });
+  it('turns a Wi-Fi uplink in a backend frame into a rig packet, and only that', () => {
+    const sensor = { sensor_id: 'EN-08', device_eui: '02BA6C1000000008', origin: 'HARDWARE', transport: 'WIFI', dist_mm: 90, h_over_d: 0.91,
+      kalman_filtered_depth_mm: 1820, raw_unfiltered_depth_mm: 1830, dh_dt_mm_min: 2, sigma_d2_mm2: 1.5, turbulence_index: 0.9, capacity_pct: 91,
+      anomaly_class: 'TRASH_BLOCKAGE', anomaly_code: 2, payload_hex: '0x5B0088AC', payload_uint32: 0x5b0088ac, vbat_v: 4.04, temperature_c: 20, raw_burst_mm: [90] } as unknown as LiveSensor;
+    const frame = { sensors: { 'EN-08': sensor }, hardware_override: { sensor_id: 'EN-08', age_s: 1.5, scope: 'single_node' as const } };
+    const p = wifiPacketFromFrame(frame, 10_000)!;
+    expect(p).toMatchObject({ origin: 'WIFI_NODE', sensorId: 'EN-08', ts: 8_500, capacityPct: 91, distanceMm: 90, scope: 'single_node' });
+    expect(p.fillPct).toBeCloseTo(91, 9);
+    expect(rigLabel(p)).toBe('Wi-Fi ESP32-S3 node');
+    // the aquarium simulator also posts to the backend: its echo must not pose as a physical board
+    expect(wifiPacketFromFrame({ ...frame, sensors: { 'EN-08': { ...sensor, transport: null } } }, 10_000)).toBeNull();
+    expect(wifiPacketFromFrame({ ...frame, hardware_override: null }, 10_000)).toBeNull();
+  });
+  it('status lines from the sketch never parse as distances', () => {
+    for (const line of ['LINK_STATUS:WIFI_UP ip=192.168.0.77 rssi=-55 http=200 ok=120 fail=0', 'LINK_STATUS:WIFI_DOWN wifi_status=1 ssid=Lab',
+      'SENSOR_FAULT:NO_ECHO check TRIG, ECHO and HC-SR04 power', '# PC unreachable: check SERVER_IP, that npm start is running, and that both are on one network']) {
+      expect(parseSerialLine(line)).toBeNull();
+    }
   });
   it('raises the map banner at >= 80 % full', () => {
     const p = drive(new HardwareRig(cfg()), Array(30).fill(85), 0.6).at(-1)!;

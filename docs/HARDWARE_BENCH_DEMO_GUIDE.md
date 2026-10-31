@@ -210,3 +210,116 @@ This runs the same pipeline as the firmware (`backend/edge_dsp.py::run_cycle`, w
 - Copy `include/secrets.example.h` to `include/secrets.h`. Set `LORAWAN_ENABLED 1` and your
   OTAA keys (AS923-3, FPort 10). Point the network server's webhook at
   `POST /api/v1/ingest/lorawan`, which accepts The Things Stack v3 uplinks directly.
+
+---
+
+## 7. ESP32-S3 + HC-SR04 + microSD on an HW-131 supply (Wi-Fi node)
+
+This rig runs `firmware/universal_hcsr04_node`. The board does the whole edge pipeline, logs to the
+card, and posts to the backend over Wi-Fi. No cable to the PC is needed.
+
+### 7.1 Wiring
+
+This is the wiring the bench rig runs on. Set one HW-131 rail to **3.3 V** and the other to **5 V**.
+Feed the module from a 9 V battery snap clip with a 2.1 mm DC barrel plug.
+
+| Component | Pin | Connect to |
+|---|---|---|
+| ESP32-S3 | 3.3V | HW-131 3.3 V rail (+) |
+| ESP32-S3 | GND | HW-131 GND rail (−) |
+| SD card module | VCC | HW-131 **5 V** rail (+) |
+| SD card module | GND | HW-131 GND rail (−) |
+| SD card module | CS | ESP32-S3 GPIO10 |
+| SD card module | MOSI | ESP32-S3 GPIO11 |
+| SD card module | SCK / CLK | ESP32-S3 GPIO12 |
+| SD card module | MISO | ESP32-S3 GPIO13 |
+| HC-SR04 | VCC | HW-131 3.3 V rail (+) |
+| HC-SR04 | GND | HW-131 GND rail (−) |
+| HC-SR04 | TRIG | ESP32-S3 GPIO5 |
+| HC-SR04 | ECHO | ESP32-S3 GPIO18 |
+
+The HC-SR04 runs on 3.3 V, so ECHO is a 3.3 V signal and connects straight to GPIO18 with no
+divider. If the sensor is ever moved to 5 V, ECHO needs a divider first, because ESP32-S3 pins are
+not 5 V tolerant. Keep the ESP32-S3's 3.3V pin on the 3.3 V rail only.
+
+LEDs are optional: GPIO7 / 8 / 9 for green / yellow / red, each with 220–330 Ω. Format the card
+FAT32 (32 GB or smaller).
+
+### 7.2 Power
+
+A 9 V PP3 battery is the weak point of this rig. Current passes straight through the linear
+regulators, so the cell supplies the board's full draw, and it sags under Wi-Fi peaks. Expect a
+couple of hours at best (an estimate, not measured). Resets with Wi-Fi active usually mean a tired
+battery. The sketch lowers Wi-Fi TX power to 8.5 dBm for this reason. For longer runs use a 6×AA
+pack on the barrel jack.
+
+### 7.3 Flash
+
+1. Copy `node_config.example.h` to `node_config.h` in the sketch folder. Set `WIFI_SSID`,
+   `WIFI_PASSWORD`, `SERVER_IP` (the PC's Wi-Fi IPv4 address from `ipconfig`) and `TANK_HEIGHT_MM`
+   (measured from the sensor face to the tank floor).
+2. The ESP32-S3 joins **2.4 GHz only**. If the router splits its bands, use the 2.4 GHz name. The PC
+   may stay on 5 GHz if the router bridges both bands.
+3. In Arduino IDE: board **ESP32S3 Dev Module**. If you plug into the board's native USB port, also
+   set **USB CDC On Boot: Enabled**, or the Serial Monitor stays empty.
+4. Upload, then open the Serial Monitor at 115200 baud.
+
+### 7.4 Check it
+
+| Serial line | Meaning |
+|---|---|
+| `SD_STATUS:OK_SPI_CARD` | Card mounted. `OK_FLASH_FAILSAFE` means it did not: check wiring and format. It retries every 30 s |
+| `[EDGE_TX] {...}` five times a second | Sensor reading |
+| `LINK_STATUS:WIFI_UP ... http=200` | Readings are reaching the backend |
+| `LINK_STATUS:WIFI_UP ... http=-1` | Wi-Fi works, PC unreachable: check `SERVER_IP`, `npm start`, and router guest or client isolation |
+| `LINK_STATUS:WIFI_DOWN wifi_status=1` | Network not found: wrong SSID, or 5 GHz only |
+| `SENSOR_FAULT:NO_ECHO` | No echo since boot: check TRIG (GPIO5), ECHO (GPIO18) and sensor power |
+
+On the PC, `http://localhost:8000/api/v1/sensors/EN-08` should show `"origin": "HARDWARE"` and
+`"transport": "WIFI"`. The map must be in **Live Weather** mode: it shows the banner
+"LIVE SENSOR ALERT — EN-08 AT NN% CAPACITY" at 80 % and above, sourced from "Wi-Fi ESP32-S3 node".
+Simulation Mode closes the backend connection, so board data does not show there.
+
+### 7.5 What is measured and what is not
+
+- **Measured:** distance, and everything derived from it (fill, depth, rate of rise, anomaly class).
+- **Not measured:** air temperature (`AIR_TEMP_C` is a fixed setting) and battery voltage (a fixed
+  4.05 V, so the map's battery figure means nothing on this rig). `/telemetry_log.csv` on the card
+  holds the readable log. `unix_time` is 0 until the board has synced its clock over Wi-Fi.
+
+---
+
+## 8. Baseline test: can the ESP32-S3 reach Vercel?
+
+`firmware/vercel_baseline_test` is a small standalone sketch for one question: does a reading get from
+the board to our Vercel deployment? It uses the §7 wiring (the SD card is not used) and posts to the
+Vercel function `api/esp32.js`. The function stores nothing and the 3D map does not see these
+readings. Uploading this sketch replaces `universal_hcsr04_node` on the board, so upload that one
+again afterwards.
+
+1. **Deploy.** Get `api/esp32.js` into the Vercel project (commit and push, if Vercel builds from the
+   repository). Open `https://YOUR-PROJECT.vercel.app/api/esp32` in a browser: you should see
+   `{"ok":true,"service":"esp32-baseline",...}`.
+2. **Configure.** In `firmware/vercel_baseline_test/node_config.h` set `WIFI_PASSWORD`, `VERCEL_URL`
+   (production URL, `https://`, no trailing slash) and, if wanted, `ALARM_PCT`.
+3. **Upload and watch** the Serial Monitor at 115200 baud.
+
+**It worked when both of these are true:**
+- Serial Monitor shows `POST seq=1 -> HTTP 200 in ... ms`, followed by `RESP {"ok":true,...}`.
+- Vercel's project **Logs** page shows `[esp32] {...}` with the same `seq`.
+
+Raise the water above the threshold to test the alarm. `level` changes to `ALARM`, the board posts at
+once instead of waiting for the next 10 s post, and the Vercel log line appears as a warning.
+
+| Result | Meaning |
+|---|---|
+| `HTTP -1` | No HTTPS connection: wrong `VERCEL_URL`, or no internet on this Wi-Fi |
+| `HTTP 401` or `403` | Vercel Deployment Protection: use the production URL, not a preview URL |
+| `HTTP 404` | `api/esp32.js` is not deployed at that URL |
+| `HTTP 301`, `307` or `308` | Redirect: use `https://` and no trailing slash |
+| `WIFI down` | Wrong SSID or password, or the network is 5 GHz only |
+| `level=NO_ECHO` with `HTTP 200` | The link works; the sensor did not answer |
+
+The baseline has no authentication, and the board does not verify Vercel's certificate
+(`setInsecure`). That is acceptable while nothing acts on these readings. Fix both before anything
+real depends on them.
